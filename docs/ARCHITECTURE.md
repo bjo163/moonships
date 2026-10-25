@@ -84,7 +84,7 @@ The desktop shell enforces a single-instance policy. When a second launch occurs
 
 ## Local SQLite storage location
 
-The desktop app must store its SQLite database beneath Tauri's platform-specific per-user application data directory, never relative to the process current working directory. The initial database filename is `moonships.sqlite3`. The native storage adapter creates the application data directory if needed and opens SQLite through the Rust `rusqlite` adapter. Database schema migrations, foreign-key enforcement, and busy-timeout policy are separate follow-up tasks and must not be implied by opening the initial connection.
+The desktop app must store its SQLite database beneath Tauri's platform-specific per-user application data directory, never relative to the process current working directory. The initial database filename is `moonships.sqlite3`. The native storage adapter creates the application data directory if needed and opens SQLite through the Rust `rusqlite` adapter. Every connection enables SQLite foreign-key enforcement and configures a bounded 5,000 ms busy timeout before it is returned to callers.
 
 ## Transactional schema migrations
 
