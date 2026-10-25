@@ -75,3 +75,27 @@ describe("Moonships application shell", () => {
     expect(markup).toContain('href="#/overview"');
   });
 });
+
+
+describe("semantic design token contract", () => {
+  it("defines both theme palettes and keeps the proposed palette explicitly uncertified", async () => {
+    const { readFileSync } = await import("node:fs");
+    const stylesheet = readFileSync(new URL("./index.css", import.meta.url), "utf8");
+    expect(stylesheet).toContain("palette is NOT contrast-certified");
+    expect(stylesheet).toContain(':root[data-theme="light"]');
+    expect(stylesheet).toContain("--color-canvas");
+    expect(stylesheet).toContain("--color-text-primary");
+    expect(stylesheet).toContain("--color-status-warning");
+    expect(stylesheet).toContain("--space-4");
+    expect(stylesheet).toContain("--font-ui");
+    expect(stylesheet).toContain("--radius-card");
+    expect(stylesheet).toContain("--motion-normal");
+  });
+
+  it("uses design tokens for component colors instead of raw color literals", async () => {
+    const { readFileSync } = await import("node:fs");
+    const stylesheet = readFileSync(new URL("./index.css", import.meta.url), "utf8");
+    const componentStyles = stylesheet.split("/* Component styles */")[1] ?? stylesheet.slice(stylesheet.indexOf("* { box-sizing"));
+    expect(componentStyles).not.toMatch(/#[0-9a-fA-F]{3,8}\\b/);
+  });
+});
