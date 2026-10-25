@@ -82,6 +82,19 @@ docs/
 
 The desktop shell enforces a single-instance policy. When a second launch occurs, it must bring the existing `main` window to the foreground rather than create a confusing duplicate workspace. The tray's explicit Quit action exits the process; Hide only hides the window. If background workers are introduced, their shutdown hooks must run before explicit process exit.
 
+## Tauri command DTO conventions
+
+Every frontend-to-native command must use an explicit, named request/response contract once it crosses the Tauri IPC boundary. Do not expose internal domain structs directly as a long-lived IPC schema.
+
+- Define request and response DTOs in Rust with Serde `Deserialize` / `Serialize`; use `#[serde(rename_all = "camelCase", deny_unknown_fields)]` for predictable JSON naming and rejection of unexpected request fields.
+- Use a named command parameter such as `request: SomeRequestDto`, so the frontend payload is explicit: `invoke("command_name", { request: { ... } })`.
+- Return `Result<ResponseDto, String>` while the stable application error-code mapping is being generalized. Do not convert failures into success-shaped defaults.
+- Validate semantic constraints inside the native command even when deserialization succeeds. DTO deserialization checks shape and types; it does not replace authorization, range checks, or policy enforcement.
+- Type the frontend result with the corresponding response shape; keep request and response fields aligned with the Rust DTO.
+- Add contract tests for field names, unknown-field policy, failure behavior and the frontend invocation shape. Treat changes to published DTO fields as compatibility changes.
+
+The hide-to-tray preference command is the first reference implementation: both read and write return `HideToTrayPreferenceDto { enabled: bool }`; writes accept it under the `request` argument.
+
 ## 4. Tool contract
 
 A registered tool defines:
