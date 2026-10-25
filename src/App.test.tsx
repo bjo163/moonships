@@ -235,3 +235,21 @@ describe("semantic design token contract", () => {
     expect(componentStyles).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
   });
 });
+
+
+describe("SQLite connection safety contract", () => {
+  it("enables foreign keys and configures a bounded busy timeout on every connection", async () => {
+    const { readFileSync } = await import("node:fs");
+    const rustSource = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
+    const architecture = readFileSync(new URL("../docs/ARCHITECTURE.md", import.meta.url), "utf8");
+
+    expect(rustSource).toContain("const DATABASE_BUSY_TIMEOUT_MS: u64 = 5_000;");
+    expect(rustSource).toContain("busy_timeout(Duration::from_millis(DATABASE_BUSY_TIMEOUT_MS))");
+    expect(rustSource).toContain('execute_batch("PRAGMA foreign_keys = ON;")');
+    expect(rustSource).toContain('query_row("PRAGMA foreign_keys"');
+    expect(rustSource).toContain("foreign_key_violation_is_rejected_on_opened_connection");
+    expect(rustSource).toContain("every_opened_connection_enables_foreign_keys_and_sets_busy_timeout");
+    expect(architecture).toContain("Every connection enables SQLite foreign-key enforcement");
+    expect(architecture).toContain("5,000 ms busy timeout");
+  });
+});
