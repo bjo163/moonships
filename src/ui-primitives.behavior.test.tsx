@@ -49,7 +49,9 @@ describe("M1-041 DOM interaction and accessibility", () => {
     await user.click(trigger);
     const dialog = screen.getByRole("dialog", { name: "Preferences" });
     expect(dialog.contains(document.activeElement)).toBe(true);
-    expect(document.activeElement).toBe(within(dialog).getByRole("button", { name: "Close dialog" }));
+    expect(document.activeElement).toBe(
+      within(dialog).getByRole("button", { name: "Close dialog" }),
+    );
     expect(dialog.getAttribute("aria-describedby")).toBe(
       within(dialog).getByText("Configure this workspace").id,
     );
@@ -126,7 +128,11 @@ describe("M1-041 DOM interaction and accessibility", () => {
     const { rerender } = render(
       <>
         <p id="external-description">Public project name</p>
-        <Input label="Project name" hint="Use a short title" aria-describedby="external-description" />
+        <Input
+          label="Project name"
+          hint="Use a short title"
+          aria-describedby="external-description"
+        />
       </>,
     );
     const input = screen.getByRole("textbox", { name: "Project name" });
@@ -161,8 +167,12 @@ describe("M1-041 DOM interaction and accessibility", () => {
     const onClick = vi.fn();
     render(
       <>
-        <Button disabled onClick={onClick}>Unavailable</Button>
-        <Button loading loadingLabel="Saving" onClick={onClick}>Save</Button>
+        <Button disabled onClick={onClick}>
+          Unavailable
+        </Button>
+        <Button loading loadingLabel="Saving" onClick={onClick}>
+          Save
+        </Button>
         <Button onClick={onClick}>Continue</Button>
       </>,
     );
