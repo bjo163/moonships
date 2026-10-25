@@ -1,0 +1,293 @@
+.ms-button {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md, 0.7rem);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-weight: var(--weight-semibold, 600);
+  gap: var(--space-2, 0.5rem);
+  justify-content: center;
+  line-height: 1.25;
+  min-height: 2.25rem;
+  padding: 0.55rem 0.9rem;
+  transition:
+    background-color var(--motion-fast, 120ms) var(--ease-standard, ease),
+    border-color var(--motion-fast, 120ms) var(--ease-standard, ease),
+    color var(--motion-fast, 120ms) var(--ease-standard, ease);
+}
+
+.ms-button:focus-visible,
+.ms-input:focus-visible {
+  outline: var(--focus-width, 2px) solid var(--color-focus, #a69bff);
+  outline-offset: var(--focus-offset, 3px);
+}
+
+.ms-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.ms-button--primary {
+  background: var(--color-accent, #a69bff);
+  color: var(--color-text-inverse, #172033);
+}
+
+.ms-button--primary:hover:not(:disabled) {
+  background: var(--color-accent-hover, #b9b0ff);
+}
+
+.ms-button--secondary {
+  background: var(--color-surface-raised, #182536);
+  border-color: var(--color-border-strong, #40536a);
+  color: var(--color-text-primary, #f1f5f9);
+}
+
+.ms-button--secondary:hover:not(:disabled),
+.ms-button--ghost:hover:not(:disabled) {
+  background: var(--color-surface-raised, #182536);
+}
+
+.ms-button--ghost {
+  background: transparent;
+  color: var(--color-text-primary, #f1f5f9);
+}
+
+.ms-button--danger {
+  background: var(--color-status-danger-surface, #351a20);
+  border-color: var(--color-status-danger, #f87171);
+  color: var(--color-status-danger-text, #fecaca);
+}
+
+.ms-button--sm {
+  min-height: 1.9rem;
+  padding: 0.35rem 0.6rem;
+}
+
+.ms-button--lg {
+  min-height: 2.75rem;
+  padding: 0.75rem 1.1rem;
+}
+
+.ms-field {
+  display: grid;
+  gap: var(--space-2, 0.5rem);
+  min-width: 0;
+}
+
+.ms-label {
+  color: var(--color-text-primary, #f1f5f9);
+  font-size: var(--text-sm, 0.75rem);
+  font-weight: var(--weight-semibold, 600);
+}
+
+.ms-input {
+  background: var(--color-surface, #121c28);
+  border: 1px solid var(--color-border-strong, #40536a);
+  border-radius: var(--radius-sm, 0.45rem);
+  color: var(--color-text-primary, #f1f5f9);
+  font: inherit;
+  min-height: 2.5rem;
+  min-width: 0;
+  padding: 0.6rem 0.75rem;
+  width: 100%;
+}
+
+.ms-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.ms-input--invalid {
+  border-color: var(--color-status-danger, #f87171);
+}
+
+.ms-hint,
+.ms-error {
+  font-size: var(--text-sm, 0.75rem);
+  margin: 0;
+}
+
+.ms-hint {
+  color: var(--color-text-muted, #a8b5c5);
+}
+
+.ms-error {
+  color: var(--color-status-danger-text, #fecaca);
+}
+
+.ms-badge {
+  align-items: center;
+  border: 1px solid var(--color-border, #2a394b);
+  border-radius: var(--radius-pill, 999px);
+  display: inline-flex;
+  font-size: var(--text-xs, 0.625rem);
+  font-weight: var(--weight-semibold, 600);
+  gap: 0.35rem;
+  line-height: 1.4;
+  padding: 0.2rem 0.55rem;
+}
+
+.ms-badge--neutral {
+  background: var(--color-surface-raised, #182536);
+  color: var(--color-text-muted, #a8b5c5);
+}
+
+.ms-badge--success {
+  background: var(--color-status-success-surface, #102c24);
+  color: var(--color-status-success-text, #9ae6b4);
+}
+
+.ms-badge--warning {
+  background: var(--color-status-warning-surface, #332612);
+  color: var(--color-status-warning-text, #fbd38d);
+}
+
+.ms-badge--danger {
+  background: var(--color-status-danger-surface, #351a20);
+  color: var(--color-status-danger-text, #fecaca);
+}
+
+.ms-badge--info {
+  background: var(--color-status-info-surface, #172b46);
+  color: var(--color-status-info-text, #bfdbfe);
+}
+
+.ms-dialog-backdrop {
+  align-items: center;
+  background: rgb(0 0 0 / 58%);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  overflow: auto;
+  padding: var(--space-4, 1rem);
+  position: fixed;
+  z-index: 1000;
+}
+
+.ms-dialog {
+  background: var(--color-overlay, #0e1520);
+  border: 1px solid var(--color-border-strong, #40536a);
+  border-radius: var(--radius-lg, 1rem);
+  box-shadow: var(--shadow-dialog, 0 16px 48px rgb(0 0 0 / 24%));
+  color: var(--color-text-primary, #f1f5f9);
+  max-height: calc(100vh - 2rem);
+  max-width: min(38rem, 100%);
+  overflow: auto;
+  width: 100%;
+}
+
+.ms-dialog__header {
+  align-items: flex-start;
+  border-bottom: 1px solid var(--color-border, #2a394b);
+  display: flex;
+  gap: var(--space-4, 1rem);
+  justify-content: space-between;
+  padding: var(--space-5, 1.25rem);
+}
+
+.ms-dialog__header h2,
+.ms-state h2 {
+  font-size: var(--text-lg, 1rem);
+  margin: 0;
+}
+
+.ms-dialog__header p,
+.ms-state p,
+.ms-toast p {
+  color: var(--color-text-muted, #a8b5c5);
+  margin: var(--space-2, 0.5rem) 0 0;
+}
+
+.ms-dialog__content {
+  padding: var(--space-5, 1.25rem);
+}
+
+.ms-toast {
+  background: var(--color-surface-raised, #182536);
+  border: 1px solid var(--color-border-strong, #40536a);
+  border-radius: var(--radius-md, 0.7rem);
+  color: var(--color-text-primary, #f1f5f9);
+  padding: var(--space-4, 1rem);
+}
+
+.ms-toast--error {
+  background: var(--color-status-danger-surface, #351a20);
+  border-color: var(--color-status-danger, #f87171);
+}
+
+.ms-state {
+  align-items: flex-start;
+  border: 1px solid var(--color-border, #2a394b);
+  border-radius: var(--radius-lg, 1rem);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 0.5rem);
+  padding: var(--space-6, 1.5rem);
+}
+
+.ms-state__mark {
+  color: var(--color-accent, #a69bff);
+  font-size: var(--text-xl, 1.25rem);
+  font-weight: var(--weight-bold, 700);
+}
+
+.ms-state__action {
+  margin-top: var(--space-2, 0.5rem);
+}
+
+.ms-loading-state {
+  align-items: center;
+  flex-direction: row;
+}
+
+.ms-error-state {
+  background: var(--color-status-danger-surface, #351a20);
+  border-color: var(--color-status-danger, #f87171);
+}
+
+.ms-spinner {
+  animation: ms-spin 0.8s linear infinite;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  display: inline-block;
+  flex: 0 0 auto;
+  height: 1rem;
+  width: 1rem;
+}
+
+@keyframes ms-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ms-button {
+    transition: none;
+  }
+
+  .ms-spinner {
+    animation-duration: 2s;
+  }
+}
+
+.ms-progress {
+  display: grid;
+  gap: var(--space-2, 0.5rem);
+}
+
+.ms-progress__label {
+  color: var(--color-text-muted, #a8b5c5);
+  display: flex;
+  font-size: var(--text-sm, 0.75rem);
+  gap: var(--space-3, 0.75rem);
+  justify-content: space-between;
+}
+
+.ms-progress__track {
+  accent-color: var(--color-accent, #a69bff);
+  height: 0.5rem;
+  width: 100%;
+}
