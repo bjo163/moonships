@@ -94,6 +94,10 @@ jobs:
             git commit -m "style: apply Biome formatting for alpha.2 release"
             if ($LASTEXITCODE -ne 0) { throw "Could not commit formatter output." }
             $pushUrl = "https://x-access-token:$env:GH_TOKEN@github.com/$env:GITHUB_REPOSITORY.git"
+            git fetch $pushUrl $env:GITHUB_REF_NAME
+            if ($LASTEXITCODE -ne 0) { throw "Could not fetch the latest release branch before pushing formatter output." }
+            git rebase FETCH_HEAD
+            if ($LASTEXITCODE -ne 0) { throw "Could not rebase formatter output onto the latest release branch." }
             git push $pushUrl "HEAD:$env:GITHUB_REF_NAME"
             if ($LASTEXITCODE -ne 0) { throw "Could not push formatter commit to the release branch." }
             Write-Host "Formatting commit pushed. A fresh workflow run will validate the exact committed source."
