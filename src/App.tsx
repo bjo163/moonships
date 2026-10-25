@@ -167,16 +167,30 @@ export function SettingsDialog({
   }, [onClose]);
 
   return (
-    <div className="settings-backdrop" role="presentation" onMouseDown={(event) => {
-      if (event.target === event.currentTarget) onClose();
-    }}>
-      <section className="settings-dialog" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div
+      className="settings-backdrop"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section
+        className="settings-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settings-title"
+      >
         <div className="settings-dialog-header">
           <div>
             <p className="eyebrow">WORKSPACE / PREFERENCES</p>
             <h2 id="settings-title">Settings</h2>
           </div>
-          <button className="settings-close" type="button" onClick={onClose} aria-label="Close settings">
+          <button
+            className="settings-close"
+            type="button"
+            onClick={onClose}
+            aria-label="Close settings"
+          >
             Close
           </button>
         </div>
@@ -189,7 +203,9 @@ export function SettingsDialog({
             Switch to {theme === "dark" ? "light" : "dark"} theme
           </button>
         </div>
-        <p className="settings-note">Other preferences will appear here when their controls are implemented.</p>
+        <p className="settings-note">
+          Other preferences will appear here when their controls are implemented.
+        </p>
       </section>
     </div>
   );

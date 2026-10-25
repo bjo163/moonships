@@ -9,8 +9,7 @@ pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
             let open = MenuItem::with_id(app, "open", "Open Moonships", true, None::<&str>)?;
-            let settings =
-                MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
+            let settings = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
             let separator = PredefinedMenuItem::separator(app)?;
             let quit = MenuItem::with_id(app, "quit", "Quit Moonships", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&open, &settings, &separator, &quit])?;
