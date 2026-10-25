@@ -30,13 +30,23 @@ describe("Moonships application shell", () => {
 
   it("renders an accessible Settings dialog with a working theme action and close control", () => {
     const markup = renderToStaticMarkup(
-      <SettingsDialog theme="dark" onToggleTheme={() => {}} onClose={() => {}} />,
+      <SettingsDialog
+        theme="dark"
+        onToggleTheme={() => {}}
+        onClose={() => {}}
+        hideToTray={false}
+        hideToTrayStatus="Preference loaded from this device."
+        onToggleHideToTray={() => {}}
+      />,
     );
 
     expect(markup).toContain('role="dialog" aria-modal="true" aria-labelledby="settings-title"');
     expect(markup).toContain("Settings");
     expect(markup).toContain("Switch to light theme");
     expect(markup).toContain('aria-label="Close settings"');
+    expect(markup).toContain('type="checkbox"');
+    expect(markup).toContain("Hide to tray on close");
+    expect(markup).toContain('role="status" aria-live="polite"');
   });
 
   it("keeps shared navigation and header around replaceable page content", () => {
@@ -133,6 +143,11 @@ describe("system tray integration contract", () => {
     expect(rustSource).toContain('"quit"');
     expect(rustSource).toContain('app.emit("tray-settings", ())');
     expect(rustSource).toContain("app.exit(0)");
+    expect(rustSource).toContain('"get_hide_to_tray"');
+    expect(rustSource).toContain('"set_hide_to_tray"');
+    expect(rustSource).toContain("CloseRequested");
+    expect(rustSource).toContain("window.hide()");
+    expect(rustSource).toContain("hide_to_tray_enabled");
   });
 });
 

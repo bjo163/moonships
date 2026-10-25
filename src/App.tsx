@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
 import { resolveRoute, type RouteResolution } from "./route-registry";
 import {
   applyThemePreference,
@@ -153,10 +154,16 @@ export function SettingsDialog({
   theme,
   onToggleTheme,
   onClose,
+  hideToTray,
+  hideToTrayStatus,
+  onToggleHideToTray,
 }: {
   theme: ThemePreference;
   onToggleTheme: () => void;
   onClose: () => void;
+  hideToTray: boolean;
+  hideToTrayStatus: string;
+  onToggleHideToTray: () => void;
 }) {
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -197,8 +204,22 @@ export function SettingsDialog({
             Switch to {theme === "dark" ? "light" : "dark"} theme
           </button>
         </div>
-        <p className="settings-note">
-          Other preferences will appear here when their controls are implemented.
+        <div className="settings-row">
+          <div>
+            <h3>Window behavior</h3>
+            <p>Keep Moonships running in the system tray when you close the window.</p>
+          </div>
+          <label className="settings-checkbox">
+            <input
+              type="checkbox"
+              checked={hideToTray}
+              onChange={onToggleHideToTray}
+            />
+            <span>Hide to tray on close</span>
+          </label>
+        </div>
+        <p className="settings-note" role="status" aria-live="polite">
+          {hideToTrayStatus}
         </p>
       </section>
     </div>
@@ -241,6 +262,8 @@ export default function App() {
     readThemePreference(getBrowserStorage()),
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [hideToTray, setHideToTray] = useState(false);
+  const [hideToTrayStatus, setHideToTrayStatus] = useState("Loading preference…");
 
   useEffect(() => {
     applyThemePreference(theme, document.documentElement);
@@ -250,6 +273,37 @@ export default function App() {
     const nextTheme: ThemePreference = theme === "dark" ? "light" : "dark";
     writeThemePreference(nextTheme, getBrowserStorage());
     setTheme(nextTheme);
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    void invoke<boolean>("get_hide_to_tray")
+      .then((enabled) => {
+        if (!cancelled) {
+          setHideToTray(enabled);
+          setHideToTrayStatus("Preference loaded from this device.");
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setHideToTrayStatus("System tray preferences require the Moonships desktop app.");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const toggleHideToTray = () => {
+    const nextValue = !hideToTray;
+    setHideToTray(nextValue);
+    setHideToTrayStatus("Saving preference…");
+    void invoke("set_hide_to_tray", { enabled: nextValue })
+      .then(() => setHideToTrayStatus("Preference saved on this device."))
+      .catch(() => {
+        setHideToTray(!nextValue);
+        setHideToTrayStatus("Could not save. Open Settings in the Moonships desktop app.");
+      });
   };
 
   useEffect(() => {
@@ -289,6 +343,9 @@ export default function App() {
           theme={theme}
           onToggleTheme={toggleTheme}
           onClose={() => setSettingsOpen(false)}
+          hideToTray={hideToTray}
+          hideToTrayStatus={hideToTrayStatus}
+          onToggleHideToTray={toggleHideToTray}
         />
       ) : null}
     </AppShell>
