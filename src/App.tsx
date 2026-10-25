@@ -4,7 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { resolveRoute, type RouteResolution } from "./route-registry";
 import { CommandPalette } from "./CommandPalette";
 import { getPaletteCommands, getRegisteredCommand } from "./command-registry";
-import { getWorkspaceProfile, readWorkspaceProfile, writeWorkspaceProfile, type WorkspaceProfileId } from "./workspace-profile";
+import { getWorkspaceProfile, readWorkspaceProfile, writeWorkspaceProfile, WORKSPACE_PROFILES, type WorkspaceProfileId } from "./workspace-profile";
 import { describeModuleAvailability, type ModuleAvailability } from "./module-availability";
 import {
   applyThemePreference,
