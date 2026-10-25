@@ -167,6 +167,22 @@ describe("system tray integration contract", () => {
   });
 });
 
+describe("SQLite schema migration contract", () => {
+  it("runs versioned migrations before desktop startup completes", async () => {
+    const { readFileSync } = await import("node:fs");
+    const rustSource = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
+    const architecture = readFileSync(new URL("../docs/ARCHITECTURE.md", import.meta.url), "utf8");
+
+    expect(rustSource).toContain("fn run_migrations(connection: &mut Connection)");
+    expect(rustSource).toContain("CREATE TABLE IF NOT EXISTS schema_migrations");
+    expect(rustSource).toContain("INSERT INTO schema_migrations (version) VALUES (1)");
+    expect(rustSource).toContain("transaction.commit()");
+    expect(rustSource).toContain("run_migrations(&mut database)");
+    expect(rustSource).toContain("fresh_database_migration_persists_schema_version_and_is_idempotent");
+    expect(architecture).toContain("Each migration and its version record must commit in one SQLite transaction");
+  });
+});
+
 describe("SQLite storage path contract", () => {
   it("opens the database beneath Tauri's per-user app data directory", async () => {
     const { readFileSync } = await import("node:fs");
