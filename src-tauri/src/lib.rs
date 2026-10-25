@@ -148,11 +148,48 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::hide_to_tray_enabled;
+    use super::{database_path, hide_to_tray_enabled, open_database_in, DATABASE_FILE_NAME};
     use std::{
         fs,
+        path::Path,
         time::{SystemTime, UNIX_EPOCH},
     };
+
+    fn unique_temp_dir(label: &str) -> std::path::PathBuf {
+        std::env::temp_dir().join(format!(
+            "moonships-{label}-{}",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ))
+    }
+
+    #[test]
+    fn database_uses_named_file_inside_the_supplied_app_data_directory() {
+        let app_data_dir = Path::new("user-data").join("Moonships");
+        assert_eq!(
+            database_path(&app_data_dir),
+            app_data_dir.join(DATABASE_FILE_NAME)
+        );
+        assert_eq!(DATABASE_FILE_NAME, "moonships.sqlite3");
+    }
+
+    #[test]
+    fn opening_database_creates_directory_and_file_under_given_path() {
+        let app_data_dir = unique_temp_dir("sqlite");
+        let expected_database = database_path(&app_data_dir);
+
+        let connection = open_database_in(&app_data_dir).expect("database should open");
+        connection
+            .execute("CREATE TABLE smoke_test (id INTEGER PRIMARY KEY)", [])
+            .expect("connection should execute SQL");
+        drop(connection);
+
+        assert!(app_data_dir.is_dir());
+        assert!(expected_database.is_file());
+        let _ = fs::remove_dir_all(app_data_dir);
+    }
 
     #[test]
     fn hide_to_tray_preference_is_fail_closed_when_missing_or_invalid() {
