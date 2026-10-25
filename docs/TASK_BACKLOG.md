@@ -21,15 +21,15 @@
 
 ## M0 — Product contract and repository hygiene
 
-- [ ] **M0-001 — Verify the documentation index** [S] — Check all README links resolve to repository files. **AC:** no broken internal Markdown links.
-- [ ] **M0-002 — Check menu names against module catalogue** [S] — Compare UX menu and Product Blueprint. **AC:** every listed module has a domain/roadmap status; no menu implies an unbuilt feature is live.
-- [ ] **M0-003 — Choose project license or explicitly defer it** [S] — Record owner decision; do not invent a license. **AC:** decision and implications are recorded; no misleading license badge exists.
-- [ ] **M0-004 — Create ADR template** [S] — Add a short template for status, context, decision, alternatives and consequences. **AC:** one example/template is linked from architecture docs.
-- [ ] **M0-005 — Record desktop-stack decision** [S] — Create ADR for Tauri 2 + Rust + React/TS + Vite. **AC:** trade-offs, alternatives and revisit triggers are written down.
-- [ ] **M0-006 — Record local-first and cloud-sync non-goals** [S] — Make data-flow assumptions explicit. **AC:** docs say core works without account/required backend.
-- [ ] **M0-007 — Record World Monitor licensing boundary** [S] — Document that its source implementation is not copied without legal review. **AC:** source link and AGPL-3.0-only caution are present.
-- [ ] **M0-008 — Define supported Windows test matrix** [S] — Set primary/recommended OS and best-effort OS. **AC:** Windows 11 primary and Windows 10 lifecycle note documented.
-- [ ] **M0-009 — Define task completion evidence rule** [S] — Add PR/task template language. **AC:** every code task requires tests or a reason tests do not apply.
+- [x] **M0-001 — Verify the documentation index** [S] — Check all README links resolve to repository files. **AC:** no broken internal Markdown links.
+- [x] **M0-002 — Check menu names against module catalogue** [S] — Compare UX menu and Product Blueprint. **AC:** every listed module has a domain/roadmap status; no menu implies an unbuilt feature is live.
+- [x] **M0-003 — Choose project license or explicitly defer it** [S] — Record owner decision; do not invent a license. **AC:** decision and implications are recorded; no misleading license badge exists.
+- [x] **M0-004 — Create ADR template** [S] — Add a short template for status, context, decision, alternatives and consequences. **AC:** one example/template is linked from architecture docs.
+- [x] **M0-005 — Record desktop-stack decision** [S] — Create ADR for Tauri 2 + Rust + React/TS + Vite. **AC:** trade-offs, alternatives and revisit triggers are written down.
+- [x] **M0-006 — Record local-first and cloud-sync non-goals** [S] — Make data-flow assumptions explicit. **AC:** docs say core works without account/required backend.
+- [x] **M0-007 — Record World Monitor licensing boundary** [S] — Document that its source implementation is not copied without legal review. **AC:** source link and AGPL-3.0-only caution are present.
+- [x] **M0-008 — Define supported Windows test matrix** [S] — Set primary/recommended OS and best-effort OS. **AC:** Windows 11 primary and Windows 10 lifecycle note documented.
+- [x] **M0-009 — Define task completion evidence rule** [S] — Add PR/task template language. **AC:** every code task requires tests or a reason tests do not apply.
 
 ## M1 — Desktop foundation
 
