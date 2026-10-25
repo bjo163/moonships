@@ -158,8 +158,19 @@ function getInitialRoute(): RouteResolution {
   return resolveRoute(typeof window === "undefined" ? "#/overview" : window.location.hash);
 }
 
+function getBrowserStorage(): Storage | undefined {
+  try {
+    return window.localStorage;
+  } catch {
+    return undefined;
+  }
+}
+
 export default function App() {
   const [route, setRoute] = useState<RouteResolution>(getInitialRoute);
+  const [theme, setTheme] = useState<ThemePreference>(() =>
+    readThemePreference(getBrowserStorage()),
+  );
 
   useEffect(() => {
     applyThemePreference(theme, document.documentElement);
