@@ -46,7 +46,7 @@ Coverage grows by adding tested modules and integrations. The project must not c
 | **Automate** | Compose repeatable work | Workflow engine, schedules, integrations, AI gateway, optional MCP adapters |
 | **Knowledge** | Preserve operational context | Notes, runbooks, evidence, reports, references and activity history |
 
-See [Product Blueprint](docs/PRODUCT_BLUEPRINT.md) for the detailed catalogue and scope.
+See [Product Blueprint](docs/PRODUCT_BLUEPRINT.md) for the detailed catalogue and scope. See [Project & Task Management](docs/PROJECT_TASK_MANAGEMENT.md) for the first-class work-tracking specification.
 
 ## Planned experience
 
@@ -72,7 +72,7 @@ Detailed menus, user flows and design rules live in [UX & Design](docs/UX_AND_DE
 
 Start with a **modular monolith**, not microservices. Split into separate crates/processes only when a boundary has proven value. Do not build cloud sync, a plugin marketplace, remote agents or multi-agent orchestration into the first release.
 
-Read [Architecture](docs/ARCHITECTURE.md), [Data Model](docs/DATA_MODEL.md), and [Security Model](docs/SECURITY_MODEL.md).
+Read [Architecture](docs/ARCHITECTURE.md), [Data Model](docs/DATA_MODEL.md), [Project & Task Management](docs/PROJECT_TASK_MANAGEMENT.md), and [Security Model](docs/SECURITY_MODEL.md).
 
 ## Delivery plan
 
@@ -97,7 +97,8 @@ The milestones and granular checkboxes are maintained in [Milestones](docs/MILES
 3. Review [Architecture](docs/ARCHITECTURE.md) and [Data Model](docs/DATA_MODEL.md).
 4. Understand the [Security Model](docs/SECURITY_MODEL.md).
 5. Pick the first unchecked task in [Task Backlog](docs/TASK_BACKLOG.md), respecting its dependencies.
-6. Follow [AI Agent Guide](docs/AI_AGENT_GUIDE.md) before changing code.
+6. Follow [AI Agent Guide](docs/AI_AGENT_GUIDE.md) and root [AGENTS.md](AGENTS.md) before changing code.
+7. Review [Research & Decisions](docs/RESEARCH_AND_DECISIONS.md) for licensing and unresolved owner decisions.
 
 ## Repository map
 
@@ -107,8 +108,14 @@ moonships-workbench/
 ├── AGENTS.md
 ├── CONTRIBUTING.md
 ├── TODO.md
+├── .editorconfig
+├── .gitignore
+├── .github/
+│   ├── PULL_REQUEST_TEMPLATE.md
+│   └── ISSUE_TEMPLATE/
 └── docs/
     ├── PRODUCT_BLUEPRINT.md
+    ├── PROJECT_TASK_MANAGEMENT.md
     ├── UX_AND_DESIGN.md
     ├── ARCHITECTURE.md
     ├── DATA_MODEL.md
@@ -127,7 +134,7 @@ The architecture is informed by official and primary references, including:
 
 - [Tauri 2 capabilities](https://v2.tauri.app/security/capabilities/) and [Tauri project](https://github.com/tauri-apps/tauri) for the desktop shell, WebView and permission boundaries.
 - [Tauri system tray](https://v2.tauri.app/learn/system-tray/) and [updater plugin](https://v2.tauri.app/plugin/updater/) for desktop lifecycle and release strategy.
-- [Model Context Protocol specification](https://modelcontextprotocol.io/specification/2025-11-25) for an optional interoperable tool adapter; pin a tested version and review updates before adoption.
+- [Model Context Protocol](https://modelcontextprotocol.io/) and the [2026-07-28 specification announcement](https://blog.modelcontextprotocol.io/posts/2026-07-28/) for an optional interoperable tool adapter; pin a tested version and review updates before adoption.
 - [OpenTelemetry signals](https://opentelemetry.io/docs/concepts/signals/) for interoperable logs, metrics and traces.
 - [OWASP ASVS](https://asvs.owasp.org/) for application-security verification practices.
 - [GitHub Projects documentation](https://docs.github.com/en/issues/planning-and-tracking-with-projects/learning-about-projects/about-projects) for issue/project/board/roadmap concepts.
