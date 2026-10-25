@@ -1,6 +1,6 @@
 # UX, Navigation & Design Specification
 
-**Status:** Proposed baseline — the first UI must validate this spec through implementation and user testing.  
+**Status:** Canonical for information architecture, user journeys and low-fidelity layouts; visual tokens/components are governed by [Design System](DESIGN_SYSTEM.md), and sound behavior by [Audio & SFX Specification](AUDIO_SFX_SPEC.md).  
 **Target:** Windows desktop with main window, System Tray and keyboard-first controls.
 
 ## 1. Experience principles
@@ -266,57 +266,9 @@ Required behaviors:
 5. On failure, show clear recovery instructions and preserve diagnostics.
 6. Never install unsigned/unverified updates silently.
 
-## 8. Visual design system
+## 8. Visual design system (delegated)
 
-### Personality
-- Technical, confident, modern, slightly futuristic, not a noisy hacker stereotype.
-- Dark theme as default, light theme available.
-- Use restrained accent colors; prioritize readability over neon glow.
-- Charts and maps support decision-making rather than decoration.
-
-### Layout
-- Desktop baseline: 1440×900.
-- Sidebar width target: 240–264 px expanded, 64–72 px collapsed.
-- Top bar: 56–64 px.
-- Standard page padding: 24 px; compact surfaces can use 16 px.
-- Use consistent 4/8 px spacing units; avoid arbitrary one-off spacing.
-- Use resizable main content where table/inspector workflows benefit.
-
-### Typography and density
-- Use a readable system/UI sans-serif for interface text.
-- Distinguish page title, section title, body, metadata, code and tabular figures.
-- Use tabular numerals for sizes, counts, latency and time.
-- Support compact tables for technical users while preserving readable row height.
-
-### Color semantics
-- Neutral surfaces for ordinary content.
-- One primary accent for navigation/focus.
-- Green/positive only for verified success; red for errors or destructive risk; amber for warning/stale; blue for information.
-- Never use color alone to convey status; include text/icon/accessible label.
-- Risk labels (read-only, change, destructive, privileged, remote) must be explicit.
-
-### Components
-- AppShell, Sidebar, TopBar, CommandPalette, Breadcrumbs
-- PageHeader, SearchField, FilterBar, DataTable, Board, Timeline
-- StatusBadge, PriorityBadge, RiskBadge, SourceBadge
-- EmptyState, LoadingState, ErrorState, OfflineState, StaleState
-- ProgressPanel, CancellationButton, PreviewDialog, ConfirmDialog
-- Toast/notification, ActivityFeed, ArtifactList, SourceCitation
-- SettingsRow, PermissionSummary, KeyboardShortcutHint
-
-### Motion
-- Use subtle 120–200 ms transitions for small UI changes.
-- Respect reduced-motion preferences.
-- Never animate continuously just to make a dashboard appear active.
-- Avoid heavy background blur/particle effects that increase resource consumption.
-
-### Accessibility
-- All primary flows work using keyboard.
-- Visible focus rings and logical focus order.
-- Semantic headings, labels, ARIA where needed, contrast checks.
-- Dialogs trap focus and return focus to their trigger.
-- Screen-reader-friendly status/progress/error announcements.
-- Do not use color as the only error/success signal.
+The visual identity, canonical design tokens, component variants, motion rules, accessibility contract, asset manifest and visual QA gates are defined in [Design System](DESIGN_SYSTEM.md). Do not define parallel colors, spacing scales or component behavior here. The UX spec owns the information architecture and page-level intent; implementation must follow the canonical design system.
 
 ## 9. UI states that every feature must define
 
@@ -452,6 +404,7 @@ General                           Startup behavior (opt-in)
 Appearance                        Theme and density
 Startup & Tray                    Close-to-tray / launch-at-login / tray icon
 Notifications                     Categories and quiet behavior
+Sound & SFX                       Master toggle, mode, volume and test preview (off by default)
 Data & Privacy                    Storage location / export / delete / network usage
 Modules                           Enabled / planned / unsupported
 Permissions & Security            Capabilities / approvals / active scopes
@@ -462,37 +415,20 @@ Diagnostics                       Logs / redaction / export
 About                             Version / licenses / documentation
 ```
 
-## 12. Initial design tokens
+## 12. Design token source of truth
 
-Use semantic tokens, not direct colors sprinkled through components. Values below are a proposed dark-theme starting point; measure contrast and adjust before release.
-
-| Token | Proposed dark value | Use |
-|---|---|---|
-| `--bg-app` | `#0B1017` | Root background |
-| `--bg-sidebar` | `#0E1520` | Sidebar |
-| `--surface-1` | `#121C28` | Cards/panels |
-| `--surface-2` | `#182536` | Hover/raised surfaces |
-| `--border-subtle` | `#2A394B` | Borders/dividers |
-| `--text-primary` | `#F1F5F9` | Main text |
-| `--text-secondary` | `#A8B5C5` | Supporting text |
-| `--accent-primary` | `#8B7CFF` | Primary action/focus accent |
-| `--accent-secondary` | `#38BDF8` | Links/secondary signal |
-| `--status-success` | `#22C55E` | Verified success |
-| `--status-warning` | `#F59E0B` | Caution/stale |
-| `--status-danger` | `#F87171` | Errors/destructive actions |
-
-Provide light-theme semantic equivalents; do not simply invert RGB values. Use a system sans-serif stack initially to avoid bundling an unreviewed font; choose and license a brand font only after a deliberate visual-assets decision.
+The proposed palette, semantic token names, typography, spacing, radii, elevation, density and motion tokens are maintained only in [Design System](DESIGN_SYSTEM.md). Values are proposals until implemented and measured for contrast in both themes.
 
 ## 13. UI design review checklist
 
-- [ ] At 1280×720, primary navigation and main task/tool content remain usable.
-- [ ] At 1440×900, content does not stretch so wide that reading tables/detail panels is difficult.
-- [ ] Sidebar can collapse without losing navigation labels to screen readers.
-- [ ] Primary action, secondary action and destructive action are visually distinct.
-- [ ] Every table has a meaningful empty state and column labels.
-- [ ] Every async action shows progress and a terminal result/error.
-- [ ] Map, graphs and badges include textual alternatives/source metadata.
-- [ ] User can identify whether data is local, stale, online-fetched, or model-generated.
-- [ ] Color contrast is checked against WCAG 2.2 AA targets before stable release.
-- [ ] Motion respects reduced-motion preferences.
-- [ ] Tray and keyboard workflows are documented and testable.
+Use the full screen matrix, screenshot evidence requirements and accessibility gates in [Design System](DESIGN_SYSTEM.md). This UX-specific checklist confirms navigation and page intent only:
+
+- [ ] Sidebar labels and page hierarchy match the menu spec.
+- [ ] No menu entry implies that an unimplemented module works.
+- [ ] Global search works on local commands without AI.
+- [ ] Focus order and keyboard shortcuts are documented.
+- [ ] Empty/loading/offline/stale/permission-denied/error states are designed.
+- [ ] Destructive operations require preview and separate confirmation.
+- [ ] Tray lifecycle follows user settings and supports a genuine Quit path.
+- [ ] Long tasks show progress and only advertise cancellation when supported.
+- [ ] All primary interactions have keyboard support and visible focus.
