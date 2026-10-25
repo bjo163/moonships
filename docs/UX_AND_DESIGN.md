@@ -418,3 +418,8 @@ About                             Version / licenses / documentation
 ## 12. Design token source of truth
 
 The proposed palette, semantic token names, typography, spacing, radii, elevation, density and motion tokens are maintained only in [Design System](DESIGN_SYSTEM.md). Values are proposals until implemented and measured for contrast in both themes.
+
+
+## Workspace profile onboarding (M1-034)
+
+On first launch, offer six local workspace profiles: Developer, Network / NOC, Sysadmin, Security / Research, Intelligence / Research, and Custom. A profile only selects suggested pinned sections/layout hints; it never grants permissions, enables a module, or starts a tool. The profile selector remains available from the top bar so users can change it later. The selected profile is stored in local WebView storage; it does not imply cloud sync or native permission state. If storage is unavailable, keep the selection for the current session and state that it was not persisted.
