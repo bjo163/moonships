@@ -257,3 +257,8 @@ When AI provider is unavailable, disable only AI-dependent workflows, not core l
 - DB migrations work from empty DB and from the previous schema version.
 - App restart cannot silently resume a destructive action.
 - Optional AI/MCP integrations can be disabled without breaking core.
+
+
+### Command Palette surface (M1-031)
+
+The Command Palette is a keyboard-first presentation surface over an explicitly supplied list of registered command descriptors. It performs deterministic local substring filtering across title, description, category and keywords; supports Arrow Up/Down and Enter while the search field is focused; and exposes accessible dialog/listbox semantics, category labels, risk labels, loading and empty states. The current shell intentionally supplies an empty command list until the typed registry and safe action wiring task is implemented. Selecting a result only calls the UI selection callback; the palette does not execute tools or grant permissions. Destructive, privileged and remote risk classes are visibly labelled for future preview/approval flows. Ctrl+K lifecycle and focus restoration are tracked separately in M1-033.
