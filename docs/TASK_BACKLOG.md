@@ -51,7 +51,7 @@
 - [x] **M1-012 — Add dark and light theme toggle** [S] — Persist non-secret preference. **AC:** theme remains selected after restart.
 - [x] **M1-013 — Add accessible focus and keyboard navigation** [S] — Sidebar, buttons, dialogs and search. **AC:** primary shell can be operated without a mouse.
 - [x] **M1-014 — Implement tray icon and context menu** [S] — Open, Settings and Quit for first pass. **AC:** menu actions execute correctly in a Windows dev build.
-- [ ] **M1-015 — Implement hide-to-tray preference** [S] — Avoid implicit app exit on X when configured to hide. **AC:** window hides and can be restored; preference is persisted.
+- [x] **M1-015 — Implement hide-to-tray preference** [S] — Avoid implicit app exit on X when configured to hide. **AC:** window hides and can be restored; preference is persisted.
 - [ ] **M1-016 — Implement explicit Quit lifecycle** [S] — Stop workers and exit cleanly. **AC:** Quit ends process; ordinary Hide does not.
 - [ ] **M1-017 — Add single-instance behavior or document/test alternative** [S] — Avoid confusing duplicate windows. **AC:** second launch follows the chosen documented behavior.
 - [x] **M1-018 — Defer startup-at-login for the MVP** [S] — Keep automatic startup disabled; revisit only as an explicit later feature. **AC:** startup-at-login is documented as deferred and no automatic startup behavior is enabled in the MVP.
