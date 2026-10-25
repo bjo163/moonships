@@ -170,7 +170,7 @@ jobs:
             const allIssues = await github.paginate(github.rest.issues.listForRepo, {
               owner: owner, repo: repo, state: "all", per_page: 100
             });
-            const { preflightIssueSnapshot, planTaskAction, runWrite } = require("./scripts/backlog-sync-core.cjs");
+            const { preflightIssueSnapshot, planTaskAction, runWrite } = require(process.cwd() + "/scripts/backlog-sync-core.cjs");
             // Validate the complete issue snapshot before the first write. This makes malformed
             // managed blocks and reconciliation conflicts fail closed rather than mid-sync.
             const linkedIssues = preflightIssueSnapshot({ tasks: parsedTasks, issues: allIssues });
