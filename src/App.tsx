@@ -8,6 +8,7 @@ import {
   getWorkspaceProfile,
   readWorkspaceProfile,
   writeWorkspaceProfile,
+  WORKSPACE_PROFILES,
   type WorkspaceProfileId,
 } from "./workspace-profile";
 import { describeModuleAvailability, type ModuleAvailability } from "./module-availability";
