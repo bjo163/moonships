@@ -414,8 +414,8 @@ export function WorkspaceProfileDialog({
         ) : null}
         <p className="settings-note" id="profile-dialog-description">
           Profiles only change suggested pinned sections and layout preferences. They never grant
-          permissions, run tools, or enable background tasks. You can change your selection at any
-          time.
+          permissions or enable tools. Background tasks stay disabled unless separately configured.
+          You can change your selection at any time.
         </p>
         <div className="profile-options">
           {WORKSPACE_PROFILES.map((profile) => (

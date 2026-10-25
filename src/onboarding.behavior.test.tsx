@@ -18,7 +18,7 @@ describe("M1-034 first-run profile onboarding", () => {
 
     expect(within(dialog).getByText(/No account, cloud connection, or API key/)).toBeTruthy();
     expect(within(dialog).getByText(/startup with Windows are not enabled/)).toBeTruthy();
-    expect(within(dialog).getByText(/Profiles never grant permissions/)).toBeTruthy();
+    expect(within(dialog).getByText(/They never grant permissions or enable tools/)).toBeTruthy();
     expect(dialog.contains(document.activeElement)).toBe(true);
     await user.click(within(dialog).getByRole("button", { name: /Network \/ NOC/ }));
 
