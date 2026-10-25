@@ -12,9 +12,9 @@ This file is the short entry point. The detailed, atomic task source of truth is
 - [x] Add `.github/workflows/sync-backlog-to-issues.yml` with `workflow_dispatch` dry-run and main-branch backlog trigger.
 - [x] Add `scripts/validate-backlog.mjs` for duplicate IDs, dependency graph, milestone mapping, acceptance criteria and local links.
 - [ ] Review a **dry-run** from Actions.
-- [ ] Run the initial import with `dry_run = false` after reviewing the planned issue count.
-- [ ] Verify labels, milestones, task markers, duplicate prevention and checked-task closure.
-- [ ] Confirm future edits to `docs/TASK_BACKLOG.md` synchronize automatically on `main`.
+- [x] Complete the initial main-branch import and verify the issue count, task markers, labels and milestone assignments.
+- [x] Verify labels, milestones, stable task markers, duplicate prevention (no-op summary: 0 creates / 0 updates) and checked-task closure.
+- [x] Confirm edits to `docs/TASK_BACKLOG.md` synchronize automatically on `main`; edits to `docs/MILESTONES.md` also trigger sync.
 
 ## Foundation gate (M1)
 - [ ] Bootstrap Tauri 2 + React + TypeScript + Vite using current official template.
