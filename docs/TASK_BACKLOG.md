@@ -13,7 +13,7 @@
 - Do not silently change acceptance criteria. If a design conflict is discovered, stop and propose a doc/ADR change.
 - Mark an item checked only after the acceptance criteria pass and the implementation is committed/reviewable.
 - When finishing, report task ID, files changed, tests run/result, limitations, and the next unblocked task.
-- Keep actual GitHub issue state and this file synchronized if issues are later created. This file is the canonical backlog until then.
+- Keep actual GitHub issue state synchronized through the idempotent workflow in [TASK_ISSUE_SYNC.md](TASK_ISSUE_SYNC.md); this checklist remains the canonical task-status source.
 
 **Estimate:** S = 1 small independently reviewable change; M = split when practical. Estimates are planning hints, not deadlines.
 
