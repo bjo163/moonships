@@ -72,7 +72,7 @@ export function Input({
 }: InputProps) {
   const generatedId = useId();
   const inputId = id ?? `ms-input-${generatedId.replace(/:/g, "")}`;
-  const hintId = hint && inputId ? `${inputId}-hint` : undefined;
+  const hintId = hint && !error ? `${inputId}-hint` : undefined;
   const errorId = error && inputId ? `${inputId}-error` : undefined;
   const descriptionIds = [describedBy, hintId, errorId].filter(Boolean).join(" ") || undefined;
 
@@ -191,12 +191,14 @@ export function Dialog({ open, title, description, onClose, children, labelledBy
   if (!open) return null;
 
   return (
-    <div
-      className="ms-dialog-backdrop"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
+    <div className="ms-dialog-backdrop">
+      <button
+        type="button"
+        className="ms-dialog-backdrop-dismiss"
+        aria-hidden="true"
+        tabIndex={-1}
+        onClick={onClose}
+      />
       <section
         ref={dialogRef}
         className="ms-dialog"
