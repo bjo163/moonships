@@ -349,3 +349,150 @@ A screen is not done merely because its happy path renders.
 - [ ] Tray lifecycle follows user settings and supports a genuine Quit path.
 - [ ] Long tasks display progress and an honest cancellation capability.
 - [ ] All primary interactions have keyboard support and visible focus.
+
+
+## 11. Low-fidelity screen layouts
+
+These are functional wireframes, not final pixel-perfect mockups. Keep the same global shell and design tokens across domains.
+
+### Main window
+
+```text
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ MOONSHIPS  [Workspace ▾]       [ Search / Ctrl+K................ ] [Activity]│
+├──────────────────┬───────────────────────────────────────────────────────────┤
+│ Home             │ Page title                        [Primary action]       │
+│ My Work          │ Breadcrumb / scope / freshness                           │
+│ Projects         ├───────────────────────────────────────────────────────────┤
+│ Tasks            │                                                           │
+│ Toolbox          │ Main content                                               │
+│ Security         │ - Cards/tables/forms appropriate to this tool              │
+│ Intelligence     │ - Empty/loading/error states have the same layout          │
+│ Operations       │ - Evidence/source/date and risk are visible when relevant  │
+│ Knowledge        │                                                           │
+│ Integrations     │                                                           │
+│ Settings         │                                                           │
+├──────────────────┴───────────────────────────────────────────────────────────┤
+│ Status: Local workspace · Active jobs: 0 · Data freshness / connectivity     │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Home / command center
+
+```text
+[Good morning / active profile]                              [New task] [Tools]
+[Search everything: projects, tasks, tools, notes, sources]               
+
+[My Work: overdue] [Due soon] [Blocked] [Waiting approval] [Active jobs]
+
+[Continue working: recent project/task/tool]
+┌────────────────────────────────┐ ┌─────────────────────────────────────────┐
+│ Projects in progress            │ │ Recent activity / active jobs           │
+│ project + progress + next step  │ │ status + time + result + open details    │
+└────────────────────────────────┘ └─────────────────────────────────────────┘
+[Optional system/source status widgets only when they have real data]
+```
+
+Do not show fabricated CPU/network/World Monitor data. First-run Home should show next steps, not empty decorative graphs.
+
+### Project detail
+
+```text
+Projects / MOONSHIPS
+[Name] [Status] [Edit] [More]
+Goal / summary / target date / project health with explainable criteria
+[Overview] [Tasks] [Roadmap] [Notes & Artifacts] [Activity] [Settings]
+Tasks: [List | Board]   [Search] [Filters] [New task]
+```
+
+### Task detail
+
+```text
+[Task title] [Status] [Priority] [Save]
+Project / parent / labels / due date
+Description
+Acceptance criteria (if work item)
+Subtasks / dependencies
+Linked artifacts (tool run, issue, source, report, URL)
+Activity history (who/what/time; local profile in MVP)
+```
+
+Keep basic task creation short. Expand advanced fields only on demand.
+
+### Cleaner result screen
+
+```text
+Clean & Storage                                   [Start scan]
+[Category checkboxes]  Scan status / last scan / scope disclaimer
+[Estimated recoverable space] (estimate, not guaranteed actual freed space)
+┌ Select │ Category │ Item summary │ Size │ Status / skip reason ┐
+[Preview selected actions] [Clean selected — only after preview/approval]
+Results: removed / skipped / failed / actual bytes freed
+```
+
+No candidate is actionable until it passes policy; an unsafe candidate should be omitted or visibly blocked, not merely unchecked by default.
+
+### Intelligence monitor
+
+```text
+[World Monitor] [Topic / region / source filters] [Freshness indicator]
+[Map or timeline view]                         [List of source-attributed items]
+[Category / source / published time / observed time / freshness]
+[Trend panel: metric + window + baseline + coverage/uncertainty]
+[Save to Research] [Create task] [Open source]
+```
+
+A map is optional until source location precision, rights, coverage and update cadence are documented. List/timeline remains useful when mapping data is unavailable.
+
+### Settings
+
+```text
+Settings navigation               Current section
+General                           Startup behavior (opt-in)
+Appearance                        Theme and density
+Startup & Tray                    Close-to-tray / launch-at-login / tray icon
+Notifications                     Categories and quiet behavior
+Data & Privacy                    Storage location / export / delete / network usage
+Modules                           Enabled / planned / unsupported
+Permissions & Security            Capabilities / approvals / active scopes
+AI Providers                      Optional provider setup / data handling
+Integrations                      Connected state / permission / rate limits
+Updates                           Version / channel / signature status
+Diagnostics                       Logs / redaction / export
+About                             Version / licenses / documentation
+```
+
+## 12. Initial design tokens
+
+Use semantic tokens, not direct colors sprinkled through components. Values below are a proposed dark-theme starting point; measure contrast and adjust before release.
+
+| Token | Proposed dark value | Use |
+|---|---|---|
+| `--bg-app` | `#0B1017` | Root background |
+| `--bg-sidebar` | `#0E1520` | Sidebar |
+| `--surface-1` | `#121C28` | Cards/panels |
+| `--surface-2` | `#182536` | Hover/raised surfaces |
+| `--border-subtle` | `#2A394B` | Borders/dividers |
+| `--text-primary` | `#F1F5F9` | Main text |
+| `--text-secondary` | `#A8B5C5` | Supporting text |
+| `--accent-primary` | `#8B7CFF` | Primary action/focus accent |
+| `--accent-secondary` | `#38BDF8` | Links/secondary signal |
+| `--status-success` | `#22C55E` | Verified success |
+| `--status-warning` | `#F59E0B` | Caution/stale |
+| `--status-danger` | `#F87171` | Errors/destructive actions |
+
+Provide light-theme semantic equivalents; do not simply invert RGB values. Use a system sans-serif stack initially to avoid bundling an unreviewed font; choose and license a brand font only after a deliberate visual-assets decision.
+
+## 13. UI design review checklist
+
+- [ ] At 1280×720, primary navigation and main task/tool content remain usable.
+- [ ] At 1440×900, content does not stretch so wide that reading tables/detail panels is difficult.
+- [ ] Sidebar can collapse without losing navigation labels to screen readers.
+- [ ] Primary action, secondary action and destructive action are visually distinct.
+- [ ] Every table has a meaningful empty state and column labels.
+- [ ] Every async action shows progress and a terminal result/error.
+- [ ] Map, graphs and badges include textual alternatives/source metadata.
+- [ ] User can identify whether data is local, stale, online-fetched, or model-generated.
+- [ ] Color contrast is checked against WCAG 2.2 AA targets before stable release.
+- [ ] Motion respects reduced-motion preferences.
+- [ ] Tray and keyboard workflows are documented and testable.
