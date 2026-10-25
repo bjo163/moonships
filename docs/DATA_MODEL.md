@@ -26,7 +26,7 @@ Optional in MVP if it would delay basic project/task delivery.
 
 ### Project
 Fields: id, workspace_id, key?, name, description?, goal?, status, color_token?, start_date?, target_date?, archived_at?, created_at, updated_at.
-Project key is user-friendly metadata, not the primary ID. Avoid forcing a repository path or Git provider.
+Project key is user-friendly metadata, not the primary ID. Avoid forcing a repository path or Git provider. The M2-002 schema-v3 migration creates a workspace-scoped `projects` table with `project_key` optional and unique when supplied within a workspace; `name` cannot be blank, `status` defaults to `planned`, and workspace references are foreign-key enforced. The project UUID/ULID identifier will be supplied by the future create service; this migration does not generate entities or grant permissions.
 Statuses: planned, active, paused, completed, archived.
 
 ### Milestone

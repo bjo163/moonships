@@ -42,7 +42,7 @@ fn open_database_in(app_data_dir: &Path) -> Result<Connection, String> {
     Ok(connection)
 }
 
-const CURRENT_SCHEMA_VERSION: i64 = 2;
+const CURRENT_SCHEMA_VERSION: i64 = 3;
 const PERSONAL_WORKSPACE_ID: &str = "00000000-0000-4000-8000-000000000001";
 
 fn run_migrations(connection: &mut Connection) -> Result<(), String> {
@@ -108,6 +108,33 @@ fn run_migrations(connection: &mut Connection) -> Result<(), String> {
         transaction
             .execute("INSERT INTO schema_migrations (version) VALUES (2)", [])
             .map_err(|error| format!("Could not record workspace migration: {error}"))?;
+    }
+
+    if current_version < 3 {
+        transaction
+            .execute_batch(
+                "CREATE TABLE projects (
+                    id TEXT PRIMARY KEY NOT NULL,
+                    workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE RESTRICT,
+                    project_key TEXT,
+                    name TEXT NOT NULL CHECK (length(trim(name)) > 0),
+                    description TEXT,
+                    goal TEXT,
+                    status TEXT NOT NULL DEFAULT 'planned'
+                        CHECK (status IN ('planned', 'active', 'paused', 'completed', 'archived')),
+                    color_token TEXT,
+                    start_date TEXT,
+                    target_date TEXT,
+                    archived_at TEXT,
+                    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+                    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+                    UNIQUE (workspace_id, project_key)
+                );
+                CREATE INDEX idx_projects_workspace_status
+                    ON projects (workspace_id, status);
+                INSERT INTO schema_migrations (version) VALUES (3);",
+            )
+            .map_err(|error| format!("Could not apply project schema migration: {error}"))?;
     }
 
     transaction
@@ -464,6 +491,130 @@ mod tests {
             })
             .expect("workspace schema version should exist");
         assert_eq!(current_version, CURRENT_SCHEMA_VERSION);
+
+        drop(connection);
+        let _ = fs::remove_dir_all(app_data_dir);
+    }
+
+    #[test]
+    fn project_migration_enforces_workspace_scope_name_and_canonical_status() {
+        let app_data_dir = unique_temp_dir("projects");
+        let mut connection = open_database_in(&app_data_dir).expect("database should open");
+        run_migrations(&mut connection).expect("project migration should succeed");
+
+        connection
+            .execute(
+                "INSERT INTO projects (id, workspace_id, name) VALUES (?1, ?2, ?3)",
+                rusqlite::params!["project-1", PERSONAL_WORKSPACE_ID, "Moonships"],
+            )
+            .expect("minimal project should be created with defaults");
+
+        let (status, created_at, updated_at): (String, String, String) = connection
+            .query_row(
+                "SELECT status, created_at, updated_at FROM projects WHERE id = 'project-1'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .expect("project defaults should persist");
+        assert_eq!(status, "planned");
+        assert!(!created_at.is_empty());
+        assert!(!updated_at.is_empty());
+
+        assert!(connection
+            .execute(
+                "INSERT INTO projects (id, workspace_id, name) VALUES (?1, ?2, ?3)",
+                rusqlite::params!["invalid-name", PERSONAL_WORKSPACE_ID, "   "],
+            )
+            .is_err());
+        assert!(connection
+            .execute(
+                "INSERT INTO projects (id, workspace_id, name) VALUES (?1, ?2, ?3)",
+                rusqlite::params!["invalid-workspace", "missing-workspace", "Example"],
+            )
+            .is_err());
+        assert!(connection
+            .execute(
+                "INSERT INTO projects (id, workspace_id, name, status) VALUES (?1, ?2, ?3, ?4)",
+                rusqlite::params!["invalid-status", PERSONAL_WORKSPACE_ID, "Example", "unknown"],
+            )
+            .is_err());
+
+        connection
+            .execute(
+                "INSERT INTO projects (id, workspace_id, name, project_key)
+                 VALUES (?1, ?2, ?3, ?4)",
+                rusqlite::params!["unique-project", PERSONAL_WORKSPACE_ID, "Unique", "MOON"],
+            )
+            .expect("unique key should save");
+        assert!(connection
+            .execute(
+                "INSERT INTO projects (id, workspace_id, name, project_key)
+                 VALUES (?1, ?2, ?3, ?4)",
+                rusqlite::params!["duplicate-project", PERSONAL_WORKSPACE_ID, "Duplicate", "MOON"],
+            )
+            .is_err());
+
+        run_migrations(&mut connection).expect("project migration should not duplicate data");
+        let count: i64 = connection
+            .query_row("SELECT COUNT(*) FROM projects", [], |row| row.get(0))
+            .expect("project count should be readable");
+        assert_eq!(count, 2);
+        drop(connection);
+        let _ = fs::remove_dir_all(app_data_dir);
+    }
+
+    #[test]
+    fn upgrading_v2_preserves_existing_workspaces_and_app_settings() {
+        let app_data_dir = unique_temp_dir("projects-upgrade");
+        let mut connection = open_database_in(&app_data_dir).expect("database should open");
+        connection
+            .execute_batch(
+                "CREATE TABLE schema_migrations (
+                    version INTEGER PRIMARY KEY,
+                    applied_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+                );
+                INSERT INTO schema_migrations (version) VALUES (1);
+                INSERT INTO schema_migrations (version) VALUES (2);
+                CREATE TABLE app_metadata (
+                    key TEXT PRIMARY KEY NOT NULL,
+                    value TEXT NOT NULL
+                );
+                INSERT INTO app_metadata (key, value) VALUES ('existing', 'keep-existing');
+                CREATE TABLE workspaces (
+                    id TEXT PRIMARY KEY NOT NULL,
+                    name TEXT NOT NULL,
+                    description TEXT,
+                    profile_type TEXT,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    archived_at TEXT
+                );
+                INSERT INTO workspaces (id, name, created_at, updated_at)
+                VALUES ('my-existing-workspace', 'Saved Workspace', '2026-01-01', '2026-01-01');",
+            )
+            .expect("v2 fixture should be created");
+
+        run_migrations(&mut connection).expect("v2 to v3 migration should succeed");
+        run_migrations(&mut connection).expect("repeated migration should be safe");
+        let saved: (String, String) = connection
+            .query_row(
+                "SELECT id, name FROM workspaces",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .expect("existing workspace should remain");
+        assert_eq!(saved.0, "my-existing-workspace");
+        assert_eq!(saved.1, "Saved Workspace");
+        let metadata: String = connection
+            .query_row("SELECT value FROM app_metadata WHERE key = 'existing'", [], |row| {
+                row.get(0)
+            })
+            .expect("settings must remain");
+        assert_eq!(metadata, "keep-existing");
+        let project_count: i64 = connection
+            .query_row("SELECT COUNT(*) FROM projects", [], |row| row.get(0))
+            .expect("new projects table must exist");
+        assert_eq!(project_count, 0);
 
         drop(connection);
         let _ = fs::remove_dir_all(app_data_dir);
