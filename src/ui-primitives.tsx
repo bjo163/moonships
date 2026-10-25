@@ -70,7 +70,8 @@ export function Input({
   "aria-describedby": describedBy,
   ...props
 }: InputProps) {
-  const inputId = id ?? props.name;
+  const generatedId = useId();
+  const inputId = id ?? `ms-input-${generatedId.replace(/:/g, "")}`;
   const hintId = hint && inputId ? `${inputId}-hint` : undefined;
   const errorId = error && inputId ? `${inputId}-error` : undefined;
   const descriptionIds = [describedBy, hintId, errorId].filter(Boolean).join(" ") || undefined;
