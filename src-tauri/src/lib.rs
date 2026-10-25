@@ -46,9 +46,10 @@ pub fn run() {
         .setup(|app| {
             let open = MenuItem::with_id(app, "open", "Open Moonships", true, None::<&str>)?;
             let settings = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
+            let hide = MenuItem::with_id(app, "hide", "Hide Window", true, None::<&str>)?;
             let separator = PredefinedMenuItem::separator(app)?;
             let quit = MenuItem::with_id(app, "quit", "Quit Moonships", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&open, &settings, &separator, &quit])?;
+            let menu = Menu::with_items(app, &[&open, &settings, &hide, &separator, &quit])?;
 
             let mut tray = TrayIconBuilder::new()
                 .menu(&menu)
@@ -69,6 +70,13 @@ pub fn run() {
                         }
                         let _ = app.emit("tray-settings", ());
                     }
+                    "hide" => {
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.hide();
+                        }
+                    }
+                    // There are no background worker services registered yet; when one is
+                    // introduced, its shutdown hook must run before this explicit exit.
                     "quit" => app.exit(0),
                     _ => {}
                 });
