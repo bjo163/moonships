@@ -96,6 +96,6 @@ describe("semantic design token contract", () => {
     const { readFileSync } = await import("node:fs");
     const stylesheet = readFileSync(new URL("./index.css", import.meta.url), "utf8");
     const componentStyles = stylesheet.slice(stylesheet.indexOf("* { box-sizing"));
-    expect(componentStyles).not.toMatch(/#[0-9a-fA-F]{3,8}\\b/);
+    expect(componentStyles).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
   });
 });
