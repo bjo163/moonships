@@ -9,7 +9,9 @@ This file is the short entry point. The detailed, atomic task source of truth is
 - [ ] Pick exactly one unblocked task from [Task Backlog](docs/TASK_BACKLOG.md).
 
 ## GitHub Issue synchronization
-- [ ] Review `.github/workflows/sync-backlog-to-issues.yml` and run a **dry-run** from Actions.
+- [x] Add `.github/workflows/sync-backlog-to-issues.yml` with `workflow_dispatch` dry-run and main-branch backlog trigger.
+- [x] Add `scripts/validate-backlog.mjs` for duplicate IDs, dependency graph, milestone mapping, acceptance criteria and local links.
+- [ ] Review a **dry-run** from Actions.
 - [ ] Run the initial import with `dry_run = false` after reviewing the planned issue count.
 - [ ] Verify labels, milestones, task markers, duplicate prevention and checked-task closure.
 - [ ] Confirm future edits to `docs/TASK_BACKLOG.md` synchronize automatically on `main`.
