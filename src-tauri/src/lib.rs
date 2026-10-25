@@ -193,7 +193,7 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::{database_path, hide_to_tray_enabled, open_database_in, DATABASE_FILE_NAME};
+    use super::{database_path, hide_to_tray_enabled, open_database_in, run_migrations, CURRENT_SCHEMA_VERSION, DATABASE_FILE_NAME};
     use std::{
         fs,
         path::Path,
@@ -233,6 +233,26 @@ mod tests {
 
         assert!(app_data_dir.is_dir());
         assert!(expected_database.is_file());
+        let _ = fs::remove_dir_all(app_data_dir);
+    }
+
+    #[test]
+    fn fresh_database_migration_persists_schema_version_and_is_idempotent() {
+        let app_data_dir = unique_temp_dir("migration");
+        let mut connection = open_database_in(&app_data_dir).expect("database should open");
+        run_migrations(&mut connection).expect("fresh migration should succeed");
+
+        let version: i64 = connection
+            .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| row.get(0))
+            .expect("schema version should be recorded");
+        assert_eq!(version, CURRENT_SCHEMA_VERSION);
+
+        run_migrations(&mut connection).expect("migration should be safe to rerun");
+        let version_after_rerun: i64 = connection
+            .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| row.get(0))
+            .expect("schema version should remain available");
+        assert_eq!(version_after_rerun, CURRENT_SCHEMA_VERSION);
+        drop(connection);
         let _ = fs::remove_dir_all(app_data_dir);
     }
 
