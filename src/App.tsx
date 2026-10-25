@@ -34,6 +34,7 @@ type AppShellProps = {
 export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
   return (
     <main className="app-frame">
+      <a className="skip-link" href="#main-content">Skip to main content</a>
       <aside className="rail" aria-label="Primary navigation">
         <a className="brand" href="#/overview" aria-label="Moonships home">
           <span className="brand-mark" aria-hidden="true">
@@ -83,7 +84,7 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
             </span>
           </div>
         </header>
-        <div className="page-content">{children}</div>
+        <div className="page-content" id="main-content" tabIndex={-1}>{children}</div>
       </section>
     </main>
   );
