@@ -203,6 +203,87 @@ Exit criteria:
 - [ ] Root LICENSE is intentionally chosen or the repository clearly states no license is granted.
 - [ ] Release artifacts and checksums/provenance are available.
 
+
+## M9 — Recovery & Data Protection (post-V1.0)
+
+Deliverables:
+- Explicit data classification and backup scope
+- Versioned backup manifest and integrity verification
+- Safe backup/restore preview, conflict rules and tested recovery
+- Optional scheduled backup only after user opt-in
+
+Exit criteria:
+- [ ] Backup scope excludes credentials and other secrets by default.
+- [ ] Restore has a preview and does not overwrite current data without a clear conflict decision.
+- [ ] Corrupted, oversized and path-traversal archives are rejected.
+- [ ] Backup/restore round-trip and failed-restore recovery are tested.
+- [ ] Scheduling is opt-in, visible, pausable and logged.
+- [ ] User documentation states what can and cannot be restored.
+
+## M10 — Knowledge & Operations Desk (post-V1.0)
+
+Deliverables:
+- Notes, collections, runbooks and source-linked knowledge
+- Incident/operations timeline and handoff workflow
+- Reports with provenance and redaction
+- Search adapters for knowledge records
+
+Exit criteria:
+- [ ] Notes/runbooks use versioned schemas and safe Markdown rendering.
+- [ ] Notes can link to projects, tasks, tool runs and intelligence items.
+- [ ] Incident severity, task priority and action risk remain separate fields.
+- [ ] Handoff/report exports preserve provenance and redact secrets.
+- [ ] Knowledge search has freshness/empty/error states and respects local scope.
+
+## M11 — Advanced Security & Research Integrations (post-V1.0)
+
+Deliverables:
+- Assessment run list/detail UI and evidence navigation
+- Permitted OSINT/threat-intelligence source adapters
+- Local binary/firmware inspection utilities
+- Isolated security-lab and external-tool integration boundary
+
+Exit criteria:
+- [ ] Every active assessment has a declared authorized scope and expiry/stop rule.
+- [ ] Public-source adapters document terms, attribution, rate limits and freshness.
+- [ ] Binary inspection treats samples as data and never executes them implicitly.
+- [ ] External security tools run through an explicit, bounded adapter contract.
+- [ ] Scope, timeouts, limits, evidence integrity and abort paths have negative tests.
+
+## M12 — Advanced World Monitor & Media Intelligence (post-V1.0)
+
+Deliverables:
+- Additional permitted media/video/transcript connectors
+- Optional browser automation adapter, isolated from the desktop core
+- Geospatial event layers and cross-source correlation
+- Personalized digests and more advanced trend baselines
+
+Exit criteria:
+- [ ] Each connector's terms, access method, rate limits and retention policy are recorded.
+- [ ] Browser automation does not bypass authentication, access controls or source restrictions.
+- [ ] Transcript segments retain source URL and timestamps where provided.
+- [ ] Geospatial confidence/precision is visible; uncertain locations are not shown as exact.
+- [ ] Correlation output distinguishes observed facts from interpretation and does not assert causation without evidence.
+- [ ] Alert/digest scheduling is opt-in, pausable and observable.
+
+## M13 — CLI, Vault, CostLens, Extensibility & Collaboration (post-V1.0)
+
+Deliverables:
+- CLI sharing Tool Registry contracts with GUI
+- Secure Credential Manager-backed vault UI
+- CostLens provider adapter
+- Reviewed extension isolation/signing design
+- Team-sync and remote-agent architecture studies before implementation
+
+Exit criteria:
+- [ ] CLI and GUI enforce the same policy and tool argument schema.
+- [ ] CLI structured output has versioned schemas and secret redaction.
+- [ ] Secret values are stored only through the reviewed OS-secure abstraction.
+- [ ] Cost results identify provider, currency, time window and missing-data caveats.
+- [ ] Extension model defines isolation, signing, permissions, version compatibility and revocation before third-party code is run.
+- [ ] Team sync has an explicit identity, authorization, conflict-resolution and deletion model.
+- [ ] Remote agents remain unimplemented until a separate threat model and approval architecture are accepted.
+
 ## Change control
 
 If scope changes:
