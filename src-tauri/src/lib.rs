@@ -119,7 +119,10 @@ mod tests {
     fn hide_to_tray_preference_accepts_only_true() {
         let path = std::env::temp_dir().join(format!(
             "moonships-hide-to-tray-{}",
-            SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos()
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
         ));
         fs::write(&path, "true").unwrap();
         assert!(hide_to_tray_enabled(&path));
