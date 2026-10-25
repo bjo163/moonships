@@ -29,14 +29,14 @@ Deliverables:
 - Source/research decisions and unresolved questions
 
 Exit criteria:
-- [ ] Planned vs implemented status is unambiguous.
-- [ ] Primary personas and non-goals are documented.
-- [ ] Project/task management is explicitly an MVP capability.
-- [ ] Navigation covers all domains without pretending planned pages are implemented.
-- [ ] Each implementation task has ID, dependency, bounded scope and verifiable acceptance criteria.
-- [ ] No unresolved licensing assumption permits copying third-party code without review.
-- [ ] Windows target/support policy and security baseline are documented.
-- [ ] Documentation links and paths are checked.
+- [x] Planned vs implemented status is unambiguous.
+- [x] Primary personas and non-goals are documented.
+- [x] Project/task management is explicitly an MVP capability.
+- [x] Navigation covers all domains without pretending planned pages are implemented.
+- [x] Each implementation task has ID, dependency, bounded scope and verifiable acceptance criteria.
+- [x] No unresolved licensing assumption permits copying third-party code without review.
+- [x] Windows target/support policy and security baseline are documented.
+- [x] Documentation links and paths are checked.
 
 ## M1 — Desktop Foundation
 
