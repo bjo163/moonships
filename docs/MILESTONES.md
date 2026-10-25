@@ -42,7 +42,9 @@ Exit criteria:
 
 Deliverables:
 - Tauri 2 + React + TypeScript + Vite app skeleton
-- Main window, navigation shell and proper tray lifecycle
+- Main window, navigation shell, Command Palette and proper tray lifecycle
+- First-run onboarding/profile selector that changes layout only
+- Idempotent backlog-to-GitHub-Issues workflow and dependency/link validator
 - Single-instance behavior or documented intentional alternative
 - General settings and per-user local data location
 - SQLite connection, migration runner, structured app error/logging
@@ -53,6 +55,9 @@ Exit criteria:
 - [ ] Fresh clone installs using documented steps.
 - [ ] Development app and Windows packaging build work in CI.
 - [ ] Main window opens, hides/shows from tray and exits cleanly.
+- [ ] Ctrl+K opens the Command Palette; navigation and safe create actions work without AI.
+- [ ] First-run profile selection persists and does not grant new permissions.
+- [ ] Backlog validator passes; task sync dry-run is reviewed and repeat sync creates no duplicates.
 - [ ] No background monitoring starts without explicit configuration.
 - [ ] Database initializes/migrates without destructive reset.
 - [ ] All commands validate arguments and expose stable error codes.
@@ -63,6 +68,8 @@ Exit criteria:
 
 Deliverables:
 - Workspace and personal work inbox
+- Home dashboard based only on real local project/task/activity records
+- Global search across currently available local projects, tasks and registered tools
 - Project create/read/update/archive
 - Task create/read/update/archive and status/priority
 - List and Kanban views
@@ -72,6 +79,8 @@ Deliverables:
 
 Exit criteria:
 - [ ] Create/edit/archive project and task; persist across restart.
+- [ ] Home dashboard counts are derived from persisted data and have honest empty/error states.
+- [ ] Global search finds local entities by type and is keyboard-navigable.
 - [ ] Task can exist without project (personal inbox).
 - [ ] Canonical statuses and priorities are consistent across views.
 - [ ] Filters/sorts do not mutate source records accidentally.
