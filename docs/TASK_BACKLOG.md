@@ -44,8 +44,8 @@
 - [x] **M1-007 — Add minimal test commands to CI** [S] — Run starter Rust and frontend tests. **AC:** CI shows separate, understandable test steps.
 
 ### App shell and system tray
-- [ ] **M1-008 — Implement main AppShell layout** [S] — Sidebar, top bar and content slot only. **AC:** route/page content can be swapped without duplicating shell.
-- [ ] **M1-009 — Add route registry for implemented pages** [S] — Use typed route IDs. **AC:** invalid route falls back to a not-found page instead of crashing.
+- [x] **M1-008 — Implement main AppShell layout** [S] — Sidebar, top bar and content slot only. **AC:** route/page content can be swapped without duplicating shell.
+- [x] **M1-009 — Add route registry for implemented pages** [S] — Use typed route IDs. **AC:** invalid route falls back to a not-found page instead of crashing.
 - [ ] **M1-010 — Add navigation menu from UX spec** [S] — Show only implemented items or explicit Planned state. **AC:** no dead menu links.
 - [ ] **M1-011 — Implement foundational semantic design tokens** [S] — Implement the initial theme, spacing and typography tokens from DESIGN_SYSTEM.md. **AC:** shell uses semantic variables rather than scattered literal values; dark/light preference works; proposed colors are explicitly not marked contrast-certified until measured.
 - [ ] **M1-012 — Add dark and light theme toggle** [S] — Persist non-secret preference. **AC:** theme remains selected after restart.
