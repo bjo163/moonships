@@ -50,6 +50,15 @@ References:
 
 Decision: use an appropriate ASVS subset alongside Tauri/Windows-specific threat analysis and dedicated tests for file deletion, process execution, updater, imports, secrets, and AI.
 
+### GitHub Actions supply-chain hardening
+GitHub's official secure-use guidance states that pinning actions to a full-length commit SHA is the immutable action reference method, and recommends choosing SHAs from the canonical upstream repository. The backlog-sync workflow is pinned to verified release commits:
+- `actions/checkout` v7.0.1 — `3d3c42e5aac5ba805825da76410c181273ba90b1`
+- `actions/github-script` v9.0.0 — `3a2844b7e9c422d3c10d287c895573f7108da1b3`
+
+Reference: https://docs.github.com/en/actions/reference/security/secure-use
+
+Decision: use full SHA pins with readable release-version comments and configure Dependabot to propose GitHub Actions updates. Review updates instead of automatically accepting them; verify workflow output and permissions after each update.
+
 ### Model Context Protocol (MCP)
 MCP is an interoperability protocol for exposing tools/resources/prompts to compatible clients, but the protocol and SDKs evolve. The 2026-07-28 specification announcement describes material protocol/security and extension changes.
 
