@@ -506,11 +506,7 @@ describe("M1-034 workspace profiles", () => {
   it("exposes the profile selector and states that profiles do not grant permissions", () => {
     const shellMarkup = renderToStaticMarkup(<App />);
     const dialogMarkup = renderToStaticMarkup(
-      <WorkspaceProfileDialog
-        currentProfile="developer"
-        onSelect={() => {}}
-        onClose={() => {}}
-      />,
+      <WorkspaceProfileDialog currentProfile="developer" onSelect={() => {}} onClose={() => {}} />,
     );
     expect(shellMarkup).toContain('aria-label="Change workspace profile"');
     expect(dialogMarkup).toContain(
