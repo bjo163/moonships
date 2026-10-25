@@ -14,7 +14,7 @@
 - Mark an item checked only after the acceptance criteria pass and the implementation is committed/reviewable.
 - When finishing, report task ID, files changed, tests run/result, limitations, and the next unblocked task.
 - Keep actual GitHub issue state synchronized through the idempotent workflow in [TASK_ISSUE_SYNC.md](TASK_ISSUE_SYNC.md); this checklist remains the canonical task-status source. Generated issue descriptions include task scope, acceptance criteria, estimated size, and declared dependency IDs.
-- Treat task IDs as permanent sync keys: do not renumber or remove a published task ID casually. Duplicate IDs, title collisions without a marker, malformed managed bodies, or managed issue IDs absent from the backlog must stop sync for explicit reconciliation.
+- Treat task IDs as permanent sync keys: do not renumber or remove a published task ID casually. Duplicate IDs, title collisions without a marker, malformed managed bodies, or managed issue IDs absent from the backlog must stop sync for explicit reconciliation. A no-op sync must leave issue count, issue IDs, and issue states unchanged.
 
 **Estimate:** S = 1 small independently reviewable change; M = split when practical. Estimates are planning hints, not deadlines.
 
