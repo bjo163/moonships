@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import App, { AppShell, NotFoundPage, SettingsDialog } from "./App";
 import { resolveRoute } from "./route-registry";
 import { CommandPalette, filterPaletteCommands, type PaletteCommand } from "./CommandPalette";
+import { COMMAND_REGISTRY, getRegisteredCommand, getPaletteCommands } from "./command-registry";
+import { getWorkspaceProfile, readWorkspaceProfile, writeWorkspaceProfile, WORKSPACE_PROFILES } from "./workspace-profile";
 
 describe("Moonships application shell", () => {
   it("renders the foundation status without claiming planned tools are live", () => {
@@ -405,5 +407,78 @@ describe("M1-031 Command Palette surface", () => {
     const markup = renderToStaticMarkup(<App />);
     expect(markup).toContain('aria-label="Open Command Palette"');
     expect(markup).not.toContain('id="command-palette-title"');
+  });
+});
+
+
+describe("M1-032 registered command safety", () => {
+  it("exposes only allowlisted command IDs and rejects unknown IDs", () => {
+    const commands = getPaletteCommands();
+    expect(commands.map((command) => command.id)).toEqual(COMMAND_REGISTRY.map((command) => command.id));
+    expect(getRegisteredCommand("navigation.overview")?.kind).toBe("navigate");
+    expect(getRegisteredCommand("settings.open")?.kind).toBe("settings");
+    expect(getRegisteredCommand("project.create")?.kind).toBe("preview");
+    expect(getRegisteredCommand("system.shell") ).toBeUndefined();
+    expect(commands.some((command) => command.id === "system.shell")).toBe(false);
+  });
+
+  it("routes all create actions to preview and never registers a direct executor", () => {
+    for (const id of ["project.create", "task.create", "note.create"]) {
+      expect(getRegisteredCommand(id)?.kind).toBe("preview");
+      expect(getRegisteredCommand(id)?.risk).toBe("state-change");
+    }
+    expect(COMMAND_REGISTRY.every((command) => !("execute" in command))).toBe(true);
+  });
+});
+
+describe("M1-033 Ctrl+K lifecycle contract", () => {
+  it("binds the shortcut while guarding editable controls and existing dialogs", async () => {
+    const { readFileSync } = await import("node:fs");
+    const source = readFileSync(new URL("./App.tsx", import.meta.url), "utf8");
+    expect(source).toContain('event.key.toLowerCase() !== "k"');
+    expect(source).toContain("isEditableTarget(event.target)");
+    expect(source).toContain('document.querySelector("[role=dialog]")');
+    expect(source).toContain("paletteTriggerRef.current?.focus()");
+    expect(source).toContain("paletteTriggerRef.current = document.activeElement");
+  });
+});
+
+describe("M1-034 workspace profiles", () => {
+  it("offers all six profiles and keeps pinned sections separate from permissions", () => {
+    expect(WORKSPACE_PROFILES.map((profile) => profile.id)).toEqual([
+      "developer",
+      "network_noc",
+      "sysadmin",
+      "security_research",
+      "intelligence_research",
+      "custom",
+    ]);
+    expect(WORKSPACE_PROFILES.every((profile) => profile.pinned.length > 0)).toBe(true);
+    expect(WORKSPACE_PROFILES.every((profile) => !("permissions" in profile))).toBe(true);
+    expect(getWorkspaceProfile("not-a-profile").id).toBe("developer");
+  });
+
+  it("persists a selected profile and fails safely when storage throws", () => {
+    const values = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => { values.set(key, value); },
+    };
+    expect(readWorkspaceProfile(storage)).toBeNull();
+    expect(writeWorkspaceProfile("security_research", storage)).toBe(true);
+    expect(readWorkspaceProfile(storage)).toBe("security_research");
+    expect(writeWorkspaceProfile("network_noc", {
+      setItem: () => { throw new Error("storage unavailable"); },
+    })).toBe(false);
+    expect(readWorkspaceProfile({
+      getItem: () => { throw new Error("storage unavailable"); },
+    })).toBeNull();
+  });
+
+  it("exposes the profile selector and states that profiles do not grant permissions", () => {
+    const markup = renderToStaticMarkup(<App />);
+    expect(markup).toContain('aria-label="Change workspace profile"');
+    expect(markup).toContain("Profiles only change suggested pinned sections and layout preferences.");
+    expect(markup).toContain("They never grant permissions or enable tools.");
   });
 });
