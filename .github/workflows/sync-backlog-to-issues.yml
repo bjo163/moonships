@@ -169,16 +169,33 @@ jobs:
               owner: owner, repo: repo, state: "all", per_page: 100
             });
             const linkedIssues = new Map();
+            const unmanagedTitleCollisions = [];
             for (const issue of allIssues) {
-              if (issue.pull_request || !issue.body) continue;
-              const marker = issue.body.match(taskMarker);
-              if (!marker) continue;
-              const id = marker[1];
-              if (linkedIssues.has(id)) {
-                throw new Error("Multiple GitHub issues use task marker " + id + ": #" +
-                  linkedIssues.get(id).number + " and #" + issue.number + ". Resolve duplicates before syncing.");
+              if (issue.pull_request) continue;
+              const marker = issue.body ? issue.body.match(taskMarker) : null;
+              if (marker) {
+                const id = marker[1];
+                if (linkedIssues.has(id)) {
+                  throw new Error("Multiple GitHub issues use task marker " + id + ": #" +
+                    linkedIssues.get(id).number + " and #" + issue.number + ". Resolve duplicates before syncing.");
+                }
+                linkedIssues.set(id, issue);
+                continue;
               }
-              linkedIssues.set(id, issue);
+              const titleMatch = issue.title.match(/^\[([A-Z]\d+-\d{3})\]/);
+              if (titleMatch && ids.has(titleMatch[1])) {
+                unmanagedTitleCollisions.push("#" + issue.number + " (" + titleMatch[1] + ")");
+              }
+            }
+            if (unmanagedTitleCollisions.length > 0) {
+              throw new Error("Issue title collides with a backlog task ID but lacks a sync marker: " +
+                unmanagedTitleCollisions.join(", ") + ". Add the correct marker or rename/reconcile the issue before syncing.");
+            }
+            const orphanedTaskIssues = [...linkedIssues.entries()].filter(([id]) => !ids.has(id));
+            if (orphanedTaskIssues.length > 0) {
+              throw new Error("Managed task issue marker(s) are absent from docs/TASK_BACKLOG.md: " +
+                orphanedTaskIssues.map(([id, issue]) => id + " (#" + issue.number + ")").join(", ") +
+                ". Restore the original task ID or explicitly reconcile these issues before syncing.");
             }
 
             function managedBlock(task) {
@@ -226,7 +243,10 @@ jobs:
               const body = existingBody || "";
               const start = body.indexOf(startMarker);
               const end = body.indexOf(endMarker);
-              if (start >= 0 && end >= start) {
+              if ((start >= 0) !== (end >= 0) || (start >= 0 && end < start)) {
+                throw new Error("Malformed managed task markers on an existing issue; reconcile the body before syncing.");
+              }
+              if (start >= 0) {
                 return body.slice(0, start) + block + body.slice(end + endMarker.length);
               }
               return body.trim() ? body.trim() + "\n\n" + block : block;
