@@ -62,7 +62,9 @@ describe("M1-034 first-run profile onboarding", () => {
     expect(document.activeElement).toBe(close);
     expect(fireEvent.keyDown(close, { key: "Tab", shiftKey: true, cancelable: true })).toBe(false);
     expect(document.activeElement).toBe(focusable[focusable.length - 1]);
-    expect(fireEvent.keyDown(focusable[focusable.length - 1], { key: "Tab", cancelable: true })).toBe(false);
+    expect(
+      fireEvent.keyDown(focusable[focusable.length - 1], { key: "Tab", cancelable: true }),
+    ).toBe(false);
     expect(document.activeElement).toBe(close);
 
     await user.keyboard("{Escape}");
