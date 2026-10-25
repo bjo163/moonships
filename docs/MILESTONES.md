@@ -63,8 +63,7 @@ Exit criteria:
 - [ ] No background monitoring starts without explicit configuration.
 - [ ] Database initializes/migrates without destructive reset.
 - [ ] All commands validate arguments and expose stable error codes.
-- [ ] CI has clear required checks and no fake status badges.\n- [ ] Minimum-window/overflow behavior is documented and verified (M1-038).\n- [ ] Core shell visual/accessibility review has recorded evidence (M1-039).\n- [ ] First vertical slice has task-based usability findings and linked follow-up tasks (M1-040).
-- [ ] App can be used without cloud account or model provider.
+- [ ] CI has clear required checks and no fake status badges.\n- [ ] Minimum-window/overflow behavior is documented and verified (M1-038).\n- [ ] Core shell visual/accessibility review has recorded evidence (M1-039).\n- [ ] App can be used without cloud account or model provider.
 
 ## M2 — Projects & Tasks
 
@@ -86,6 +85,7 @@ Exit criteria:
 - [ ] Task can exist without project (personal inbox).
 - [ ] Canonical statuses and priorities are consistent across views.
 - [ ] Filters/sorts do not mutate source records accidentally.
+- [ ] First desktop vertical slice has task-based usability findings and linked follow-up tasks (M2-035).
 - [ ] Activity is created for meaningful state transitions.
 - [ ] No secrets are logged or exported.
 - [ ] Empty/loading/error states and keyboard navigation work.
