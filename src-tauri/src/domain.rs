@@ -28,7 +28,10 @@ pub enum RiskClass {
 
 impl RiskClass {
     fn requires_approval(self) -> bool {
-        matches!(self, Self::StateChanging | Self::Destructive | Self::Privileged | Self::Remote)
+        matches!(
+            self,
+            Self::StateChanging | Self::Destructive | Self::Privileged | Self::Remote
+        )
     }
 }
 
@@ -241,7 +244,10 @@ mod tests {
             required_capabilities: vec!["workspace.read".to_string()],
             risk_class: RiskClass::ReadOnly,
         };
-        assert_eq!(evaluate_policy(&read_request, &grants, false), PolicyDecision::Allowed);
+        assert_eq!(
+            evaluate_policy(&read_request, &grants, false),
+            PolicyDecision::Allowed
+        );
 
         let missing_grant = PermissionRequest {
             required_capabilities: vec!["filesystem.delete".to_string()],
