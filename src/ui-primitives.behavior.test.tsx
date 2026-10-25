@@ -80,6 +80,14 @@ describe("M1-041 DOM interaction and accessibility", () => {
     const dialog = screen.getByRole("dialog");
     const close = within(dialog).getByRole("button", { name: "Close dialog" });
     const apply = within(dialog).getByRole("button", { name: "Apply" });
+    const focusable = Array.from(
+      dialog.querySelectorAll<HTMLElement>("button:not(:disabled), input:not(:disabled)"),
+    );
+    expect(focusable).toEqual([
+      close,
+      within(dialog).getByRole("textbox", { name: "Nickname" }),
+      apply,
+    ]);
     expect(document.activeElement).toBe(close);
 
     // Test the browser's cancellable boundary event directly: jsdom userEvent.tab()
