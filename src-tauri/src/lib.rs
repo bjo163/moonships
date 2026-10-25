@@ -631,6 +631,58 @@ mod tests {
     }
 
     #[test]
+    fn project_migration_failure_rolls_back_all_schema_changes() {
+        let app_data_dir = unique_temp_dir("projects-rollback");
+        let mut connection = open_database_in(&app_data_dir).expect("database should open");
+        run_migrations(&mut connection).expect("baseline migration");
+
+        // Reconstruct v2 in a disposable fixture, then deliberately reserve the
+        // index name so schema v3 fails *after* CREATE TABLE projects succeeds.
+        connection
+            .execute_batch(
+                "DROP TABLE projects;
+                 DELETE FROM schema_migrations WHERE version = 3;
+                 INSERT INTO app_metadata (key, value)
+                     VALUES ('rollback-marker', 'preserved');
+                 CREATE TABLE unrelated_fixture (id TEXT PRIMARY KEY);
+                 CREATE INDEX idx_projects_workspace_status
+                     ON unrelated_fixture (id);",
+            )
+            .expect("v2 failure fixture");
+
+        assert!(run_migrations(&mut connection).is_err());
+        let projects_table_count: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'projects'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("schema inspection");
+        assert_eq!(projects_table_count, 0, "partial CREATE TABLE must roll back");
+
+        let version: i64 = connection
+            .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| row.get(0))
+            .expect("schema version");
+        assert_eq!(version, 2, "failed migration must not record version 3");
+
+        let preserved: String = connection
+            .query_row(
+                "SELECT value FROM app_metadata WHERE key = 'rollback-marker'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("existing metadata");
+        assert_eq!(preserved, "preserved");
+        let workspace_count: i64 = connection
+            .query_row("SELECT COUNT(*) FROM workspaces", [], |row| row.get(0))
+            .expect("existing workspaces");
+        assert_eq!(workspace_count, 1);
+
+        drop(connection);
+        let _ = fs::remove_dir_all(app_data_dir);
+    }
+
+    #[test]
     fn migration_rejects_a_schema_version_newer_than_supported() {
         let app_data_dir = unique_temp_dir("future-schema");
         let mut connection = open_database_in(&app_data_dir).expect("database should open");
