@@ -42,12 +42,20 @@ jobs:
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
         with:
           script: |
-            const fs = require("node:fs");
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const dryRun = process.env.DRY_RUN === "true";
-            const backlog = fs.readFileSync("docs/TASK_BACKLOG.md", "utf8");
-            const milestoneDoc = fs.readFileSync("docs/MILESTONES.md", "utf8");
+            async function readRepoText(path) {
+              const response = await github.rest.repos.getContent({
+                owner: owner, repo: repo, path: path, ref: context.sha
+              });
+              if (Array.isArray(response.data) || response.data.type !== "file" || !response.data.content) {
+                throw new Error("Expected a text file at " + path + ".");
+              }
+              return Buffer.from(response.data.content, response.data.encoding || "base64").toString("utf8");
+            }
+            const backlog = await readRepoText("docs/TASK_BACKLOG.md");
+            const milestoneDoc = await readRepoText("docs/MILESTONES.md");
             const startMarker = "<!-- moonships-task-sync:start -->";
             const endMarker = "<!-- moonships-task-sync:end -->";
             const taskMarker = /<!--\s*moonships-task-id:\s*(M\d+-\d{3})\s*-->/;
