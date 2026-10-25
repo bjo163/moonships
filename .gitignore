@@ -1,0 +1,57 @@
+# Node / package managers
+node_modules/
+.pnpm-store/
+.npm/
+.yarn/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Rust / Tauri
+target/
+src-tauri/target/
+src-tauri/gen/
+src-tauri/.cargo/
+*.rs.bk
+
+# Local application and database data
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+.env
+.env.*
+!.env.example
+
+# Logs and diagnostics
+*.log
+logs/
+crash-dumps/
+*.dmp
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+
+# Test output / temporary artifacts
+.tmp/
+temp/
+test-results/
+playwright-report/
+*.local
+
+# Never commit private signing keys or credentials
+*.key
+*.pem
+*.p12
+*.pfx
+*.keystore
+secrets/
+credentials/
