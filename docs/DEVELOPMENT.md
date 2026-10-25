@@ -44,7 +44,8 @@ npm run tauri -- dev
 - `npm run dev`: start the Vite development server.
 - `npm run format:check`: verify Biome formatting for frontend TypeScript/TSX, Vite config and HTML entry files.
 - `npm run lint`: run Biome frontend lint rules and syntax-check the repository's Node-based sync tool.
-- `npm test`: run the Node regression tests for backlog issue synchronization.
+- `npm test`: run the frontend component smoke tests with Vitest.
+- `npm run test:repo`: run Node regression tests for backlog issue synchronization.
 - `npm run typecheck`: run strict TypeScript project checks.
 - `npm run build`: type-check and build the frontend production bundle.
 - `npm run check`: run format, lint, test, typecheck and production build gates.
@@ -55,6 +56,7 @@ npm run tauri -- dev
 ```powershell
 npm run format:check
 npm run lint
+npm run test:repo
 npm test
 npm run typecheck
 npm run build
