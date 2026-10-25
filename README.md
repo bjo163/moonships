@@ -87,8 +87,13 @@ Read [Architecture](docs/ARCHITECTURE.md), [ADR Template](docs/ADR_TEMPLATE.md),
 | **M6 — Specialist modules** | API/DataLab, observability, security lab and research workflows |
 | **M7 — Automation & AI** | Deterministic workflows, AI provider interface, approval gates; MCP as optional adapter |
 | **M8 — Stable release** | Security, accessibility, performance, upgrade, packaging and release checks |
+| **M9 — Recovery & Data Protection** | Versioned backup/restore, integrity, preview and recovery testing |
+| **M10 — Knowledge & Operations Desk** | Notes, runbooks, incidents, handoffs and reports |
+| **M11 — Advanced Security & Research** | Assessment UX, permitted OSINT/threat feeds, binary inspection and isolated labs |
+| **M12 — Advanced World/Media Intelligence** | Media/transcript connectors, geospatial layers, correlation and digests |
+| **M13 — Ecosystem & Collaboration** | CLI, Vault, CostLens, isolated extensions and future team/remote-agent design gates |
 
-The milestones and granular checkboxes are maintained in [Milestones](docs/MILESTONES.md) and [Task Backlog](docs/TASK_BACKLOG.md). The [Backlog → GitHub Issues workflow](docs/TASK_ISSUE_SYNC.md) mirrors tasks to issues by stable ID, and [Overlap Audit](docs/OVERLAP_AUDIT.md) documents feature boundaries and deferred coverage. An AI coding agent should execute one small task at a time and update the checklist only after verifying the acceptance criteria.
+The milestones M0–M13 and granular checkboxes are maintained in [Milestones](docs/MILESTONES.md) and [Task Backlog](docs/TASK_BACKLOG.md). The [Backlog → GitHub Issues workflow](docs/TASK_ISSUE_SYNC.md) mirrors tasks to issues by stable ID, and [Overlap Audit](docs/OVERLAP_AUDIT.md) documents feature boundaries and deferred coverage. An AI coding agent should execute one small task at a time and update the checklist only after verifying the acceptance criteria.
 
 ## Start here
 
