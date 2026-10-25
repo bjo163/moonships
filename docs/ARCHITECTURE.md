@@ -78,6 +78,10 @@ tests/
 docs/
 ```
 
+## Desktop process lifecycle
+
+The desktop shell enforces a single-instance policy. When a second launch occurs, it must bring the existing `main` window to the foreground rather than create a confusing duplicate workspace. The tray's explicit Quit action exits the process; Hide only hides the window. If background workers are introduced, their shutdown hooks must run before explicit process exit.
+
 ## 4. Tool contract
 
 A registered tool defines:
