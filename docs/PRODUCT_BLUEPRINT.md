@@ -176,7 +176,11 @@ Measure actual quality rather than vanity feature counts:
 - Intelligence items show source and timestamps; failed/stale source status is visible.
 - A release can be reproduced, tested, signed and upgraded from the previous supported version.
 
-## 9. Product decision rule
+## 9. Design and interaction contract
+
+The canonical visual/UI contract is [Design System](DESIGN_SYSTEM.md); sound behavior and the SFX catalog are governed by [Audio & SFX Specification](AUDIO_SFX_SPEC.md). [UX & Design](UX_AND_DESIGN.md) owns menus, user journeys and low-fidelity layouts only. If these documents appear to conflict, do not implement a third interpretation: propose a single-owner correction and update linked backlog acceptance criteria. SFX is optional and off by default; no shipped asset may have unknown licensing/provenance.
+
+## 10. Product decision rule
 
 When considering a feature, ask in order:
 1. What user/job does it serve?
