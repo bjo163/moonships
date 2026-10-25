@@ -49,7 +49,7 @@ Deliverables:
 - General settings and per-user local data location
 - SQLite connection, migration runner, structured app error/logging
 - Typed Tauri command boundary, initial tool registry interface
-- Formatting/lint/tests/build CI
+- Formatting/lint/tests/build CI\n- Design-to-product review: minimum-window/overflow behavior, visual/accessibility checks and first-slice usability findings
 
 Exit criteria:
 - [ ] Fresh clone installs using documented steps.
@@ -63,7 +63,7 @@ Exit criteria:
 - [ ] No background monitoring starts without explicit configuration.
 - [ ] Database initializes/migrates without destructive reset.
 - [ ] All commands validate arguments and expose stable error codes.
-- [ ] CI has clear required checks and no fake status badges.
+- [ ] CI has clear required checks and no fake status badges.\n- [ ] Minimum-window/overflow behavior is documented and verified (M1-038).\n- [ ] Core shell visual/accessibility review has recorded evidence (M1-039).\n- [ ] First vertical slice has task-based usability findings and linked follow-up tasks (M1-040).
 - [ ] App can be used without cloud account or model provider.
 
 ## M2 — Projects & Tasks
