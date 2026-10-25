@@ -1,7 +1,12 @@
-import { forwardRef, useEffect, useId, useRef, type ButtonHTMLAttributes,
-  HTMLAttributes,
-  InputHTMLAttributes,
-  ReactNode,
+import {
+  forwardRef,
+  useEffect,
+  useId,
+  useRef,
+  type ButtonHTMLAttributes,
+  type HTMLAttributes,
+  type InputHTMLAttributes,
+  type ReactNode,
 } from "react";
 import "./ui-primitives.css";
 
@@ -25,7 +30,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   children,
   type = "button",
   ...props
-}: ButtonProps) {
+}: ButtonProps, ref) {
   return (
     <button
       {...props}
@@ -45,7 +50,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       )}
     </button>
   );
-}
+});
 
 export type InputProps = InputHTMLAttributes<HTMLInputElement> & {
   label: string;
