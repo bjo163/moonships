@@ -74,6 +74,8 @@ jobs:
         run: node -e "if (process.versions.node.split('.')[0] !== '24') process.exit(1)" && npm --version | grep -E '^11\.'
       - name: Install dependencies
         run: npm install
+      - name: Check frontend formatting
+        run: npm run format:check
       - name: Run root lint command
         run: npm run lint
       - name: Run root test command
