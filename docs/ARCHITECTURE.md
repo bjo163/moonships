@@ -262,3 +262,10 @@ When AI provider is unavailable, disable only AI-dependent workflows, not core l
 ### Command Palette surface (M1-031)
 
 The Command Palette is a keyboard-first presentation surface over an explicitly supplied list of registered command descriptors. It performs deterministic local substring filtering across title, description, category and keywords; supports Arrow Up/Down and Enter while the search field is focused; and exposes accessible dialog/listbox semantics, category labels, risk labels, loading and empty states. The current shell intentionally supplies an empty command list until the typed registry and safe action wiring task is implemented. Selecting a result only calls the UI selection callback; the palette does not execute tools or grant permissions. Destructive, privileged and remote risk classes are visibly labelled for future preview/approval flows. Ctrl+K lifecycle and focus restoration are tracked separately in M1-033.
+
+
+### Registered Command Palette actions (M1-032–M1-033)
+
+`src/command-registry.ts` is the allowlist for palette entries. The UI receives descriptors projected from this registry and resolves selection by exact registered ID; unknown IDs fail closed. Navigation to the existing overview and opening Settings are the only direct UI actions. New Project, New Task and New Note currently open an explicit preview because persistent entity creation is not implemented. These previews make no changes and do not invoke tools. Risky tools are not registered as executable palette commands; future execution must use the native policy/approval gate.
+
+Ctrl+K (or Cmd+K on macOS) is ignored when focus is in an editable control, a dialog is already open, or the palette itself is open. Escape closes the palette, and the previously focused element is restored after closing.
