@@ -29,17 +29,26 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # A missing prerelease is an expected first-publish case, not a fatal PowerShell error.
+          # Check the tag list first: querying a missing release can leave a non-zero
+          # native exit code that PowerShell propagates after the step script completes.
           $ErrorActionPreference = "Continue"
           $PSNativeCommandUseErrorActionPreference = $false
           $tag = $env:GITHUB_REF_NAME -replace "^release/", ""
-          $assetCount = gh release view $tag --repo $env:GITHUB_REPOSITORY --json assets --jq ".assets | length" 2>$null
-          $viewExitCode = $LASTEXITCODE
-          if ($viewExitCode -eq 0 -and [int]$assetCount -ge 2) {
-            "already_published=true" >> $env:GITHUB_OUTPUT
+          $existingTags = gh release list --repo $env:GITHUB_REPOSITORY --limit 100 --json tagName --jq ".[].tagName" 2>$null
+          $listExitCode = $LASTEXITCODE
+          if ($listExitCode -ne 0) { throw "Could not list existing GitHub releases." }
+          if ($existingTags -contains $tag) {
+            $assetCount = gh release view $tag --repo $env:GITHUB_REPOSITORY --json assets --jq ".assets | length" 2>$null
+            if ($LASTEXITCODE -ne 0) { throw "Could not inspect existing release assets." }
+            if ([int]$assetCount -ge 2) {
+              "already_published=true" >> $env:GITHUB_OUTPUT
+            } else {
+              "already_published=false" >> $env:GITHUB_OUTPUT
+            }
           } else {
             "already_published=false" >> $env:GITHUB_OUTPUT
           }
+          $global:LASTEXITCODE = 0
 
       - name: Set up Node.js 24 LTS
         if: steps.release-state.outputs.already_published != 'true'
