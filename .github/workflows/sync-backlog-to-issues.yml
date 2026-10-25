@@ -190,7 +190,7 @@ jobs:
                 "### Backlog task " + task.id + " — " + task.title,
                 "**Checklist status:** " + status,
                 "**Phase:** " + phaseTitles.get(task.phase),
-                "**Source:** [docs/TASK_BACKLOG.md](" + sourceUrl + ") — search for task ID `" + task.id + "`.
+                "**Source:** [docs/TASK_BACKLOG.md](" + sourceUrl + ") — task ID " + task.id + ".",
                 "",
                 "### Scope and acceptance criteria",
                 scope,
