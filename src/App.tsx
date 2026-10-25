@@ -536,8 +536,7 @@ export default function App() {
     }
     setCommandPreview({
       title: `Preview: ${command.title}`,
-      description:
-        `This registered action would create a ${command.entity}. Local persistence is not implemented yet, so no data has been created. This preview does not grant permissions or execute a tool.`,
+      description: `This registered action would create a ${command.entity}. Local persistence is not implemented yet, so no data has been created. This preview does not grant permissions or execute a tool.`,
     });
   };
 
