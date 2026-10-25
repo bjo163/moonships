@@ -84,11 +84,13 @@ jobs:
         run: |
           npx biome format --write src vite.config.ts vitest.config.ts index.html
           if ($LASTEXITCODE -ne 0) { throw "Biome formatting failed." }
+          cargo fmt --manifest-path src-tauri/Cargo.toml
+          if ($LASTEXITCODE -ne 0) { throw "Rust formatting failed." }
           $changed = git status --porcelain
           if ($changed) {
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add src vite.config.ts vitest.config.ts index.html
+            git add src src-tauri vite.config.ts vitest.config.ts index.html
             git commit -m "style: apply Biome formatting for alpha.2 release"
             if ($LASTEXITCODE -ne 0) { throw "Could not commit formatter output." }
             $pushUrl = "https://x-access-token:$env:GH_TOKEN@github.com/$env:GITHUB_REPOSITORY.git"
