@@ -28,7 +28,11 @@ describe("Moonships application shell", () => {
   });
 
   it("exposes only the implemented Home route as a link and labels other menu items Planned", () => {
-    const markup = renderToStaticMarkup(<AppShell><div>Page</div></AppShell>);
+    const markup = renderToStaticMarkup(
+      <AppShell>
+        <div>Page</div>
+      </AppShell>,
+    );
 
     expect(markup).toContain('aria-label="Workspace navigation"');
     expect(markup).toContain('href="#/overview"');
