@@ -1,6 +1,6 @@
 [package]
 name = "moonships"
-version = "0.1.0-1"
+version = "0.1.0-2"
 description = "Moonships Workbench desktop application"
 authors = ["Moonships contributors"]
 edition = "2021"
