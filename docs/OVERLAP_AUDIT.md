@@ -39,7 +39,8 @@ The detailed audit is in [Design Readiness Audit](DESIGN_READINESS_AUDIT.md). It
 
 | Spec surface/capability | Backlog coverage | Result |
 |---|---|---|
-| Main window and navigation shell | M1-008–M1-010 | Covered in backlog; implementation open |\n| Design readiness, minimum-window behavior and UI QA | Design Readiness Audit; M1-038–M1-039 and M2-035 | Newly tracked; implementation/validation open |
+| Main window and navigation shell | M1-008–M1-010 | Covered in backlog; implementation open |
+| Design readiness, minimum-window behavior and UI QA | Design Readiness Audit; M1-038–M1-039 and M2-035 | Newly tracked; implementation/validation open |
 | Theme, keyboard accessibility, tray lifecycle, single instance | M1-011–M1-017 | Covered |
 | Startup-at-login | M1-018 | Explicitly deferred and documented |
 | Settings skeleton, notification/permission settings | M1-019, M1-030 | Covered for foundation; provider-specific pages later |
