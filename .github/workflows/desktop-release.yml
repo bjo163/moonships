@@ -3,7 +3,7 @@ name: Desktop alpha release
 on:
   push:
     branches:
-      - "release/v*"
+      - "release/v*.*"
 
 permissions:
   contents: write
@@ -73,6 +73,7 @@ jobs:
           Get-Item $msi.FullName, $nsis.FullName | Select-Object Name, Length
 
       - name: Publish GitHub Release with installers
+        if: contains(github.ref_name, '.')
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
