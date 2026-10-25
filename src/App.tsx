@@ -349,6 +349,40 @@ export default function App() {
     return () => window.removeEventListener("keydown", onGlobalKeyDown);
   }, [commandPaletteOpen, settingsOpen, profileDialogOpen, commandPreview]);
 
+  const selectWorkspaceProfile = (nextProfile: WorkspaceProfileId) => {
+    const saved = writeWorkspaceProfile(nextProfile, getBrowserStorage());
+    setProfileId(nextProfile);
+    setProfileDialogOpen(false);
+    if (!saved) setCommandPreview({
+      title: "Profile not persisted",
+      description: "Local storage is unavailable. This selection applies for this session only.",
+    });
+  };
+
+  const selectPaletteCommand = (id: string) => {
+    const command = getRegisteredCommand(id);
+    setCommandPaletteOpen(false);
+    if (!command) {
+      setCommandPreview({
+        title: "Command not registered",
+        description: "This command ID is not allowlisted. Nothing was executed.",
+      });
+      return;
+    }
+    if (command.kind === "navigate") {
+      window.location.hash = "#/" + command.route;
+      return;
+    }
+    if (command.kind === "settings") {
+      setSettingsOpen(true);
+      return;
+    }
+    setCommandPreview({
+      title: "Preview: " + command.title,
+      description: "This registered action would create a " + command.entity + ". Local persistence is not implemented yet, so no data has been created. This preview does not grant permissions or execute a tool.",
+    });
+  };
+
   const toggleTheme = () => {
     const nextTheme: ThemePreference = theme === "dark" ? "light" : "dark";
     writeThemePreference(nextTheme, getBrowserStorage());
@@ -417,7 +451,7 @@ export default function App() {
   }, []);
 
   return (
-    <AppShell theme={theme} onToggleTheme={toggleTheme} onOpenCommandPalette={() => setCommandPaletteOpen(true)}>
+    <AppShell theme={theme} onToggleTheme={toggleTheme} onOpenCommandPalette={() => { paletteTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setCommandPaletteOpen(true); }} profileLabel={getWorkspaceProfile(profileId).label} onOpenProfile={() => setProfileDialogOpen(true)}>
       {route.kind === "page" && route.id === "overview" ? (
         <OverviewPage />
       ) : (
@@ -425,10 +459,16 @@ export default function App() {
       )}
       <CommandPalette
         open={commandPaletteOpen}
-        commands={[]}
+        commands={getPaletteCommands()}
         onClose={() => setCommandPaletteOpen(false)}
-        onSelect={() => setCommandPaletteOpen(false)}
+        onSelect={(command) => selectPaletteCommand(command.id)}
       />
+      {profileDialogOpen ? (
+        <WorkspaceProfileDialog currentProfile={profileId} onSelect={selectWorkspaceProfile} onClose={() => setProfileDialogOpen(false)} />
+      ) : null}
+      {commandPreview ? (
+        <CommandPreviewDialog title={commandPreview.title} description={commandPreview.description} onClose={() => setCommandPreview(null)} />
+      ) : null}
       {settingsOpen ? (
         <SettingsDialog
           theme={theme}
