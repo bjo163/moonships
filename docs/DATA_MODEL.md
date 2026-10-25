@@ -17,7 +17,7 @@
 ### Workspace
 Purpose: local grouping of projects, settings and views.
 Fields: id, name, description?, profile_type?, created_at, updated_at, archived_at?.
-MVP default: one Personal workspace, with support for future multiple workspaces. A workspace does not imply cloud sync or team collaboration.
+MVP default: one Personal workspace, with support for future multiple workspaces. A workspace does not imply cloud sync or team collaboration. The M2-001 schema-v2 migration seeds `Personal` with stable local UUID `00000000-0000-4000-8000-000000000001` and stores optional description/profile/archived fields plus SQLite-generated UTC creation/update timestamps. The seed is applied once; no cloud identity or access privileges are inferred.
 
 ### Initiative / Goal
 Purpose: a broad desired outcome grouping projects.

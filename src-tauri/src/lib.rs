@@ -42,7 +42,8 @@ fn open_database_in(app_data_dir: &Path) -> Result<Connection, String> {
     Ok(connection)
 }
 
-const CURRENT_SCHEMA_VERSION: i64 = 1;
+const CURRENT_SCHEMA_VERSION: i64 = 2;
+const PERSONAL_WORKSPACE_ID: &str = "00000000-0000-4000-8000-000000000001";
 
 fn run_migrations(connection: &mut Connection) -> Result<(), String> {
     let transaction = connection
@@ -82,6 +83,31 @@ fn run_migrations(connection: &mut Connection) -> Result<(), String> {
                 INSERT INTO schema_migrations (version) VALUES (1);",
             )
             .map_err(|error| format!("Could not apply initial schema migration: {error}"))?;
+    }
+
+    if current_version < 2 {
+        transaction
+            .execute_batch(
+                "CREATE TABLE workspaces (
+                    id TEXT PRIMARY KEY NOT NULL,
+                    name TEXT NOT NULL CHECK (length(trim(name)) > 0),
+                    description TEXT,
+                    profile_type TEXT,
+                    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+                    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+                    archived_at TEXT
+                );",
+            )
+            .map_err(|error| format!("Could not create workspace table: {error}"))?;
+        transaction
+            .execute(
+                "INSERT INTO workspaces (id, name) VALUES (?1, ?2)",
+                rusqlite::params![PERSONAL_WORKSPACE_ID, "Personal"],
+            )
+            .map_err(|error| format!("Could not seed Personal workspace: {error}"))?;
+        transaction
+            .execute("INSERT INTO schema_migrations (version) VALUES (2)", [])
+            .map_err(|error| format!("Could not record workspace migration: {error}"))?;
     }
 
     transaction
@@ -267,7 +293,7 @@ pub fn run() {
 mod tests {
     use super::{
         database_path, hide_to_tray_enabled, open_database_in, run_migrations,
-        CURRENT_SCHEMA_VERSION, DATABASE_BUSY_TIMEOUT_MS, DATABASE_FILE_NAME,
+        CURRENT_SCHEMA_VERSION, DATABASE_BUSY_TIMEOUT_MS, DATABASE_FILE_NAME, PERSONAL_WORKSPACE_ID,
     };
     use std::{
         fs,
@@ -372,6 +398,72 @@ mod tests {
             })
             .expect("schema version should remain available");
         assert_eq!(version_after_rerun, CURRENT_SCHEMA_VERSION);
+
+        let (id, name, workspace_count): (String, String, i64) = connection
+            .query_row(
+                "SELECT id, name, (SELECT COUNT(*) FROM workspaces) FROM workspaces",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .expect("exactly one default workspace should exist");
+        assert_eq!(id, PERSONAL_WORKSPACE_ID);
+        assert_eq!(name, "Personal");
+        assert_eq!(workspace_count, 1);
+        assert!(
+            connection
+                .execute(
+                    "INSERT INTO workspaces (id, name) VALUES ('empty-name', '   ')",
+                    [],
+                )
+                .is_err(),
+            "empty workspace names must fail validation"
+        );
+        drop(connection);
+        let _ = fs::remove_dir_all(app_data_dir);
+    }
+
+    #[test]
+    fn upgrading_v1_preserves_user_metadata_and_seeds_only_one_personal_workspace() {
+        let app_data_dir = unique_temp_dir("migration-v1-upgrade");
+        let mut connection = open_database_in(&app_data_dir).expect("database should open");
+        connection
+            .execute_batch(
+                "CREATE TABLE schema_migrations (
+                    version INTEGER PRIMARY KEY,
+                    applied_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+                );
+                INSERT INTO schema_migrations (version) VALUES (1);
+                CREATE TABLE app_metadata (
+                    key TEXT PRIMARY KEY NOT NULL,
+                    value TEXT NOT NULL
+                );
+                INSERT INTO app_metadata (key, value) VALUES ('existing', 'preserve-me');",
+            )
+            .expect("v1 fixture should be created");
+
+        run_migrations(&mut connection).expect("v1 to v2 migration should succeed");
+        run_migrations(&mut connection).expect("v2 migration should be idempotent");
+
+        let existing: String = connection
+            .query_row(
+                "SELECT value FROM app_metadata WHERE key = 'existing'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("legacy metadata must remain");
+        assert_eq!(existing, "preserve-me");
+
+        let workspace_count: i64 = connection
+            .query_row("SELECT COUNT(*) FROM workspaces", [], |row| row.get(0))
+            .expect("workspace count should be readable");
+        assert_eq!(workspace_count, 1);
+        let current_version: i64 = connection
+            .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| {
+                row.get(0)
+            })
+            .expect("workspace schema version should exist");
+        assert_eq!(current_version, CURRENT_SCHEMA_VERSION);
+
         drop(connection);
         let _ = fs::remove_dir_all(app_data_dir);
     }
