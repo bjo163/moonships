@@ -50,7 +50,7 @@
 - [x] **M1-011 — Implement foundational semantic design tokens** [S] — Implement the initial theme, spacing and typography tokens from DESIGN_SYSTEM.md. **AC:** shell uses semantic variables rather than scattered literal values; dark/light preference works; proposed colors are explicitly not marked contrast-certified until measured.
 - [x] **M1-012 — Add dark and light theme toggle** [S] — Persist non-secret preference. **AC:** theme remains selected after restart.
 - [x] **M1-013 — Add accessible focus and keyboard navigation** [S] — Sidebar, buttons, dialogs and search. **AC:** primary shell can be operated without a mouse.
-- [ ] **M1-014 — Implement tray icon and context menu** [S] — Open, Settings and Quit for first pass. **AC:** menu actions execute correctly in a Windows dev build.
+- [x] **M1-014 — Implement tray icon and context menu** [S] — Open, Settings and Quit for first pass. **AC:** menu actions execute correctly in a Windows dev build.
 - [ ] **M1-015 — Implement hide-to-tray preference** [S] — Avoid implicit app exit on X when configured to hide. **AC:** window hides and can be restored; preference is persisted.
 - [ ] **M1-016 — Implement explicit Quit lifecycle** [S] — Stop workers and exit cleanly. **AC:** Quit ends process; ordinary Hide does not.
 - [ ] **M1-017 — Add single-instance behavior or document/test alternative** [S] — Avoid confusing duplicate windows. **AC:** second launch follows the chosen documented behavior.
