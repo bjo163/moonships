@@ -1,0 +1,30 @@
+# Desktop Release Guide
+
+## Automated Windows release
+
+Push a version tag such as `v0.1.0-alpha.1` to start `.github/workflows/desktop-release.yml`.
+
+The workflow:
+1. Verifies Node.js 24 LTS and npm 11.
+2. Runs frontend formatting/lint, repository regression tests, frontend tests, TypeScript and production build checks.
+3. Runs Rust formatting, unit tests and Clippy with warnings denied.
+4. Builds Tauri Windows MSI and NSIS installers.
+5. Verifies both installers exist before publishing a GitHub Release with both files attached.
+
+The workflow uses the repository's `GITHUB_TOKEN`; no personal access token should be added.
+
+## Pre-release checklist
+
+- [ ] All task PRs merged to `main` and required CI checks are green.
+- [ ] Review the tagged commit and release notes.
+- [ ] Confirm the release workflow uploads both MSI and NSIS installers.
+- [ ] Install the MSI on a clean supported Windows machine.
+- [ ] Install the NSIS package on a clean supported Windows machine.
+- [ ] Launch the app, confirm the window renders, close/reopen, and inspect for startup errors.
+- [ ] Record OS version, package format, install/uninstall outcome, and known issues.
+
+## Alpha scope and limitations
+
+The first release is a **foundation preview**, not a production-ready feature release. The current interface is a desktop shell; operational tools, persistence, system tray behavior and the complete roadmap are not implemented merely because installers build successfully. Release notes must not claim those capabilities are available.
+
+A successful CI installer build verifies compilation and package generation. It does not replace manual install/launch/uninstall testing on a real Windows device.
