@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { resolveRoute, type RouteResolution } from "./route-registry";
+import { CommandPalette } from "./CommandPalette";
 import { describeModuleAvailability, type ModuleAvailability } from "./module-availability";
 import {
   applyThemePreference,
@@ -85,6 +86,16 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
             <h1>Moonships Workbench</h1>
           </div>
           <div className="topbar-actions">
+            <button
+              className="theme-toggle command-palette-trigger"
+              type="button"
+              onClick={() => setCommandPaletteOpen(true)}
+              aria-haspopup="dialog"
+              aria-label="Open Command Palette"
+              title="Open Command Palette"
+            >
+              Search <kbd>Ctrl+K</kbd>
+            </button>
             <button
               className="theme-toggle"
               type="button"
@@ -296,6 +307,7 @@ export default function App() {
     readThemePreference(getBrowserStorage()),
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [hideToTray, setHideToTray] = useState(false);
   const [hideToTrayStatus, setHideToTrayStatus] = useState("Loading preference…");
 
@@ -377,6 +389,12 @@ export default function App() {
       ) : (
         <NotFoundPage requested={route.kind === "not-found" ? route.requested : ""} />
       )}
+      <CommandPalette
+        open={commandPaletteOpen}
+        commands={[]}
+        onClose={() => setCommandPaletteOpen(false)}
+        onSelect={() => setCommandPaletteOpen(false)}
+      />
       {settingsOpen ? (
         <SettingsDialog
           theme={theme}
