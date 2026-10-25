@@ -80,7 +80,6 @@
 
 - [ ] **M1-038 — Define and test minimum-window and overflow behavior** [S] [depends: M1-008,M1-010] — Turn the UX viewport guidance into an explicit minimum window size, resize rules, sidebar collapse behavior, and overflow behavior for tables/detail panels. **AC:** the decision is documented; the shell remains usable at the chosen minimum size and at 1280×720/1440×900; no primary action is clipped or unreachable by keyboard.
 - [ ] **M1-039 — Add repeatable visual and accessibility review for the core shell** [S] [depends: M1-008,M1-011,M1-013] — Establish a small review matrix for shell, Home, Projects, Tasks, Command Palette and confirmation dialog; check theme tokens, focus, keyboard behavior, semantic labels and contrast. **AC:** review steps and actual results are recorded; contrast is measured against WCAG 2.2 AA targets where applicable; no claim of accessibility conformance is made without evidence.
-- [ ] **M1-040 — Validate the first desktop vertical slice with task-based usability checks** [S] [depends: M1-008,M2-014,M2-016,M2-018] — Observe representative users completing create-project, create-task, find-task and return-to-work flows; record friction and prioritized fixes without expanding scope. **AC:** a short findings note records tasks, environment, observed blockers and follow-up task IDs; no user data is collected unnecessarily.
 
 ## M2 — Projects & Tasks
 
@@ -120,6 +119,7 @@
 
 - [ ] **M2-033 — Build the Home dashboard from real local records** [S] [depends: M2-014,M2-018,M2-025] — Show recent projects, My Work counts, upcoming/overdue tasks and recent activity. **AC:** counts derive from persisted data; first-run/empty/error states are honest; no synthetic telemetry or fake activity is shown.
 - [ ] **M2-034 — Implement global search across available local entities** [S] [depends: M1-031,M2-020,M2-014] — Search project names, task titles/descriptions and registered tool names from one entry point. **AC:** results identify their entity type, are keyboard-navigable, respect local scope, and return an explicit empty state; future entities can register search adapters without changing existing searches.
+- [ ] **M2-035 — Validate the first desktop vertical slice with task-based usability checks** [S] [depends: M1-008,M2-014,M2-016,M2-018] — Observe representative users completing create-project, create-task, find-task and return-to-work flows; record friction and prioritized fixes without expanding scope. **AC:** a short findings note records tasks, environment, observed blockers and follow-up task IDs; no user data is collected unnecessarily.
 
 ## M3 — Cleaner & offline DevTools
 
