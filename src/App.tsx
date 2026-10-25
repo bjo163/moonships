@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { resolveRoute, type RouteResolution } from "./route-registry";
+import { describeModuleAvailability, type ModuleAvailability } from "./module-availability";
 import {
   applyThemePreference,
   readThemePreference,
@@ -21,10 +22,20 @@ const plannedNavigationItems = [
   "Settings",
 ] as const;
 
-const foundationChecks = [
+const foundationChecks: Array<{
+  label: string;
+  detail: string;
+  status: "Foundation" | "Planned";
+  availability?: ModuleAvailability;
+}> = [
   { label: "Desktop runtime", detail: "Tauri 2 · Rust", status: "Foundation" },
   { label: "Interface", detail: "React · TypeScript · Vite", status: "Foundation" },
-  { label: "Data and tools", detail: "Not connected yet", status: "Planned" },
+  {
+    label: "Data and tools",
+    detail: "Not connected yet",
+    status: "Planned",
+    availability: "not_configured",
+  },
 ];
 
 type AppShellProps = {
@@ -134,6 +145,12 @@ function OverviewPage() {
             <div className="card-index">0{index + 1}</div>
             <h3>{item.label}</h3>
             <p>{item.detail}</p>
+            {item.availability ? (
+              <p className="availability-note">
+                {describeModuleAvailability(item.availability).label}:{" "}
+                {describeModuleAvailability(item.availability).description}
+              </p>
+            ) : null}
             <span className={item.status === "Planned" ? "state state-planned" : "state"}>
               <span className="state-dot" />
               {item.status}
