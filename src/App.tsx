@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { resolveRoute, type RouteResolution } from "./route-registry";
 
 const foundationChecks = [
   { label: "Desktop runtime", detail: "Tauri 2 · Rust", status: "Foundation" },
@@ -14,7 +15,7 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <main className="app-frame">
       <aside className="rail" aria-label="Primary navigation">
-        <a className="brand" href="#home" aria-label="Moonships home">
+        <a className="brand" href="#/overview" aria-label="Moonships home">
           <span className="brand-mark" aria-hidden="true">
             M
           </span>
@@ -23,7 +24,7 @@ export function AppShell({ children }: AppShellProps) {
           </span>
         </a>
         <div className="rail-label">WORKSPACE</div>
-        <a className="nav-item nav-item-active" href="#home" aria-current="page">
+        <a className="nav-item nav-item-active" href="#/overview" aria-current="page">
           <span aria-hidden="true">◈</span> Overview
         </a>
         <div className="rail-note">
@@ -103,10 +104,44 @@ function OverviewPage() {
   );
 }
 
+export function NotFoundPage({ requested }: { requested: string }) {
+  return (
+    <section className="hero" aria-labelledby="not-found-title">
+      <div className="hero-copy">
+        <p className="eyebrow">ROUTE / NOT FOUND</p>
+        <h2 id="not-found-title">This page is not available.</h2>
+        <p className="hero-description">
+          The route <code>{requested || "(empty)"}</code> is not registered. No tools or data were
+          changed.
+        </p>
+        <a className="nav-item nav-item-active" href="#/overview">
+          Return to Overview
+        </a>
+      </div>
+    </section>
+  );
+}
+
+function getInitialRoute(): RouteResolution {
+  return resolveRoute(typeof window === "undefined" ? "#/overview" : window.location.hash);
+}
+
 export default function App() {
+  const [route, setRoute] = useState<RouteResolution>(getInitialRoute);
+
+  useEffect(() => {
+    const updateRoute = () => setRoute(resolveRoute(window.location.hash));
+    window.addEventListener("hashchange", updateRoute);
+    return () => window.removeEventListener("hashchange", updateRoute);
+  }, []);
+
   return (
     <AppShell>
-      <OverviewPage />
+      {route.kind === "page" && route.id === "overview" ? (
+        <OverviewPage />
+      ) : (
+        <NotFoundPage requested={route.kind === "not-found" ? route.requested : ""} />
+      )}
     </AppShell>
   );
 }
