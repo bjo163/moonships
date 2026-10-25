@@ -13,6 +13,21 @@ describe("Moonships application shell", () => {
     expect(markup).toContain("No external services connected");
   });
 
+  it("provides a keyboard skip link, focus target and named theme control", () => {
+    const markup = renderToStaticMarkup(
+      <AppShell theme="dark" onToggleTheme={() => {}}>
+        <section aria-label="Test page">
+          <h2>Keyboard target</h2>
+        </section>
+      </AppShell>,
+    );
+
+    expect(markup).toContain('class="skip-link" href="#main-content"');
+    expect(markup).toContain('id="main-content" tabindex="-1"');
+    expect(markup).toContain('aria-label="Switch to light theme"');
+    expect(markup).toContain('type="button"');
+  });
+
   it("keeps shared navigation and header around replaceable page content", () => {
     const markup = renderToStaticMarkup(
       <AppShell theme="dark" onToggleTheme={() => {}}>
@@ -73,6 +88,25 @@ describe("Moonships application shell", () => {
     expect(markup).toContain("This page is not available.");
     expect(markup).toContain("#/made-up-page");
     expect(markup).toContain('href="#/overview"');
+  });
+});
+
+describe("keyboard accessibility styles", () => {
+  it("keeps a visible focus indicator and reveals the skip link on focus", async () => {
+    const { readFileSync } = await import("node:fs");
+    const stylesheet = readFileSync(new URL("./index.css", import.meta.url), "utf8");
+
+    expect(stylesheet).toContain(":focus-visible");
+    expect(stylesheet).toContain(".skip-link:focus");
+    expect(stylesheet).toContain("outline: var(--focus-width) solid var(--color-focus)");
+  });
+
+  it("honors reduced-motion preferences for transitions and animation", async () => {
+    const { readFileSync } = await import("node:fs");
+    const stylesheet = readFileSync(new URL("./index.css", import.meta.url), "utf8");
+
+    expect(stylesheet).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(stylesheet).toContain("transition-duration: .01ms !important");
   });
 });
 
