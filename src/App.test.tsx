@@ -287,6 +287,10 @@ describe("M1 desktop foundation contracts", () => {
       expect(domain).toContain(variant);
     }
     expect(domain).toContain("pub struct ToolDefinition");
+    expect(domain).toContain("pub permissions: Vec<String>");
+    expect(domain).toContain("pub input_schema: Value");
+    expect(domain).toContain("pub output_schema: Value");
+    expect(domain).toContain("pub risk_class: RiskClass");
     expect(domain).toContain("pub struct ToolResult");
     expect(domain).toContain("pub struct ToolRegistry");
     expect(domain).toContain("sample_tool_can_be_registered_and_duplicate_ids_are_rejected");
