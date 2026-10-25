@@ -61,7 +61,9 @@ describe("M1-031 Command Palette DOM behaviors", () => {
     const onClose = vi.fn();
     render(<CommandPalette open commands={commands} onClose={onClose} onSelect={onSelect} />);
     const search = screen.getByRole("searchbox");
-    expect(search.getAttribute("aria-activedescendant")).toBe("palette-command-navigation.overview");
+    expect(search.getAttribute("aria-activedescendant")).toBe(
+      "palette-command-navigation.overview",
+    );
 
     await user.keyboard("{ArrowUp}");
     expect(search.getAttribute("aria-activedescendant")).toBe("palette-command-task.create");
@@ -69,7 +71,9 @@ describe("M1-031 Command Palette DOM behaviors", () => {
       "true",
     );
     await user.keyboard("{ArrowDown}");
-    expect(search.getAttribute("aria-activedescendant")).toBe("palette-command-navigation.overview");
+    expect(search.getAttribute("aria-activedescendant")).toBe(
+      "palette-command-navigation.overview",
+    );
     await user.keyboard("{Escape}");
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(onSelect).not.toHaveBeenCalled();
@@ -109,7 +113,9 @@ describe("M1-031 Command Palette DOM behaviors", () => {
     rerender(
       <CommandPalette open commands={[commands[0]]} onClose={() => {}} onSelect={onSelect} />,
     );
-    expect(search.getAttribute("aria-activedescendant")).toBe("palette-command-navigation.overview");
+    expect(search.getAttribute("aria-activedescendant")).toBe(
+      "palette-command-navigation.overview",
+    );
     await user.keyboard("{Enter}");
     expect(onSelect).toHaveBeenCalledWith(commands[0]);
   });
