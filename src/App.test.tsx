@@ -27,6 +27,32 @@ describe("Moonships application shell", () => {
     expect(markup).toContain("Replaceable content");
   });
 
+  it("exposes only the implemented Home route as a link and labels other menu items Planned", () => {
+    const markup = renderToStaticMarkup(<AppShell><div>Page</div></AppShell>);
+
+    expect(markup).toContain('aria-label="Workspace navigation"');
+    expect(markup).toContain('href="#/overview"');
+    expect(markup).toContain('aria-current="page"');
+    for (const label of [
+      "My Work",
+      "Projects",
+      "Tasks",
+      "Toolbox",
+      "Security",
+      "Intelligence",
+      "Operations",
+      "Knowledge",
+      "Settings",
+    ]) {
+      expect(markup).toContain(label);
+    }
+
+    const navigation = markup.split('aria-label="Workspace navigation"')[1]?.split("</nav>")[0];
+    expect(navigation).toBeDefined();
+    expect(navigation).not.toContain('href="#"');
+    expect(navigation?.match(/class="nav-state">Planned<\/span>/g)).toHaveLength(9);
+  });
+
   it("resolves registered route IDs and keeps the legacy home hash compatible", () => {
     expect(resolveRoute("#/overview")).toEqual({ kind: "page", id: "overview" });
     expect(resolveRoute("#home")).toEqual({ kind: "page", id: "overview" });
