@@ -1,3 +1,4 @@
+pub mod config;
 pub mod domain;
 pub mod local_logging;
 
@@ -101,6 +102,44 @@ fn hide_to_tray_enabled(path: &std::path::Path) -> bool {
         .unwrap_or(false)
 }
 
+// Native SQLite is the source of truth for versioned config. A legacy hide-to-tray
+// preference is imported only while no versioned config record has been written.
+fn read_app_config(app: &AppHandle) -> Result<domain::AppConfig, String> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|error| format!("Could not resolve app data directory: {error}"))?;
+    let mut connection = open_database_in(&app_data_dir)?;
+    run_migrations(&mut connection)?;
+    let legacy = hide_to_tray_enabled(&hide_to_tray_path(app)?);
+    config::config_or_default(&connection, legacy)
+}
+
+fn write_app_config(app: &AppHandle, request: &domain::AppConfig) -> Result<(), String> {
+    request.validate()?;
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|error| format!("Could not resolve app data directory: {error}"))?;
+    let mut connection = open_database_in(&app_data_dir)?;
+    run_migrations(&mut connection)?;
+    config::save_config(&connection, request)
+}
+
+#[tauri::command]
+fn get_app_config(app: AppHandle) -> Result<domain::AppConfig, String> {
+    read_app_config(&app)
+}
+
+#[tauri::command]
+fn set_app_config(
+    app: AppHandle,
+    request: domain::AppConfig,
+) -> Result<domain::AppConfig, String> {
+    write_app_config(&app, &request)?;
+    Ok(request)
+}
+
 /// Stable IPC payload for reading and updating the hide-to-tray preference.
 #[derive(Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -110,9 +149,8 @@ struct HideToTrayPreferenceDto {
 
 #[tauri::command]
 fn get_hide_to_tray(app: AppHandle) -> Result<HideToTrayPreferenceDto, String> {
-    let path = hide_to_tray_path(&app)?;
     Ok(HideToTrayPreferenceDto {
-        enabled: hide_to_tray_enabled(&path),
+        enabled: read_app_config(&app)?.hide_to_tray,
     })
 }
 
@@ -121,14 +159,9 @@ fn set_hide_to_tray(
     app: AppHandle,
     request: HideToTrayPreferenceDto,
 ) -> Result<HideToTrayPreferenceDto, String> {
-    let path = hide_to_tray_path(&app)?;
-    let directory = path
-        .parent()
-        .ok_or_else(|| "App config directory has no parent".to_string())?;
-    fs::create_dir_all(directory)
-        .map_err(|error| format!("Could not create app config directory: {error}"))?;
-    fs::write(path, if request.enabled { "true" } else { "false" })
-        .map_err(|error| format!("Could not save hide-to-tray preference: {error}"))?;
+    let mut config = read_app_config(&app)?;
+    config.hide_to_tray = request.enabled;
+    write_app_config(&app, &config)?;
     Ok(request)
 }
 
@@ -149,7 +182,12 @@ pub fn run() {
                 let _ = window.set_focus();
             }
         }))
-        .invoke_handler(tauri::generate_handler![get_hide_to_tray, set_hide_to_tray])
+        .invoke_handler(tauri::generate_handler![
+            get_hide_to_tray,
+            set_hide_to_tray,
+            get_app_config,
+            set_app_config
+        ])
         .setup(|app| {
             let app_data_dir = app.path().app_data_dir()?;
             let startup_event = local_logging::LogEvent::new(
@@ -215,10 +253,10 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
-                let Ok(path) = hide_to_tray_path(window.app_handle()) else {
-                    return;
-                };
-                if hide_to_tray_enabled(&path) {
+                if read_app_config(window.app_handle())
+                    .map(|config| config.hide_to_tray)
+                    .unwrap_or(false)
+                {
                     api.prevent_close();
                     let _ = window.hide();
                 }
