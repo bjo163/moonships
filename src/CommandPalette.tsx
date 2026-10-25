@@ -86,10 +86,10 @@ export function CommandPalette({
     );
     const first = elements[0];
     const last = elements[elements.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
+    if (event.shiftKey && event.target === first) {
       event.preventDefault();
       last?.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
+    } else if (!event.shiftKey && event.target === last) {
       event.preventDefault();
       first?.focus();
     }
