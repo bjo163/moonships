@@ -217,6 +217,27 @@ export function SettingsDialog({
         <p className="settings-note" role="status" aria-live="polite">
           {hideToTrayStatus}
         </p>
+        <section className="settings-planned" aria-labelledby="notifications-title">
+          <div className="settings-planned-heading">
+            <div>
+              <p className="eyebrow">NOTIFICATIONS / PERMISSIONS</p>
+              <h3 id="notifications-title">Notification and permission controls</h3>
+            </div>
+            <span className="nav-state">Planned</span>
+          </div>
+          <p className="settings-note">
+            These capabilities are not connected yet. Controls stay disabled until a real
+            permission flow and user-visible behavior are implemented.
+          </p>
+          <label className="settings-checkbox settings-checkbox-disabled">
+            <input type="checkbox" disabled aria-label="Desktop notifications (Planned)" />
+            <span>Desktop notifications <span className="nav-state">Planned</span></span>
+          </label>
+          <label className="settings-checkbox settings-checkbox-disabled">
+            <input type="checkbox" disabled aria-label="Background monitoring permission (Planned)" />
+            <span>Background monitoring <span className="nav-state">Planned</span></span>
+          </label>
+        </section>
       </section>
     </div>
   );
