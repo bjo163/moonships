@@ -1,0 +1,53 @@
+name: One-time source formatting repair
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/one-shot-format-repair.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: moonships-one-shot-format-main
+  cancel-in-progress: false
+
+jobs:
+  format:
+    if: github.repository == 'bjo163/moonships' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out current main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: true
+      - name: Set up Node.js 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+      - name: Install JavaScript dependencies
+        run: npm install
+      - name: Apply repository Biome formatting
+        run: npx biome format --write src vite.config.ts vitest.config.ts index.html
+      - name: Install rustfmt
+        run: rustup toolchain install stable --profile minimal --component rustfmt
+      - name: Apply Rust formatting
+        run: cargo fmt --manifest-path src-tauri/Cargo.toml
+      - name: Verify patch whitespace
+        run: git diff --check
+      - name: Commit format-only changes to existing main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add src vite.config.ts vitest.config.ts index.html src-tauri/src
+          if git diff --cached --quiet; then
+            echo "No formatting changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git diff --cached --stat
+          git commit -m "style(ci): normalize frontend and Rust formatting"
+          git push origin HEAD:main
