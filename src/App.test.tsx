@@ -15,7 +15,7 @@ describe("Moonships application shell", () => {
 
   it("keeps shared navigation and header around replaceable page content", () => {
     const markup = renderToStaticMarkup(
-      <AppShell>
+      <AppShell theme="dark" onToggleTheme={() => {}}>
         <section aria-label="Test page">
           <h2>Replaceable content</h2>
         </section>
@@ -29,7 +29,7 @@ describe("Moonships application shell", () => {
 
   it("exposes only the implemented Home route as a link and labels other menu items Planned", () => {
     const markup = renderToStaticMarkup(
-      <AppShell>
+      <AppShell theme="dark" onToggleTheme={() => {}}>
         <div>Page</div>
       </AppShell>,
     );
