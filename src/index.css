@@ -469,3 +469,41 @@ h1 { font-size: var(--text-xl); letter-spacing: -.035em; margin: .45rem 0 0; }
   .command-palette-result-meta { justify-items: start; }
   .command-palette-footer { flex-direction: column; }
 }
+
+
+/* Workspace profile selection: preference-only layout hints, never permissions. */
+.nav-item-profile-pinned {
+  border-left: 2px solid var(--color-accent);
+  background: var(--color-accent-soft);
+}
+.profile-trigger { white-space: nowrap; }
+.profile-dialog { max-width: 46rem; }
+.profile-options { display: grid; gap: var(--space-2); margin: var(--space-4) 0; }
+.profile-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+.profile-option:hover,
+.profile-option-selected {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+.profile-option-copy { display: grid; gap: var(--space-1); }
+.profile-option-copy strong { font-size: var(--text-base); }
+.profile-option-copy > span { color: var(--color-text-muted); font-size: var(--text-sm); }
+.profile-option-copy small { color: var(--color-text-subtle); font-size: var(--text-xs); }
+.profile-option:focus-visible {
+  outline: var(--focus-width) solid var(--color-focus);
+  outline-offset: var(--focus-offset);
+}
+.settings-dialog-actions { display: flex; justify-content: flex-end; margin-top: var(--space-4); }
