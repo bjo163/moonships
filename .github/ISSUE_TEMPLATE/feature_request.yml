@@ -1,0 +1,43 @@
+name: Feature request
+description: Propose a bounded capability for Moonships
+title: "[FEATURE] "
+labels: []
+body:
+  - type: textarea
+    id: user_problem
+    attributes:
+      label: User problem / job to be done
+      description: Who needs this and why?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Expected outcome
+      description: Describe the observable outcome, not just the implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and non-goals
+      description: What is deliberately excluded?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Break the feature into small verifiable conditions.
+      value: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+  - type: textarea
+    id: risk
+    attributes:
+      label: Data, security and integration impact
+      description: Include permissions, network/source terms, secrets, AI and migration impact.
+    validations:
+      required: true
