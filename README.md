@@ -5,7 +5,7 @@
 
 Moonships is planned as a **Windows-first desktop workbench** that brings technical utilities, project and task management, system/network diagnostics, authorized security testing, world/media intelligence, and controlled automation into one modular workspace.
 
-**Project status: blueprint / pre-implementation.** This repository currently serves as the product specification and execution source of truth. Features described here are planned, not claims of existing functionality.
+**Project status: initial desktop scaffold.** A minimal Tauri 2 + Rust + React + TypeScript + Vite shell now exists. Operational tools, persistence, integrations, tray behavior, and the broader product modules remain planned until implemented and tested.
 
 <p align="center">
   <img alt="Project status" src="https://img.shields.io/badge/status-blueprint%20phase-64748b">
