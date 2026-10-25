@@ -253,6 +253,7 @@ When a task is picked, the agent should write a short work note (PR body or task
 
 ## Backlog governance
 
+- GitHub Issues are generated from unchecked task lines; see [TASK_ISSUE_SYNC.md](TASK_ISSUE_SYNC.md). Keep each task ID stable and unique.
 - Do not mark a task done because code compiles if acceptance criteria include behavior or tests.
 - If blocked, record the blocker and leave unchecked.
 - If one task requires unrelated edits in more than a few modules, split it and record dependency IDs.
