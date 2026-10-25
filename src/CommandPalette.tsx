@@ -28,11 +28,11 @@ const riskLabels: Record<PaletteRisk, string> = {
 };
 
 export function filterPaletteCommands(commands: PaletteCommand[], query: string): PaletteCommand[] {
-  const normalized = query.trim().toLocaleLowerCase();
+  const normalized = query.trim().toLowerCase();
   if (!normalized) return commands;
   return commands.filter((command) =>
     [command.title, command.description, command.category, ...(command.keywords ?? [])]
-      .some((value) => value.toLocaleLowerCase().includes(normalized)),
+      .some((value) => value.toLowerCase().includes(normalized)),
   );
 }
 
