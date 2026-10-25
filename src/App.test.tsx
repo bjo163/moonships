@@ -298,11 +298,15 @@ describe("M1 desktop foundation contracts", () => {
     const { readFileSync } = await import("node:fs");
     const availability = readFileSync(new URL("./module-availability.ts", import.meta.url), "utf8");
     const appSource = readFileSync(new URL("./App.tsx", import.meta.url), "utf8");
+    const { describeModuleAvailability } = await import("./module-availability");
 
-    for (const state of ["available", "disabled", "unsupported", "not_configured", "degraded"]) {
+    for (const state of ["available", "disabled", "unsupported", "not_configured", "degraded"] as const) {
       expect(availability).toContain(state);
+      expect(describeModuleAvailability(state).label.length).toBeGreaterThan(0);
     }
-    expect(availability).toContain("Required setup is missing; no operation has been attempted.");
+    expect(describeModuleAvailability("not_configured").isOperational).toBe(false);
+    expect(describeModuleAvailability("not_configured").description).toContain("no operation has been attempted");
+    expect(describeModuleAvailability("available").isOperational).toBe(true);
     expect(appSource).toContain('availability: "not_configured"');
     expect(appSource).toContain("describeModuleAvailability(item.availability)");
   });
