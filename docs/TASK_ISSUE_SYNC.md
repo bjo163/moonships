@@ -6,7 +6,7 @@
 
 ## Automatic behavior
 
-The workflow `.github/workflows/sync-backlog-to-issues.yml` runs when `docs/TASK_BACKLOG.md` changes on `main`.
+The workflow `.github/workflows/sync-backlog-to-issues.yml` runs when `docs/TASK_BACKLOG.md` or `docs/MILESTONES.md` changes on `main`.
 
 For every task line in the backlog:
 - Unchecked and no linked issue: create an issue titled `[TASK-ID] Task title`.
@@ -17,7 +17,8 @@ For every task line in the backlog:
 - Existing text outside the generated body markers and issue comments are preserved.
 - The workflow ensures labels `task` and `backlog-sync`, and milestone association for active phases. Changes to either the backlog or milestone document trigger sync on `main`.
 - M0 does not need a GitHub milestone if all M0 checkboxes are already checked.
-- A repeated sync is safe; it should not create duplicate issues.
+- A repeated sync is safe; the verified no-op run returned 0 creates, 0 updates, 0 closes and 0 reopens.
+- Duplicate task IDs, multiple issues with the same task marker, title collisions without markers, malformed managed-body markers, or managed IDs missing from the backlog fail closed and require explicit reconciliation. The edge-case regression-test task is tracked as M1-037.
 
 The checklist is the status source of truth for this automation. If an issue is manually closed while its task checkbox remains unchecked, the next sync reopens it. To mark the task complete, check the task in `docs/TASK_BACKLOG.md` on `main`. Do not close a generated issue manually to mean “won't do”; instead resolve the scope with a deliberate backlog edit.
 
