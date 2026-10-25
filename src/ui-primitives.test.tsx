@@ -49,7 +49,7 @@ describe("shared UI primitives", () => {
     expect(closed).toBe("");
     expect(open).toContain('role="dialog"');
     expect(open).toContain('aria-modal="true"');
-    expect(open).toContain('aria-describedby="ms-dialog-description"');
+    expect(open).toMatch(/aria-describedby="ms-dialog-description-[^"]+"/);
     expect(open).toContain("Change local settings");
   });
 
