@@ -41,7 +41,7 @@ pub struct ToolDefinition {
     pub input_schema: Value,
     pub output_schema: Value,
     pub risk_class: RiskClass,
-    pub required_capabilities: Vec<String>,
+    pub permissions: Vec<String>,
     pub enabled: bool,
 }
 
@@ -224,7 +224,7 @@ mod tests {
             input_schema: json!({"type": "object"}),
             output_schema: json!({"type": "object"}),
             risk_class: RiskClass::ReadOnly,
-            required_capabilities: vec!["workspace.read".to_string()],
+            permissions: vec!["workspace.read".to_string()],
             enabled: true,
         };
         let mut registry = ToolRegistry::default();
