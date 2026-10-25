@@ -1,5 +1,11 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { resolveRoute, type RouteResolution } from "./route-registry";
+import {
+  applyThemePreference,
+  readThemePreference,
+  writeThemePreference,
+  type ThemePreference,
+} from "./theme-preference";
 
 const plannedNavigationItems = [
   "My Work",
@@ -21,9 +27,11 @@ const foundationChecks = [
 
 type AppShellProps = {
   children: ReactNode;
+  theme: ThemePreference;
+  onToggleTheme: () => void;
 };
 
-export function AppShell({ children }: AppShellProps) {
+export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
   return (
     <main className="app-frame">
       <aside className="rail" aria-label="Primary navigation">
@@ -60,9 +68,20 @@ export function AppShell({ children }: AppShellProps) {
             <span className="eyebrow">MOONSHIPS / WORKSPACE</span>
             <h1>Moonships Workbench</h1>
           </div>
-          <span className="phase-pill">
-            <span className="status-dot" /> LOCAL-FIRST
-          </span>
+          <div className="topbar-actions">
+            <button
+              className="theme-toggle"
+              type="button"
+              onClick={onToggleTheme}
+              aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+              title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+            >
+              {theme === "dark" ? "Light theme" : "Dark theme"}
+            </button>
+            <span className="phase-pill">
+              <span className="status-dot" /> LOCAL-FIRST
+            </span>
+          </div>
         </header>
         <div className="page-content">{children}</div>
       </section>
@@ -146,8 +165,29 @@ function getInitialRoute(): RouteResolution {
   return resolveRoute(typeof window === "undefined" ? "#/overview" : window.location.hash);
 }
 
+function getBrowserStorage(): Storage | undefined {
+  try {
+    return window.localStorage;
+  } catch {
+    return undefined;
+  }
+}
+
 export default function App() {
   const [route, setRoute] = useState<RouteResolution>(getInitialRoute);
+  const [theme, setTheme] = useState<ThemePreference>(() =>
+    readThemePreference(getBrowserStorage()),
+  );
+
+  useEffect(() => {
+    applyThemePreference(theme, document.documentElement);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    const nextTheme: ThemePreference = theme === "dark" ? "light" : "dark";
+    writeThemePreference(nextTheme, getBrowserStorage());
+    setTheme(nextTheme);
+  };
 
   useEffect(() => {
     const updateRoute = () => setRoute(resolveRoute(window.location.hash));
@@ -156,7 +196,7 @@ export default function App() {
   }, []);
 
   return (
-    <AppShell>
+    <AppShell theme={theme} onToggleTheme={toggleTheme}>
       {route.kind === "page" && route.id === "overview" ? (
         <OverviewPage />
       ) : (
