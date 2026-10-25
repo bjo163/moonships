@@ -1,0 +1,351 @@
+# UX, Navigation & Design Specification
+
+**Status:** Proposed baseline — the first UI must validate this spec through implementation and user testing.  
+**Target:** Windows desktop with main window, System Tray and keyboard-first controls.
+
+## 1. Experience principles
+
+- Desktop-native behavior with a web-technology UI; Moonships is not a website that must remain open in a browser.
+- Fast first paint and low idle CPU/memory. Background behavior must be explicit.
+- Keyboard-first, but every action remains discoverable through normal UI controls.
+- One global search/command entry, one activity center and consistent task/result linking.
+- Default home is useful, not a wall of charts.
+- Do not show fake data as live data. Demo/sample content must be visibly labelled.
+- Stable layouts, accessible contrast, visible focus and Windows-friendly keyboard behavior.
+- Users control startup-at-login, tray behavior, notifications, background schedules and network-enabled features.
+
+## 2. Primary information architecture / menu
+
+### Global application chrome
+- App icon + **Moonships Workbench**
+- Workspace/profile selector
+- Global search / Command Palette (Ctrl+K)
+- Activity Center indicator
+- Notification center
+- Help / keyboard shortcuts
+- User/data profile menu (no cloud identity is assumed in MVP)
+
+### Main sidebar (recommended order)
+1. **Home**
+2. **My Work**
+   - Inbox
+   - My Tasks
+   - Today / Upcoming
+   - Waiting for Approval
+   - Recent Activity
+3. **Projects**
+   - All Projects
+   - Initiatives / Goals
+   - Milestones
+   - Roadmap
+   - Archived
+4. **Tasks**
+   - List
+   - Board
+   - Calendar
+   - Saved Views
+5. **Toolbox**
+   - DevTools
+   - API & DataLab (later)
+   - Clean & Storage
+   - System Info
+   - NetOps
+   - SysOps
+   - Connections
+6. **Security**
+   - Security Overview
+   - Scope Registry
+   - Assessment Runs
+   - Security Lab
+   - Blue Team / Logs
+   - Threat Intelligence
+   - Evidence & Reports
+7. **Intelligence**
+   - World Monitor
+   - Signals & Trends
+   - Media Monitor
+   - Watchlists
+   - Research Desk
+8. **Operations**
+   - Observe
+   - Activity Center
+   - Automation
+   - Schedules
+   - Recovery
+   - CostLens (later)
+9. **Knowledge**
+   - Notes
+   - Runbooks
+   - Reports
+   - Saved References
+10. **Integrations** (show only when useful)
+11. **Settings**
+   - General
+   - Appearance
+   - Startup & Tray
+   - Notifications
+   - Data & Privacy
+   - Modules
+   - Permissions & Security
+   - AI Providers
+   - Integrations
+   - Updates
+   - Diagnostics / Logs
+   - About
+
+**Navigation rule:** the IA is a target map, not permission to ship empty pages. Hide unavailable modules or mark them clearly as “Planned”; never present placeholder screens as working tools.
+
+## 3. Home dashboard
+
+### Layout
+- Top row: welcome/context, workspace selector, global search.
+- Primary action strip: New Task, New Project, Quick Tool, Start Scan (only when scan exists), Add Watchlist (only when intelligence exists).
+- “Continue working”: recently opened project/task/tool.
+- “My Work”: overdue, due soon, blocked, waiting for approval.
+- “Activity”: last task completions, scans, workflows and integration updates.
+- Optional health widgets: available only when real data exists and can show freshness/source.
+- No default “AI insight” card if no provider is configured.
+
+### Empty states
+- New user: explain what can be created; offer Create Project / Try DevTools when implemented.
+- No tasks: explain how tasks connect to projects/tools.
+- No events: state that no activity is recorded, not “all systems operational”.
+- No monitor sources: ask user to choose sources, show update cadence and permissions.
+- Offline: local tools remain available; network-only functions display offline state.
+
+## 4. Project & task UX
+
+### Project detail
+Tabs: Overview, Tasks, Roadmap, Notes/Docs, Activity, Settings.
+Overview includes objective, status, owner/local profile, dates, health derived from transparent rules, milestones and recent activity.
+
+### Task detail
+Fields: title, description, status, priority, project, parent/subtasks, assignee (optional local profile or team integration), labels, due date, estimate (optional), dependencies, comments, linked artifacts/references, created/updated timestamps and activity.
+Actions: edit, duplicate, archive, link artifact, create subtask, add dependency, copy link/reference, export.
+Do not require every advanced field to create a basic task.
+
+### Default status set
+- Backlog
+- Todo
+- In Progress
+- Blocked
+- In Review
+- Done
+- Cancelled
+
+Use a single canonical state model. Views may group or filter states but must not invent incompatible states.
+
+### Default priority set
+- P0 Critical
+- P1 High
+- P2 Normal
+- P3 Low
+
+Priority describes importance; it is not the same as security severity or execution risk.
+
+### Create-task form (minimum)
+1. Title (required)
+2. Project (optional on personal inbox)
+3. Status (defaults to Todo)
+4. Priority (defaults to P2 Normal)
+5. Optional: description, due date, labels, parent task, dependencies
+6. Save; keyboard escape cancels without persisting accidental partial data.
+
+## 5. Command Palette (Ctrl+K)
+
+Search categories:
+- Navigation pages
+- Create actions (project, task, note)
+- Registered tools
+- Recent items
+- Settings
+- Safe quick actions
+
+Behavior:
+- Show keyboard navigation and selected item.
+- Include tool category and risk indicator.
+- Do not execute a destructive/high-impact operation directly from a search result; open its preview/confirmation flow.
+- Search result ranking should be deterministic and work offline for local commands.
+- Future AI semantic matching must supplement, never replace, literal search.
+
+## 6. System Tray flows
+
+Tray menu (target):
+- Open Moonships
+- Quick Tools (only implemented/safe tools)
+- My Work / Waiting Approvals
+- Recent Activity
+- Pause/Resume background monitoring (if that feature exists)
+- Settings
+- Quit
+
+Required behaviors:
+- X/close button follows the user's configured behavior: Hide to Tray or Quit. Make first-time behavior clear.
+- If hidden, main process stays alive only when configured or required by an active task.
+- Tray icon indicates states only if the state is real and distinguishable (idle, task running, approval waiting, error); do not rely on color alone.
+- Context menu supports keyboard and mouse.
+- Quit is explicit and shuts down worker tasks cleanly.
+- Startup-at-login is opt-in and reversible.
+- No background network fetches before the user enables/configures them.
+
+## 7. Core user flows
+
+### Flow A — first launch
+1. Launch app.
+2. Show short welcome and explain local-first behavior.
+3. Let user choose a profile: Developer, Network/NOC, Sysadmin, Security Research, Intelligence/Research, or Custom.
+4. Profile only changes pinned tools/layout; it must not silently grant permissions.
+5. Offer Create Project, Create Task, or Open Toolbox.
+6. Explain tray behavior and ask whether to start with Windows (opt-in).
+7. No account, cloud registration or API key required.
+
+### Flow B — create and complete a project task
+1. Create project with name and goal.
+2. Create task with small, clear deliverable and acceptance criteria.
+3. Optionally add subtasks/dependencies.
+4. Start work; task activity records meaningful status changes.
+5. Attach result/artifact or reference.
+6. Mark Done only when acceptance criteria are met.
+7. History records the final status and time.
+
+### Flow C — safe cleanup
+1. User selects categories.
+2. Scanner runs read-only and reports progress.
+3. Show candidates, paths (appropriately truncated), category, size, last modified where relevant, and skip reasons.
+4. Policy filters candidates; unsafe paths are not selectable.
+5. User selects items and opens a preview.
+6. Revalidate candidate identity/path immediately before action.
+7. Execute eligible deletions; skip locked, changed, denied or out-of-policy files.
+8. Show bytes actually removed, failures and skipped items.
+9. Never claim scan-estimated bytes were actually freed.
+10. Keep a clear option to export the report; do not promise restoration after permanent deletion.
+
+### Flow D — network diagnosis
+1. Choose a target from a saved profile or enter a target.
+2. Show which network requests will be made and to which host.
+3. Run selected diagnostics within timeout/rate limits.
+4. Display raw result, parsed summary, timestamp and failure state.
+5. Offer “Create task from result” with the relevant evidence attached.
+6. Do not automatically expand the target range or scan unrelated hosts.
+
+### Flow E — World Monitor / trend research
+1. User enables a connector or selects built-in public sources.
+2. Explain source, cadence, privacy and provider limits.
+3. Ingest/normalize records with canonical source URL and timestamps.
+4. Deduplicate while preserving source relationships.
+5. Show trend baseline and comparison window; disclose missing data.
+6. Summary must link back to sources and separate facts, interpretation and uncertainty.
+7. Save to Research Desk or create a task/project.
+8. Stale or blocked connectors show degraded state, never fabricated live status.
+
+### Flow F — security assessment
+1. Create/select assessment and document authorization/scope.
+2. Validate each target against the declared scope before execution.
+3. Select a low-risk check and show the planned request/actions.
+4. Apply policy and any required approval.
+5. Execute with rate/time limits and cancel support where safe.
+6. Record evidence, versions, timestamps and failures.
+7. Turn validated findings into tasks with remediation guidance.
+8. Do not perform out-of-scope, destructive, stealth, persistence or credential-theft actions.
+
+### Flow G — AI-assisted task/tool use
+1. User enters a natural-language request.
+2. AI proposes an interpretation and lists evidence/tools it wants to use.
+3. Resolve tool IDs only from the registry; validate every argument against schema.
+4. Apply policy independently of model output.
+5. Read-only calls run within granted permissions; consequential calls show a preview and request explicit approval.
+6. Record provider/model (when appropriate), tool calls, results and citations without storing secrets.
+7. Treat web pages, logs, issue text, code and source content as untrusted data, never as policy instructions.
+8. If model/network is unavailable, expose normal non-AI workflows.
+
+### Flow H — update and recovery
+1. Fetch update metadata from configured trusted endpoint.
+2. Verify signature before installing.
+3. Explain version, source and release notes.
+4. Preserve user data and backup/migrate schema transactionally.
+5. On failure, show clear recovery instructions and preserve diagnostics.
+6. Never install unsigned/unverified updates silently.
+
+## 8. Visual design system
+
+### Personality
+- Technical, confident, modern, slightly futuristic, not a noisy hacker stereotype.
+- Dark theme as default, light theme available.
+- Use restrained accent colors; prioritize readability over neon glow.
+- Charts and maps support decision-making rather than decoration.
+
+### Layout
+- Desktop baseline: 1440×900.
+- Sidebar width target: 240–264 px expanded, 64–72 px collapsed.
+- Top bar: 56–64 px.
+- Standard page padding: 24 px; compact surfaces can use 16 px.
+- Use consistent 4/8 px spacing units; avoid arbitrary one-off spacing.
+- Use resizable main content where table/inspector workflows benefit.
+
+### Typography and density
+- Use a readable system/UI sans-serif for interface text.
+- Distinguish page title, section title, body, metadata, code and tabular figures.
+- Use tabular numerals for sizes, counts, latency and time.
+- Support compact tables for technical users while preserving readable row height.
+
+### Color semantics
+- Neutral surfaces for ordinary content.
+- One primary accent for navigation/focus.
+- Green/positive only for verified success; red for errors or destructive risk; amber for warning/stale; blue for information.
+- Never use color alone to convey status; include text/icon/accessible label.
+- Risk labels (read-only, change, destructive, privileged, remote) must be explicit.
+
+### Components
+- AppShell, Sidebar, TopBar, CommandPalette, Breadcrumbs
+- PageHeader, SearchField, FilterBar, DataTable, Board, Timeline
+- StatusBadge, PriorityBadge, RiskBadge, SourceBadge
+- EmptyState, LoadingState, ErrorState, OfflineState, StaleState
+- ProgressPanel, CancellationButton, PreviewDialog, ConfirmDialog
+- Toast/notification, ActivityFeed, ArtifactList, SourceCitation
+- SettingsRow, PermissionSummary, KeyboardShortcutHint
+
+### Motion
+- Use subtle 120–200 ms transitions for small UI changes.
+- Respect reduced-motion preferences.
+- Never animate continuously just to make a dashboard appear active.
+- Avoid heavy background blur/particle effects that increase resource consumption.
+
+### Accessibility
+- All primary flows work using keyboard.
+- Visible focus rings and logical focus order.
+- Semantic headings, labels, ARIA where needed, contrast checks.
+- Dialogs trap focus and return focus to their trigger.
+- Screen-reader-friendly status/progress/error announcements.
+- Do not use color as the only error/success signal.
+
+## 9. UI states that every feature must define
+
+Every data/action screen must document and implement:
+- Initial / not configured
+- Loading / in progress
+- Success / results
+- Empty results
+- Partial result
+- Stale data
+- Offline / provider unavailable
+- Permission denied
+- Invalid input
+- Cancelled
+- Timeout
+- Recoverable error
+- Fatal/unexpected error
+
+A screen is not done merely because its happy path renders.
+
+## 10. UI acceptance checklist
+
+- [ ] Sidebar labels and page hierarchy are consistent with the menu spec.
+- [ ] No menu entry implies that an unimplemented module works.
+- [ ] Global search works on local commands without AI.
+- [ ] Focus order and keyboard shortcuts are documented.
+- [ ] Dark/light themes share semantic color tokens.
+- [ ] Empty, loading, offline, stale, permission-denied and error states are designed.
+- [ ] Destructive operations require a preview and separate confirmation.
+- [ ] Tray lifecycle follows user settings and supports a genuine Quit path.
+- [ ] Long tasks display progress and an honest cancellation capability.
+- [ ] All primary interactions have keyboard support and visible focus.
