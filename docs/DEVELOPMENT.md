@@ -5,8 +5,8 @@ Moonships is a Windows-first Tauri 2 desktop application. This repository is und
 ## Prerequisites
 
 - Windows 11 (primary development and CI target).
-- Node.js 22 LTS and npm (npm is distributed with Node.js).
-- Rust stable via rustup, including the MSVC toolchain.
+- Node.js 22.x and npm 10.x. `.nvmrc` declares the Node major; `package.json` engines and `.npmrc` reject unsupported Node/npm majors.
+- Rust stable via rustup, including the MSVC toolchain. `rust-toolchain.toml` declares stable plus rustfmt, clippy and the Windows MSVC target.
 - Microsoft C++ Build Tools and the WebView2 Runtime, as required by Tauri on Windows.
 
 Verify the installed toolchain:
