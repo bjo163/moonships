@@ -25,6 +25,6 @@ The workflow uses the repository's `GITHUB_TOKEN`; no personal access token shou
 
 ## Alpha scope and limitations
 
-The first release is a **foundation preview**, not a production-ready feature release. The current interface is a desktop shell; operational tools, persistence, system tray behavior and the complete roadmap are not implemented merely because installers build successfully. Release notes must not claim those capabilities are available.
+The first release is a **foundation preview**, not a production-ready feature release. The GitHub tag remains `v0.1.0-alpha.1`; Tauri's Windows MSI packager requires numeric-only prerelease identifiers, so the embedded package version is `0.1.0-1`. The release tag is the human-facing prerelease label. The current interface is a desktop shell; operational tools, persistence, system tray behavior and the complete roadmap are not implemented merely because installers build successfully. Release notes must not claim those capabilities are available.
 
 A successful CI installer build verifies compilation and package generation. It does not replace manual install/launch/uninstall testing on a real Windows device.
