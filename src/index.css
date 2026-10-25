@@ -8,7 +8,8 @@
   --text-base: 0.875rem;
   --text-lg: 1rem;
   --text-xl: 1.25rem;
-  --text-display: clamp(1.7rem, 3vw, 2.7rem);\n  --text-icon: 1.125rem;
+  --text-display: clamp(1.7rem, 3vw, 2.7rem);
+  --text-icon: 1.125rem;
   --weight-medium: 500;
   --weight-semibold: 600;
   --weight-bold: 700;
@@ -26,7 +27,8 @@
   --radius-sm: 0.45rem;
   --radius-md: 0.7rem;
   --radius-lg: 1rem;
-  --radius-card: var(--radius-lg);\n  --radius-brand-mark: 13px 13px 13px 4px;\n  --sidebar-width: 248px;\n  --sidebar-width-compact: 210px;\n  --layout-max-width: var(--layout-max-width);
+  --radius-card: var(--radius-lg);
+  --radius-brand-mark: 13px 13px 13px 4px;\n  --sidebar-width: 248px;\n  --sidebar-width-compact: 210px;\n  --layout-max-width: 1680px;
   --radius-pill: 999px;
   --border-width-default: 1px;
   --focus-width: 2px;
