@@ -6,7 +6,7 @@ const stylesheet = readFileSync(new URL("./index.css", import.meta.url), "utf8")
 describe("semantic design token contract", () => {
   it("defines semantic dark and light palettes without claiming contrast certification", () => {
     expect(stylesheet).toContain("palette is NOT contrast-certified");
-    expect(stylesheet).toContain(":root[data-theme=\"light\"]");
+    expect(stylesheet).toContain(':root[data-theme="light"]');
     for (const token of [
       "--color-canvas",
       "--color-sidebar",
