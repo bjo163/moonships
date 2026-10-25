@@ -48,6 +48,15 @@ describe("shared UI primitives", () => {
     expect(markup).toContain(`id="${generatedId}-hint"`);
   });
 
+  it("does not refer to a hidden hint when validation error is shown", () => {
+    const markup = renderToStaticMarkup(
+      <Input id="task-name" label="Task name" hint="Use a descriptive name" error="Required" />,
+    );
+    expect(markup).toContain('aria-describedby="task-name-error"');
+    expect(markup).not.toContain('id="task-name-hint"');
+    expect(markup).not.toContain('aria-describedby="task-name-hint task-name-error"');
+  });
+
   it("does not render a closed dialog and labels an open dialog", () => {
     const closed = renderToStaticMarkup(
       <Dialog open={false} title="Preferences" onClose={() => {}}>
@@ -63,6 +72,7 @@ describe("shared UI primitives", () => {
     expect(closed).toBe("");
     expect(open).toContain('role="dialog"');
     expect(open).toContain('aria-modal="true"');
+    expect(open).toContain('class="ms-dialog-backdrop-dismiss"');
     expect(open).toMatch(/aria-describedby="ms-dialog-description-[^"]+"/);
     expect(open).toContain("Change local settings");
   });
