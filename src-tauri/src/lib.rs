@@ -535,7 +535,12 @@ mod tests {
         assert!(connection
             .execute(
                 "INSERT INTO projects (id, workspace_id, name, status) VALUES (?1, ?2, ?3, ?4)",
-                rusqlite::params!["invalid-status", PERSONAL_WORKSPACE_ID, "Example", "unknown"],
+                rusqlite::params![
+                    "invalid-status",
+                    PERSONAL_WORKSPACE_ID,
+                    "Example",
+                    "unknown"
+                ],
             )
             .is_err());
 
@@ -550,7 +555,12 @@ mod tests {
             .execute(
                 "INSERT INTO projects (id, workspace_id, name, project_key)
                  VALUES (?1, ?2, ?3, ?4)",
-                rusqlite::params!["duplicate-project", PERSONAL_WORKSPACE_ID, "Duplicate", "MOON"],
+                rusqlite::params![
+                    "duplicate-project",
+                    PERSONAL_WORKSPACE_ID,
+                    "Duplicate",
+                    "MOON"
+                ],
             )
             .is_err());
 
@@ -597,18 +607,18 @@ mod tests {
         run_migrations(&mut connection).expect("v2 to v3 migration should succeed");
         run_migrations(&mut connection).expect("repeated migration should be safe");
         let saved: (String, String) = connection
-            .query_row(
-                "SELECT id, name FROM workspaces",
-                [],
-                |row| Ok((row.get(0)?, row.get(1)?)),
-            )
+            .query_row("SELECT id, name FROM workspaces", [], |row| {
+                Ok((row.get(0)?, row.get(1)?))
+            })
             .expect("existing workspace should remain");
         assert_eq!(saved.0, "my-existing-workspace");
         assert_eq!(saved.1, "Saved Workspace");
         let metadata: String = connection
-            .query_row("SELECT value FROM app_metadata WHERE key = 'existing'", [], |row| {
-                row.get(0)
-            })
+            .query_row(
+                "SELECT value FROM app_metadata WHERE key = 'existing'",
+                [],
+                |row| row.get(0),
+            )
             .expect("settings must remain");
         assert_eq!(metadata, "keep-existing");
         let project_count: i64 = connection
