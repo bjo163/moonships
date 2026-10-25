@@ -535,7 +535,7 @@ export default function App() {
         onSelect={(command) => selectPaletteCommand(command.id)}
       />
       {profileDialogOpen ? (
-        <WorkspaceProfileDialog currentProfile={profileId} onSelect={selectWorkspaceProfile} onClose={() => setProfileDialogOpen(false)} />
+        <WorkspaceProfileDialog currentProfile={profileId} onSelect={selectWorkspaceProfile} onClose={() => selectWorkspaceProfile(profileId)} />
       ) : null}
       {commandPreview ? (
         <CommandPreviewDialog title={commandPreview.title} description={commandPreview.description} onClose={() => setCommandPreview(null)} />
