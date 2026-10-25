@@ -167,6 +167,21 @@ describe("system tray integration contract", () => {
   });
 });
 
+describe("SQLite storage path contract", () => {
+  it("opens the database beneath Tauri's per-user app data directory", async () => {
+    const { readFileSync } = await import("node:fs");
+    const rustSource = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
+    const cargoManifest = readFileSync(new URL("../src-tauri/Cargo.toml", import.meta.url), "utf8");
+
+    expect(cargoManifest).toContain('rusqlite = { version = "0.32", features = ["bundled"] }');
+    expect(rustSource).toContain('const DATABASE_FILE_NAME: &str = "moonships.sqlite3";');
+    expect(rustSource).toContain("app.path().app_data_dir()?");
+    expect(rustSource).toContain("open_database_in(&app_data_dir)");
+    expect(rustSource).toContain("Connection::open(path)");
+    expect(rustSource).toContain("opening_database_creates_directory_and_file_under_given_path");
+  });
+});
+
 describe("typed Tauri command DTO contract", () => {
   it("uses a documented request/response DTO and rejects unknown request fields", async () => {
     const { readFileSync } = await import("node:fs");
