@@ -67,6 +67,7 @@ Exit criteria:
 - [ ] CI has clear required checks and no fake status badges.
 - [ ] Minimum-window/overflow behavior is documented and verified (M1-038).
 - [ ] Core shell visual/accessibility review has recorded evidence (M1-039).
+- [ ] Desktop shell task-based usability findings and linked follow-up tasks are recorded (M1-040).
 - [ ] App can be used without cloud account or model provider.
 
 ## M2 — Projects & Tasks
