@@ -46,11 +46,16 @@ export function CommandPalette({
 }: CommandPaletteProps) {
   const searchRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    if (open) searchRef.current?.focus();
+    if (!open) return;
+    setQuery("");
+    setActiveIndex(0);
+    searchRef.current?.focus();
   }, [open]);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const results = useMemo(() => filterPaletteCommands(commands, query), [commands, query]);
+  const selectedIndex = results[activeIndex] ? activeIndex : 0;
+  const selectedCommand = loading ? undefined : results[selectedIndex];
 
   if (!open) return null;
 
@@ -58,15 +63,15 @@ export function CommandPalette({
     if (event.key === "Escape") {
       event.preventDefault();
       onClose();
-    } else if (event.key === "ArrowDown" && results.length > 0) {
+    } else if (!loading && event.key === "ArrowDown" && results.length > 0) {
       event.preventDefault();
-      setActiveIndex((index) => (index + 1) % results.length);
-    } else if (event.key === "ArrowUp" && results.length > 0) {
+      setActiveIndex((selectedIndex + 1) % results.length);
+    } else if (!loading && event.key === "ArrowUp" && results.length > 0) {
       event.preventDefault();
-      setActiveIndex((index) => (index - 1 + results.length) % results.length);
-    } else if (event.key === "Enter" && results[activeIndex]) {
+      setActiveIndex((selectedIndex - 1 + results.length) % results.length);
+    } else if (event.key === "Enter" && selectedCommand) {
       event.preventDefault();
-      onSelect(results[activeIndex]);
+      onSelect(selectedCommand);
     }
   };
 
@@ -110,7 +115,7 @@ export function CommandPalette({
           onKeyDown={handleKeyDown}
           aria-controls="command-palette-results"
           aria-activedescendant={
-            results[activeIndex] ? `palette-command-${results[activeIndex].id}` : undefined
+            selectedCommand ? `palette-command-${selectedCommand.id}` : undefined
           }
         />
         <p id="command-palette-help" className="command-palette-help">
@@ -136,11 +141,11 @@ export function CommandPalette({
             results.map((command, index) => (
               <button
                 id={`palette-command-${command.id}`}
-                className={`command-palette-result${index === activeIndex ? " command-palette-result-active" : ""}`}
+                className={`command-palette-result${index === selectedIndex ? " command-palette-result-active" : ""}`}
                 key={command.id}
                 type="button"
                 role="option"
-                aria-selected={index === activeIndex}
+                aria-selected={index === selectedIndex}
                 onMouseEnter={() => setActiveIndex(index)}
                 onClick={() => onSelect(command)}
               >
