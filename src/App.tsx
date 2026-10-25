@@ -318,23 +318,82 @@ export function WorkspaceProfileDialog({
   currentProfile,
   onSelect,
   onClose,
+  firstRun = false,
 }: {
   currentProfile: WorkspaceProfileId;
   onSelect: (profile: WorkspaceProfileId) => void;
   onClose: () => void;
+  firstRun?: boolean;
 }) {
+  const dialogRef = useRef<HTMLElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    const previouslyFocused =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const dialog = dialogRef.current;
+    const focusable = () =>
+      Array.from(dialog?.querySelectorAll<HTMLElement>("*") ?? []).filter(
+        (element) =>
+          element.matches(
+            'button:not(:disabled), input:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])',
+          ) && element.getAttribute("aria-hidden") !== "true",
+      );
+    focusable()[0]?.focus();
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const elements = focusable();
+      if (elements.length === 0) {
+        event.preventDefault();
+        dialog?.focus();
+        return;
+      }
+      const first = elements[0];
+      const last = elements[elements.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    const onFocusIn = (event: FocusEvent) => {
+      if (dialog && !dialog.contains(event.target as Node)) focusable()[0]?.focus();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("focusin", onFocusIn);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("focusin", onFocusIn);
+      if (previouslyFocused?.isConnected) previouslyFocused.focus();
+    };
+  }, []);
+
   return (
     <div className="settings-backdrop" role="presentation">
       <section
+        ref={dialogRef}
         className="settings-dialog profile-dialog"
         role="dialog"
         aria-modal="true"
         aria-labelledby="profile-dialog-title"
+        aria-describedby="profile-dialog-description"
+        tabIndex={-1}
       >
         <div className="settings-dialog-header">
           <div>
-            <p className="eyebrow">FIRST RUN / WORKSPACE</p>
-            <h2 id="profile-dialog-title">Choose your workspace profile</h2>
+            <p className="eyebrow">{firstRun ? "FIRST RUN / WELCOME" : "WORKSPACE / PROFILE"}</p>
+            <h2 id="profile-dialog-title">
+              {firstRun ? "Welcome to Moonships Workbench" : "Choose your workspace profile"}
+            </h2>
           </div>
           <button
             className="settings-close"
@@ -345,9 +404,17 @@ export function WorkspaceProfileDialog({
             Close
           </button>
         </div>
-        <p className="settings-note">
-          Profiles only change suggested pinned sections and layout preferences. They never grant
-          permissions or enable tools.
+        {firstRun ? (
+          <p className="settings-note">
+            Your workbench starts local-first and offline. No account, cloud connection, or API key
+            is required. Tools and project creation that are not implemented stay marked Planned.
+            Background monitoring and startup with Windows are not enabled automatically. You can
+            change tray behavior later in Settings.
+          </p>
+        ) : null}
+        <p className="settings-note" id="profile-dialog-description">
+          Choose a profile to customize suggested pinned sections. Profiles never grant permissions,
+          run tools, or enable background tasks. You can change your selection at any time.
         </p>
         <div className="profile-options">
           {WORKSPACE_PROFILES.map((profile) => (
@@ -460,9 +527,10 @@ export default function App() {
   const [profileId, setProfileId] = useState<WorkspaceProfileId>(
     () => readWorkspaceProfile(getBrowserStorage()) ?? "developer",
   );
-  const [profileDialogOpen, setProfileDialogOpen] = useState(
+  const [firstRun, setFirstRun] = useState(
     () => typeof window !== "undefined" && readWorkspaceProfile(getBrowserStorage()) === null,
   );
+  const [profileDialogOpen, setProfileDialogOpen] = useState(firstRun);
   const [commandPreview, setCommandPreview] = useState<{
     title: string;
     description: string;
@@ -510,6 +578,7 @@ export default function App() {
     const saved = writeWorkspaceProfile(nextProfile, getBrowserStorage());
     setProfileId(nextProfile);
     setProfileDialogOpen(false);
+    setFirstRun(false);
     if (!saved)
       setCommandPreview({
         title: "Profile not persisted",
@@ -639,7 +708,8 @@ export default function App() {
         <WorkspaceProfileDialog
           currentProfile={profileId}
           onSelect={selectWorkspaceProfile}
-          onClose={() => selectWorkspaceProfile(profileId)}
+          onClose={() => setProfileDialogOpen(false)}
+          firstRun={firstRun}
         />
       ) : null}
       {commandPreview ? (
