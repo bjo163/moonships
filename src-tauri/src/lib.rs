@@ -98,13 +98,19 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::hide_to_tray_enabled;
-    use std::{fs, time::{SystemTime, UNIX_EPOCH}};
+    use std::{
+        fs,
+        time::{SystemTime, UNIX_EPOCH},
+    };
 
     #[test]
     fn hide_to_tray_preference_is_fail_closed_when_missing_or_invalid() {
         let missing = std::env::temp_dir().join(format!(
             "moonships-hide-to-tray-missing-{}",
-            SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos()
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
         ));
         assert!(!hide_to_tray_enabled(&missing));
     }

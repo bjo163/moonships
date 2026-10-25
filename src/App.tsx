@@ -210,11 +210,7 @@ export function SettingsDialog({
             <p>Keep Moonships running in the system tray when you close the window.</p>
           </div>
           <label className="settings-checkbox">
-            <input
-              type="checkbox"
-              checked={hideToTray}
-              onChange={onToggleHideToTray}
-            />
+            <input type="checkbox" checked={hideToTray} onChange={onToggleHideToTray} />
             <span>Hide to tray on close</span>
           </label>
         </div>
