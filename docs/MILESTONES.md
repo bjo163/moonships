@@ -49,7 +49,8 @@ Deliverables:
 - General settings and per-user local data location
 - SQLite connection, migration runner, structured app error/logging
 - Typed Tauri command boundary, initial tool registry interface
-- Formatting/lint/tests/build CI\n- Design-to-product review: minimum-window/overflow behavior, visual/accessibility checks and first-slice usability findings
+- Formatting/lint/tests/build CI
+- Design-to-product review: minimum-window/overflow behavior and visual/accessibility checks
 
 Exit criteria:
 - [ ] Fresh clone installs using documented steps.
