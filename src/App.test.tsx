@@ -253,3 +253,68 @@ describe("SQLite connection safety contract", () => {
     expect(architecture).toContain("5,000 ms busy timeout");
   });
 });
+
+describe("M1 desktop foundation contracts", () => {
+  it("provides structured local logs with recursive secret-field redaction", async () => {
+    const { readFileSync } = await import("node:fs");
+    const logger = readFileSync(new URL("../src-tauri/src/local_logging.rs", import.meta.url), "utf8");
+    const rustSource = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
+
+    expect(logger).toContain("pub enum LogLevel");
+    expect(logger).toContain("pub enum LogCategory");
+    expect(logger).toContain("fn is_sensitive_key");
+    expect(logger).toContain("pub fn render_event");
+    expect(logger).toContain("pub fn write_event");
+    expect(logger).toContain("structured_logs_redact_secret_fields_recursively");
+    expect(logger).toContain("local_log_writer_appends_json_lines_to_app_owned_path");
+    expect(rustSource).toContain('join("logs").join("moonships.log")');
+  });
+
+  it("locks job status names, tool contracts, and native permission policy", async () => {
+    const { readFileSync } = await import("node:fs");
+    const domain = readFileSync(new URL("../src-tauri/src/domain.rs", import.meta.url), "utf8");
+
+    for (const status of [
+      "queued",
+      "running",
+      "waiting_approval",
+      "succeeded",
+      "partial",
+      "failed",
+      "cancelled",
+      "timed_out",
+    ]) {
+      expect(domain).toContain(status === "waiting_approval" ? "WaitingApproval" : status[0].toUpperCase() + status.slice(1));
+    }
+    expect(domain).toContain("pub struct ToolDefinition");
+    expect(domain).toContain("pub struct ToolResult");
+    expect(domain).toContain("pub struct ToolRegistry");
+    expect(domain).toContain("sample_tool_can_be_registered_and_duplicate_ids_are_rejected");
+    expect(domain).toContain("pub fn evaluate_policy");
+    expect(domain).toContain("permission_policy_covers_allowed_denied_and_approval_required");
+  });
+
+  it("exposes explicit module availability states instead of conflating setup and empty results", async () => {
+    const { readFileSync } = await import("node:fs");
+    const availability = readFileSync(new URL("./module-availability.ts", import.meta.url), "utf8");
+    const appSource = readFileSync(new URL("./App.tsx", import.meta.url), "utf8");
+
+    for (const state of ["available", "disabled", "unsupported", "not_configured", "degraded"]) {
+      expect(availability).toContain(state);
+    }
+    expect(availability).toContain("Required setup is missing; no operation has been attempted.");
+    expect(appSource).toContain('availability: "not_configured"');
+    expect(appSource).toContain("describeModuleAvailability(item.availability)");
+  });
+
+  it("defines versioned non-secret configuration defaults and validation", async () => {
+    const { readFileSync } = await import("node:fs");
+    const domain = readFileSync(new URL("../src-tauri/src/domain.rs", import.meta.url), "utf8");
+
+    expect(domain).toContain("CURRENT_CONFIG_SCHEMA_VERSION: u32 = 1");
+    expect(domain).toContain("impl Default for AppConfig");
+    expect(domain).toContain("config_defaults_are_valid_and_schema_mismatch_fails_closed");
+    expect(domain).toContain("Unsupported config schema version");
+    expect(domain).toContain("deny_unknown_fields");
+  });
+});
