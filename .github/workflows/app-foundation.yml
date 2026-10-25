@@ -1,0 +1,50 @@
+name: App foundation checks
+
+on:
+  pull_request:
+    paths:
+      - "package.json"
+      - "index.html"
+      - "vite.config.ts"
+      - "tsconfig*.json"
+      - "src/**"
+      - "src-tauri/**"
+      - ".github/workflows/app-foundation.yml"
+  push:
+    branches: [main]
+    paths:
+      - "package.json"
+      - "index.html"
+      - "vite.config.ts"
+      - "tsconfig*.json"
+      - "src/**"
+      - "src-tauri/**"
+      - ".github/workflows/app-foundation.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: app-foundation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend production build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install
+      - name: Build frontend and type-check
+        run: npm run build
+      - name: Validate Tauri configuration JSON
+        run: node -e "JSON.parse(require('node:fs').readFileSync('src-tauri/tauri.conf.json', 'utf8')); JSON.parse(require('node:fs').readFileSync('src-tauri/capabilities/default.json', 'utf8'));"
