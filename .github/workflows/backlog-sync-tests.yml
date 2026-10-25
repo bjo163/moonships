@@ -102,3 +102,37 @@ jobs:
         run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
       - name: Run Clippy with warnings denied
         run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+
+  windows-smoke-build:
+    name: Windows desktop package smoke build
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js 24 LTS
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+      - name: Verify supported Node and npm majors
+        shell: pwsh
+        run: |
+          if ((node -p "process.versions.node.split('.')[0]") -ne "24") { throw "Node.js 24 is required" }
+          if ((npm --version).Split('.')[0] -ne "11") { throw "npm 11 is required" }
+      - name: Install Rust stable Windows target
+        run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy --target x86_64-pc-windows-msvc
+      - name: Install JavaScript dependencies
+        run: npm install
+      - name: Build Windows desktop installers
+        run: npm run tauri -- build
+      - name: Upload Windows installer artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: moonships-windows-installers
+          path: |
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error
+          retention-days: 14
