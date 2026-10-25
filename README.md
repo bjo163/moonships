@@ -58,7 +58,7 @@ See [Product Blueprint](docs/PRODUCT_BLUEPRINT.md) for the detailed catalogue an
 - **Local-first operation** for core desktop functions; network access is explicit and feature-specific.
 - **AI-ready design** through typed tool contracts and provider adapters, not hard coupling to one model/vendor.
 
-Detailed menus, user flows and design rules live in [UX & Design](docs/UX_AND_DESIGN.md). The implementation-readiness findings and design-to-product gates are tracked in [Design Readiness Audit](docs/DESIGN_READINESS_AUDIT.md).
+Menus and user journeys live in [UX & Design](docs/UX_AND_DESIGN.md). The canonical visual/UI contract is [Design System](docs/DESIGN_SYSTEM.md); sound events, defaults and SFX rules live in [Audio & SFX Specification](docs/AUDIO_SFX_SPEC.md). The [Design Readiness Audit](docs/DESIGN_READINESS_AUDIT.md) tracks the gaps between documentation and a verified implementation.
 
 ## Architecture (planned)
 
@@ -101,7 +101,7 @@ The milestones M0–M13 and granular checkboxes are maintained in [Milestones](d
 2. Review [UX & Design](docs/UX_AND_DESIGN.md).
 3. Review [Architecture](docs/ARCHITECTURE.md), [Data Model](docs/DATA_MODEL.md), and [Project & Task Management](docs/PROJECT_TASK_MANAGEMENT.md).
 4. Understand the [Security Model](docs/SECURITY_MODEL.md).
-5. Review the [Coverage & Overlap Audit](docs/OVERLAP_AUDIT.md) and [Backlog → GitHub Issues sync contract](docs/TASK_ISSUE_SYNC.md).
+5. Review [Design System](docs/DESIGN_SYSTEM.md), [Audio & SFX Specification](docs/AUDIO_SFX_SPEC.md), the [Coverage & Overlap Audit](docs/OVERLAP_AUDIT.md), and [Backlog → GitHub Issues sync contract](docs/TASK_ISSUE_SYNC.md).
 6. Pick the first unblocked unchecked task in [Task Backlog](docs/TASK_BACKLOG.md), respecting dependencies.
 7. Follow [AI Agent Guide](docs/AI_AGENT_GUIDE.md) and root [AGENTS.md](AGENTS.md) before changing code.
 8. Review [Research & Decisions](docs/RESEARCH_AND_DECISIONS.md) for licensing and unresolved owner decisions.
@@ -148,7 +148,7 @@ This is the current documentation and automation layout. Application source fold
 
 The architecture is informed by official and primary references, including:
 
-- [Tauri 2 capabilities](https://v2.tauri.app/security/capabilities/) and [Tauri project](https://github.com/tauri-apps/tauri) for the desktop shell, WebView and permission boundaries.
+- [Tauri 2 capabilities](https://v2.tauri.app/security/capabilities/) and [Tauri project](https://github.com/tauri-apps/tauri) for the desktop shell, WebView and permission boundaries.\n- [W3C WCAG 2.2](https://www.w3.org/TR/wcag/), [Microsoft Fluent 2 Design](https://fluent2.microsoft.design/get-started/design), [Layout](https://fluent2.microsoft.design/layout) and [Motion](https://fluent2.microsoft.design/motion) for accessible interaction and design-to-code consistency.\n- [MDN Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API) for optional, user-controlled SFX implementation.
 - [Tauri system tray](https://v2.tauri.app/learn/system-tray/) and [updater plugin](https://v2.tauri.app/plugin/updater/) for desktop lifecycle and release strategy.
 - [Model Context Protocol](https://modelcontextprotocol.io/) and the [2026-07-28 specification announcement](https://blog.modelcontextprotocol.io/posts/2026-07-28/) for an optional interoperable tool adapter; pin a tested version and review updates before adoption.
 - [OpenTelemetry signals](https://opentelemetry.io/docs/concepts/signals/) for interoperable logs, metrics and traces.
