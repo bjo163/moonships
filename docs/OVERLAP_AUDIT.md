@@ -41,7 +41,9 @@ The startup-at-login setting was ambiguous ("implement or defer"). It is now exp
 | Settings skeleton, notification/permission settings | M1-019, M1-030 | Covered for foundation; provider-specific pages later |
 | Error codes, command DTOs, SQLite, migrations, logging | M1-020–M1-030 | Covered |
 | Command Palette and onboarding | M1-031–M1-034 | Added in this audit |
-| Backlog → GitHub issues | M1-035 + workflow/docs | Added in this audit; stable task markers and sync contract documented |\n| Workflow supply-chain pinning | M1-036 + Dependabot config | Added in this audit; full upstream SHAs and weekly update PRs |
+| Backlog → GitHub issues | M1-035 + workflow/docs | Implemented and exercised: automatic import, stable markers, no-op sync and checked-task closure |
+| Workflow supply-chain pinning | M1-036 + Dependabot config | Implemented; full upstream SHAs and weekly update PRs; main-branch sync run passed |
+| Sync reconciliation regression tests | M1-037 | Open follow-up; fail-closed guards exist, but edge-case test coverage is not yet complete |
 | Projects, tasks, list/board, search, milestones, history, import/export | M2-001–M2-032 | Covered for personal/local-first MVP |
 | Home dashboard and global search | M2-033–M2-034 | Added in this audit |
 | Cleaner safety and offline DevTools | M3-001–M3-023 | Covered for narrow MVP scope |
