@@ -197,6 +197,18 @@ Human-facing messages should explain the next safe step. Technical details go to
 - Backups must include a manifest/version and integrity check; test restore, not just backup creation.
 - Do not write secrets into history, task descriptions, debug logs or model prompts.
 
+## Local logging, job and tool contracts
+
+Native local logs are newline-delimited JSON at the per-user application data path `logs/moonships.log`. Log events use stable levels and categories, and redact values for known secret-bearing field names recursively before serialization. Log only operational summaries and allowlisted metadata; do not put raw tool input, credentials, authorization headers or untrusted source text in event messages. Logging failure must not prevent the app from opening, and logs remain local by default.
+
+The domain contract defines stable job states (`queued`, `running`, `waiting_approval`, `succeeded`, `partial`, `failed`, `cancelled`, `timed_out`), versioned tool definitions, structured tool outcomes and a native capability policy. Tool metadata is not executable code. The policy denies missing capabilities and returns an approval-required decision for state-changing, destructive, privileged or remote operations unless approval is explicitly supplied. The UI must not be the enforcement boundary.
+
+Non-secret application configuration carries a schema version and validated enum values for theme, workspace profile and log level. Defaults are dark theme, Developer profile, Info logging and hide-to-tray disabled. Unknown config fields and unsupported schema versions fail closed; credentials belong in secure storage, not this config object.
+
+## Module availability semantics
+
+Module availability is distinct from operation results. `available`, `disabled`, `unsupported`, `not_configured` and `degraded` communicate readiness; none of these means a successful query returned zero results. The UI must explain setup/health state without fabricating operational data.
+
 ## 10. External source and provider adapters
 
 Each adapter must expose:
