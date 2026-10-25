@@ -95,7 +95,7 @@ export function AppShell({ children, theme, onToggleTheme, onOpenCommandPalette 
               aria-label="Open Command Palette"
               title="Open Command Palette"
             >
-              Search <kbd>Ctrl+K</kbd>
+              Search commands
             </button>
             <button
               className="theme-toggle"
