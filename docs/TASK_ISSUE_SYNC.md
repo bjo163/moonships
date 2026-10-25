@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`docs/TASK_BACKLOG.md` is the canonical engineering checklist. The GitHub Issues board is a generated execution surface for individual tasks. The synchronization is deliberately **idempotent**: a stable task ID such as `M2-014` is stored in an HTML marker in the issue body, so repeat runs do not create duplicates.
+`docs/TASK_BACKLOG.md` is the canonical engineering checklist. The GitHub Issues board is a generated execution surface for individual tasks. Root `TODO.md` is only a concise human-readable entry checklist and is **not** parsed into issues, which avoids duplicate high-level summary issues. Add atomic, acceptance-tested task lines to `docs/TASK_BACKLOG.md` to create issue entries. The synchronization is deliberately **idempotent**: a stable task ID such as `M2-014` is stored in an HTML marker in the issue body, so repeat runs do not create duplicates.
 
 ## Automatic behavior
 
@@ -21,17 +21,18 @@ For every task line in the backlog:
 
 The checklist is the status source of truth for this automation. If an issue is manually closed while its task checkbox remains unchecked, the next sync reopens it. To mark the task complete, check the task in `docs/TASK_BACKLOG.md` on `main`. Do not close a generated issue manually to mean “won't do”; instead resolve the scope with a deliberate backlog edit.
 
-## Initial import of current tasks
+## Initial import and dry-run
 
-The first run is a large import because the current backlog contains many unchecked atomic tasks. The workflow supports manual dispatch with `dry_run=true` by default:
+The initial push trigger can create issues immediately; it is not automatically a dry-run. A successful bootstrap has been performed for this repository, and new unchecked post-V1 tasks are included in the same synchronization.
+
+For a deliberate preview of a future change, use manual dispatch:
 
 1. Open **Actions → Sync backlog to GitHub Issues**.
 2. Choose **Run workflow** on `main`.
-3. First run with **dry_run = true** to preview counts only.
-4. Review the log and confirm the number of issues/milestones expected.
-5. Run again with **dry_run = false** to create/link issues.
+3. Keep `dry_run = true` to preview counts and planned updates without writes.
+4. Review the result summary; only set `dry_run = false` when the intended changes are understood.
 
-After initial sync, edits to `docs/TASK_BACKLOG.md` on `main` synchronize automatically. The workflow is not triggered by pull requests, to avoid creating issues from unmerged or fork-supplied task text.
+After initial sync, edits to `docs/TASK_BACKLOG.md` or `docs/MILESTONES.md` on `main` synchronize automatically. The workflow is not triggered by pull requests, to avoid creating issues from unmerged or fork-supplied task text.
 
 ## Required repository setting
 
