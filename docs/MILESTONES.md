@@ -22,7 +22,7 @@
 Deliverables:
 - README and product positioning
 - Product blueprint and audience/domain catalogue
-- Menus, user flows and design system
+- Menus/user flows, canonical Design System and Audio & SFX Specification
 - Architecture, data model and threat/security model
 - Milestone and small-task backlog
 - AI agent rules and contributing guide
@@ -50,7 +50,7 @@ Deliverables:
 - SQLite connection, migration runner, structured app error/logging
 - Typed Tauri command boundary, initial tool registry interface
 - Formatting/lint/tests/build CI
-- Design-to-product review: minimum-window/overflow behavior and visual/accessibility checks
+- Design-to-product review: minimum-window/overflow behavior, component states, visual/accessibility checks and reproducible screenshots\n- Original app/tray asset manifest and optional SFX service with explicit opt-in
 
 Exit criteria:
 - [ ] Fresh clone installs using documented steps.
@@ -67,7 +67,7 @@ Exit criteria:
 - [ ] CI has clear required checks and no fake status badges.
 - [ ] Minimum-window/overflow behavior is documented and verified (M1-038).
 - [ ] Core shell visual/accessibility review has recorded evidence (M1-039).
-- [ ] Desktop shell task-based usability findings and linked follow-up tasks are recorded (M1-040).
+- [ ] Desktop shell task-based usability findings and linked follow-up tasks are recorded (M1-040).\n- [ ] Shared component variants and interaction states pass tests (M1-041).\n- [ ] Original app/tray identity has documented rights and size/theme review (M1-042).\n- [ ] Sound preferences default off and central SoundService passes tests (M1-043).\n- [ ] Any shipped SFX has approved provenance and packaged-Windows validation (M1-044); otherwise SFX remains a no-op.\n- [ ] Reproducible screenshot review evidence is recorded for core shell states (M1-045).
 - [ ] App can be used without cloud account or model provider.
 
 ## M2 — Projects & Tasks
