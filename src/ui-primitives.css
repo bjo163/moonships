@@ -37,6 +37,10 @@
   background: var(--color-accent-hover, #b9b0ff);
 }
 
+.ms-button--primary:active:not(:disabled) {
+  background: var(--color-accent-pressed, #8c7ff0);
+}
+
 .ms-button--secondary {
   background: var(--color-surface-raised, #182536);
   border-color: var(--color-border-strong, #40536a);
