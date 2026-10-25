@@ -94,11 +94,12 @@ The milestones and granular checkboxes are maintained in [Milestones](docs/MILES
 
 1. Read [Product Blueprint](docs/PRODUCT_BLUEPRINT.md).
 2. Review [UX & Design](docs/UX_AND_DESIGN.md).
-3. Review [Architecture](docs/ARCHITECTURE.md) and [Data Model](docs/DATA_MODEL.md).
+3. Review [Architecture](docs/ARCHITECTURE.md), [Data Model](docs/DATA_MODEL.md), and [Project & Task Management](docs/PROJECT_TASK_MANAGEMENT.md).
 4. Understand the [Security Model](docs/SECURITY_MODEL.md).
-5. Review [Overlap Audit](docs/OVERLAP_AUDIT.md) and [Backlog → GitHub Issues sync](docs/TASK_ISSUE_SYNC.md).\n6. Pick the first unblocked unchecked task in [Task Backlog](docs/TASK_BACKLOG.md), respecting dependencies.\n7. Follow [AI Agent Guide](docs/AI_AGENT_GUIDE.md) and root [AGENTS.md](AGENTS.md) before changing code.
-6. Follow [AI Agent Guide](docs/AI_AGENT_GUIDE.md) and root [AGENTS.md](AGENTS.md) before changing code.
-7. Review [Research & Decisions](docs/RESEARCH_AND_DECISIONS.md) for licensing and unresolved owner decisions.
+5. Review the [Coverage & Overlap Audit](docs/OVERLAP_AUDIT.md) and [Backlog → GitHub Issues sync contract](docs/TASK_ISSUE_SYNC.md).
+6. Pick the first unblocked unchecked task in [Task Backlog](docs/TASK_BACKLOG.md), respecting dependencies.
+7. Follow [AI Agent Guide](docs/AI_AGENT_GUIDE.md) and root [AGENTS.md](AGENTS.md) before changing code.
+8. Review [Research & Decisions](docs/RESEARCH_AND_DECISIONS.md) for licensing and unresolved owner decisions.
 
 ## Repository map
 
@@ -110,15 +111,24 @@ moonships-workbench/
 ├── TODO.md
 ├── .editorconfig
 ├── .gitignore
+├── scripts/
+│   └── validate-backlog.mjs
 ├── .github/
+│   ├── workflows/
+│   │   └── sync-backlog-to-issues.yml
 │   ├── PULL_REQUEST_TEMPLATE.md
 │   └── ISSUE_TEMPLATE/
+│       ├── bug_report.yml
+│       ├── feature_request.yml
+│       └── task.yml
 └── docs/
     ├── PRODUCT_BLUEPRINT.md
-    ├── ADR_TEMPLATE.md
+    ├── OVERLAP_AUDIT.md
+    ├── TASK_ISSUE_SYNC.md
     ├── PROJECT_TASK_MANAGEMENT.md
     ├── UX_AND_DESIGN.md
     ├── ARCHITECTURE.md
+    ├── ADR_TEMPLATE.md
     ├── DATA_MODEL.md
     ├── SECURITY_MODEL.md
     ├── MILESTONES.md
@@ -127,8 +137,7 @@ moonships-workbench/
     └── RESEARCH_AND_DECISIONS.md
 ```
 
-This is the current documentation layout. Implementation source folders, tests and workflows will be added as their roadmap tasks are executed.
-
+This is the current documentation and automation layout. Application source folders, tests and Windows builds will be added as their roadmap tasks are executed.
 ## Research and design references
 
 The architecture is informed by official and primary references, including:
