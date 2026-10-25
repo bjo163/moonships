@@ -140,9 +140,13 @@ describe("system tray integration contract", () => {
     expect(cargoManifest).toContain('features = ["tray-icon"]');
     expect(rustSource).toContain('"open"');
     expect(rustSource).toContain('"settings"');
+    expect(rustSource).toContain('"hide"');
+    expect(rustSource).toContain('"Hide Window"');
     expect(rustSource).toContain('"quit"');
     expect(rustSource).toContain('app.emit("tray-settings", ())');
     expect(rustSource).toContain("app.exit(0)");
+    expect(rustSource).toContain("window.hide()");
+    expect(rustSource).toContain("shutdown hook must run before this explicit exit");
     expect(rustSource).toContain("get_hide_to_tray(app: AppHandle)");
     expect(rustSource).toContain("set_hide_to_tray(app: AppHandle, enabled: bool)");
     expect(rustSource).toContain("CloseRequested");
