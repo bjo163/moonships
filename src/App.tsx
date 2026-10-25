@@ -43,9 +43,10 @@ type AppShellProps = {
   children: ReactNode;
   theme: ThemePreference;
   onToggleTheme: () => void;
+  onOpenCommandPalette?: () => void;
 };
 
-export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
+export function AppShell({ children, theme, onToggleTheme, onOpenCommandPalette }: AppShellProps) {
   return (
     <main className="app-frame">
       <a className="skip-link" href="#main-content">
@@ -89,7 +90,7 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
             <button
               className="theme-toggle command-palette-trigger"
               type="button"
-              onClick={() => setCommandPaletteOpen(true)}
+              onClick={onOpenCommandPalette}
               aria-haspopup="dialog"
               aria-label="Open Command Palette"
               title="Open Command Palette"
@@ -383,7 +384,7 @@ export default function App() {
   }, []);
 
   return (
-    <AppShell theme={theme} onToggleTheme={toggleTheme}>
+    <AppShell theme={theme} onToggleTheme={toggleTheme} onOpenCommandPalette={() => setCommandPaletteOpen(true)}>
       {route.kind === "page" && route.id === "overview" ? (
         <OverviewPage />
       ) : (
