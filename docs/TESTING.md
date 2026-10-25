@@ -54,3 +54,10 @@ Record the exact commit/installer, Windows version, text/display scaling, theme,
 | Repeat with OS reduced motion, dark/light and forced colors | Spinner movement stops under reduced motion; focus/error/status remains distinguishable without color alone |
 
 These checks complement M1-041 interaction tests. They do **not** replace the independent Windows tray/usability gate **M1-040** or computed-contrast/visual review **M1-039**. Do not capture personal workspace data, credentials or private documents in evidence.
+
+## M1-032/033 — registered commands and shortcut lifecycle
+
+- `src/command-registry.behavior.test.tsx` runs six jsdom App-level interaction cases for the exact allowlisted palette entries, rejected unknown registry IDs, safe route navigation, Settings opening, and project/task/note create previews that make no persistence/execution claims.
+- `src/command-shortcut.behavior.test.tsx` runs five jsdom App-level cases for Ctrl+K search focus, Escape and opener focus restoration (including Escape from the Close button), editable input/textarea exclusion, blocking nested Settings shortcuts, and focus handoff to Settings and command preview.
+- The native window's Tab-cycle, OS scaling, WebView2 focus behavior and actual Windows accessibility results remain **NOT TESTED**; M1-039 and M1-040 own the manual and computed-contrast review.
+- M1-032 implementation CI [40239724966](https://github.com/bjo163/moonships/actions/runs/40239724966) succeeded across all five jobs. At this edit the M1-033 latest source commit `0d0a7c3` passed the frontend CI job in [40240662226](https://github.com/bjo163/moonships/actions/runs/40240662226); recheck that run and all jobs before asserting complete repository CI.
