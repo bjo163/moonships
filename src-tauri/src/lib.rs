@@ -42,7 +42,7 @@ fn open_database_in(app_data_dir: &Path) -> Result<Connection, String> {
     Ok(connection)
 }
 
-const CURRENT_SCHEMA_VERSION: i64 = 3;
+const CURRENT_SCHEMA_VERSION: i64 = 4;
 const PERSONAL_WORKSPACE_ID: &str = "00000000-0000-4000-8000-000000000001";
 
 fn run_migrations(connection: &mut Connection) -> Result<(), String> {
@@ -135,6 +135,49 @@ fn run_migrations(connection: &mut Connection) -> Result<(), String> {
                 INSERT INTO schema_migrations (version) VALUES (3);",
             )
             .map_err(|error| format!("Could not apply project schema migration: {error}"))?;
+    }
+
+    if current_version < 4 {
+        transaction
+            .execute_batch(
+                "CREATE UNIQUE INDEX idx_projects_workspace_id
+                    ON projects (workspace_id, id);
+                CREATE TABLE tasks (
+                    id TEXT PRIMARY KEY NOT NULL,
+                    workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE RESTRICT,
+                    project_id TEXT,
+                    parent_task_id TEXT,
+                    title TEXT NOT NULL CHECK (length(trim(title)) > 0),
+                    description TEXT,
+                    status TEXT NOT NULL DEFAULT 'backlog'
+                        CHECK (status IN (
+                            'backlog', 'todo', 'in_progress', 'blocked',
+                            'in_review', 'done', 'cancelled'
+                        )),
+                    priority TEXT NOT NULL DEFAULT 'p2'
+                        CHECK (priority IN ('p0', 'p1', 'p2', 'p3')),
+                    due_at TEXT,
+                    estimate_minutes INTEGER CHECK (
+                        estimate_minutes IS NULL OR estimate_minutes >= 0
+                    ),
+                    completed_at TEXT,
+                    archived_at TEXT,
+                    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+                    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+                    FOREIGN KEY (workspace_id, project_id)
+                        REFERENCES projects (workspace_id, id) ON DELETE RESTRICT,
+                    FOREIGN KEY (workspace_id, parent_task_id)
+                        REFERENCES tasks (workspace_id, id) ON DELETE RESTRICT,
+                    CHECK (parent_task_id IS NULL OR parent_task_id != id),
+                    UNIQUE (workspace_id, id)
+                );
+                CREATE INDEX idx_tasks_workspace_status
+                    ON tasks (workspace_id, status);
+                CREATE INDEX idx_tasks_workspace_project
+                    ON tasks (workspace_id, project_id);
+                INSERT INTO schema_migrations (version) VALUES (4);",
+            )
+            .map_err(|error| format!("Could not apply task schema migration: {error}"))?;
     }
 
     transaction
@@ -677,6 +720,255 @@ mod tests {
             .query_row("SELECT COUNT(*) FROM workspaces", [], |row| row.get(0))
             .expect("existing workspaces");
         assert_eq!(workspace_count, 1);
+
+        drop(connection);
+        let _ = fs::remove_dir_all(app_data_dir);
+    }
+
+    #[test]
+    fn task_migration_supports_inbox_defaults_and_workspace_isolation() {
+        let app_data_dir = unique_temp_dir("tasks");
+        let mut connection = open_database_in(&app_data_dir).expect("database should open");
+        run_migrations(&mut connection).expect("task migration");
+
+        connection
+            .execute(
+                "INSERT INTO tasks (id, workspace_id, title) VALUES (?1, ?2, ?3)",
+                rusqlite::params!["inbox-1", PERSONAL_WORKSPACE_ID, "Write acceptance tests"],
+            )
+            .expect("title-only personal inbox task");
+        let (project_id, status, priority, created_at, updated_at): (
+            Option<String>,
+            String,
+            String,
+            String,
+            String,
+        ) = connection
+            .query_row(
+                "SELECT project_id, status, priority, created_at, updated_at
+                 FROM tasks WHERE id = 'inbox-1'",
+                [],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                    ))
+                },
+            )
+            .expect("inbox defaults");
+        assert_eq!(project_id, None);
+        assert_eq!(status, "backlog");
+        assert_eq!(priority, "p2");
+        assert!(!created_at.is_empty());
+        assert!(!updated_at.is_empty());
+
+        connection
+            .execute(
+                "INSERT INTO workspaces (id, name) VALUES ('other-workspace', 'Other')",
+                [],
+            )
+            .expect("other workspace fixture");
+        connection
+            .execute(
+                "INSERT INTO projects (id, workspace_id, name)
+                 VALUES ('project-a', ?1, 'Project A')",
+                rusqlite::params![PERSONAL_WORKSPACE_ID],
+            )
+            .expect("same workspace project");
+        connection
+            .execute(
+                "INSERT INTO projects (id, workspace_id, name)
+                 VALUES ('project-b', 'other-workspace', 'Project B')",
+                [],
+            )
+            .expect("other workspace project");
+        connection
+            .execute(
+                "INSERT INTO tasks (id, workspace_id, project_id, title)
+                 VALUES ('project-task', ?1, 'project-a', 'Scoped task')",
+                rusqlite::params![PERSONAL_WORKSPACE_ID],
+            )
+            .expect("valid project association");
+
+        for (id, title, status, priority) in [
+            ("blank-title", "   ", "backlog", "p2"),
+            ("invalid-status", "Valid", "unknown", "p2"),
+            ("invalid-priority", "Valid", "backlog", "critical"),
+        ] {
+            assert!(
+                connection
+                    .execute(
+                        "INSERT INTO tasks (id, workspace_id, title, status, priority)
+                         VALUES (?1, ?2, ?3, ?4, ?5)",
+                        rusqlite::params![
+                            id,
+                            PERSONAL_WORKSPACE_ID,
+                            title,
+                            status,
+                            priority
+                        ],
+                    )
+                    .is_err(),
+                "invalid task {id} must be rejected"
+            );
+        }
+        for (id, workspace_id, project_id) in [
+            ("bad-workspace", "missing-workspace", None),
+            ("bad-project", PERSONAL_WORKSPACE_ID, Some("missing-project")),
+            ("cross-workspace", PERSONAL_WORKSPACE_ID, Some("project-b")),
+        ] {
+            assert!(
+                connection
+                    .execute(
+                        "INSERT INTO tasks (id, workspace_id, project_id, title)
+                         VALUES (?1, ?2, ?3, 'Invalid relationship')",
+                        rusqlite::params![id, workspace_id, project_id],
+                    )
+                    .is_err(),
+                "invalid relationship {id} must be rejected"
+            );
+        }
+        assert!(connection
+            .execute(
+                "INSERT INTO tasks (id, workspace_id, title, estimate_minutes)
+                 VALUES ('bad-estimate', ?1, 'Invalid', -1)",
+                rusqlite::params![PERSONAL_WORKSPACE_ID],
+            )
+            .is_err());
+        assert!(connection
+            .execute(
+                "INSERT INTO tasks (id, workspace_id, parent_task_id, title)
+                 VALUES ('self-parent', ?1, 'self-parent', 'Invalid')",
+                rusqlite::params![PERSONAL_WORKSPACE_ID],
+            )
+            .is_err());
+
+        connection
+            .execute(
+                "INSERT INTO tasks (id, workspace_id, title)
+                 VALUES ('foreign-parent', 'other-workspace', 'Parent elsewhere')",
+                [],
+            )
+            .expect("other workspace parent");
+        assert!(connection
+            .execute(
+                "INSERT INTO tasks (id, workspace_id, parent_task_id, title)
+                 VALUES ('cross-parent', ?1, 'foreign-parent', 'Not permitted')",
+                rusqlite::params![PERSONAL_WORKSPACE_ID],
+            )
+            .is_err());
+        connection
+            .execute(
+                "INSERT INTO tasks (id, workspace_id, parent_task_id, title)
+                 VALUES ('valid-child', ?1, 'inbox-1', 'Child in same workspace')",
+                rusqlite::params![PERSONAL_WORKSPACE_ID],
+            )
+            .expect("valid parent reference");
+
+        run_migrations(&mut connection).expect("idempotent task migration");
+        drop(connection);
+        let mut reopened = open_database_in(&app_data_dir).expect("reopen persisted database");
+        run_migrations(&mut reopened).expect("reopen migration");
+        let task_count: i64 = reopened
+            .query_row("SELECT COUNT(*) FROM tasks", [], |row| row.get(0))
+            .expect("persisted task count");
+        assert_eq!(task_count, 4);
+        drop(reopened);
+        let _ = fs::remove_dir_all(app_data_dir);
+    }
+
+    #[test]
+    fn upgrading_v3_preserves_projects_workspaces_and_metadata() {
+        let app_data_dir = unique_temp_dir("tasks-v3-upgrade");
+        let mut connection = open_database_in(&app_data_dir).expect("database");
+        run_migrations(&mut connection).expect("create schema fixture");
+        connection
+            .execute_batch(
+                "DROP TABLE tasks;
+                 DROP INDEX idx_projects_workspace_id;
+                 DELETE FROM schema_migrations WHERE version = 4;
+                 INSERT INTO app_metadata (key, value) VALUES ('saved', 'keep-me');
+                 INSERT INTO projects (id, workspace_id, name)
+                 VALUES ('existing-project', '00000000-0000-4000-8000-000000000001', 'Keep Project');",
+            )
+            .expect("v3 fixture with existing records");
+        run_migrations(&mut connection).expect("v3 to v4 upgrade");
+        run_migrations(&mut connection).expect("idempotent upgrade");
+
+        let existing: (String, String) = connection
+            .query_row(
+                "SELECT p.name, m.value
+                 FROM projects p CROSS JOIN app_metadata m
+                 WHERE p.id = 'existing-project' AND m.key = 'saved'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .expect("preexisting data survives");
+        assert_eq!(existing.0, "Keep Project");
+        assert_eq!(existing.1, "keep-me");
+        let workspaces: i64 = connection
+            .query_row("SELECT COUNT(*) FROM workspaces", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(workspaces, 1);
+        let schema: i64 = connection
+            .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(schema, CURRENT_SCHEMA_VERSION);
+
+        drop(connection);
+        let _ = fs::remove_dir_all(app_data_dir);
+    }
+
+    #[test]
+    fn failed_task_migration_rolls_back_partial_schema_without_losing_data() {
+        let app_data_dir = unique_temp_dir("tasks-rollback");
+        let mut connection = open_database_in(&app_data_dir).expect("database");
+        run_migrations(&mut connection).expect("create fixture");
+        connection
+            .execute_batch(
+                "DROP TABLE tasks;
+                 DROP INDEX idx_projects_workspace_id;
+                 DELETE FROM schema_migrations WHERE version = 4;
+                 INSERT INTO app_metadata (key, value) VALUES ('saved', 'preserve-me');
+                 CREATE TABLE unrelated_fixture (id TEXT);
+                 CREATE INDEX idx_tasks_workspace_status ON unrelated_fixture (id);",
+            )
+            .expect("v3 collision fixture");
+
+        assert!(run_migrations(&mut connection).is_err());
+        let table_count: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master
+                 WHERE type = 'table' AND name = 'tasks'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("schema table check");
+        assert_eq!(table_count, 0);
+        let index_count: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master
+                 WHERE type = 'index' AND name = 'idx_projects_workspace_id'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("schema index check");
+        assert_eq!(index_count, 0);
+        let version: i64 = connection
+            .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| row.get(0))
+            .expect("schema version");
+        assert_eq!(version, 3);
+        let saved: String = connection
+            .query_row(
+                "SELECT value FROM app_metadata WHERE key = 'saved'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("original metadata survives");
+        assert_eq!(saved, "preserve-me");
 
         drop(connection);
         let _ = fs::remove_dir_all(app_data_dir);
