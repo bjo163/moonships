@@ -527,7 +527,7 @@ export default function App() {
       return;
     }
     if (command.kind === "navigate") {
-      window.location.hash = "#/" + command.route;
+      window.location.hash = `#/${command.route}`;
       return;
     }
     if (command.kind === "settings") {
@@ -535,11 +535,9 @@ export default function App() {
       return;
     }
     setCommandPreview({
-      title: "Preview: " + command.title,
+      title: `Preview: ${command.title}`,
       description:
-        "This registered action would create a " +
-        command.entity +
-        ". Local persistence is not implemented yet, so no data has been created. This preview does not grant permissions or execute a tool.",
+        `This registered action would create a ${command.entity}. Local persistence is not implemented yet, so no data has been created. This preview does not grant permissions or execute a tool.`,
     });
   };
 
