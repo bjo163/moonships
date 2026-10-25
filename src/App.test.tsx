@@ -482,3 +482,37 @@ describe("M1-034 workspace profiles", () => {
     expect(markup).toContain("They never grant permissions or enable tools.");
   });
 });
+
+
+describe("M1-038 desktop viewport and overflow contract", () => {
+  it("documents the native minimum window and responsive overflow protections", async () => {
+    const { readFileSync } = await import("node:fs");
+    const css = readFileSync(new URL("./index.css", import.meta.url), "utf8");
+    const tauri = JSON.parse(readFileSync(new URL("../src-tauri/tauri.conf.json", import.meta.url), "utf8")) as {
+      app: { windows: Array<{ minWidth: number; minHeight: number }> };
+    };
+
+    expect(tauri.app.windows[0]?.minWidth).toBe(960);
+    expect(tauri.app.windows[0]?.minHeight).toBe(640);
+    expect(css).toContain("@media (max-width: 960px)");
+    expect(css).toContain("min-width: 0");
+    expect(css).toContain("overflow-y: auto");
+    expect(css).toContain("@media (max-height: 720px)");
+    expect(css).toContain("@media (max-width: 620px)");
+  });
+});
+
+describe("M1-039 visual and accessibility review baseline", () => {
+  it("keeps keyboard focus, reduced-motion and semantic overlay safeguards in the stylesheet", async () => {
+    const { readFileSync } = await import("node:fs");
+    const css = readFileSync(new URL("./index.css", import.meta.url), "utf8");
+    const source = readFileSync(new URL("./App.tsx", import.meta.url), "utf8");
+
+    expect(css).toContain(":focus-visible");
+    expect(css).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(css).toContain("max-height: calc(100dvh - 3rem)");
+    expect(source).toContain('aria-label="Primary navigation"');
+    expect(source).toContain('aria-modal="true"');
+    expect(source).toContain('className="skip-link"');
+  });
+});
