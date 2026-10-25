@@ -69,7 +69,7 @@ Exit criteria:
 - [ ] Minimum-window/overflow behavior is documented and verified (M1-038).
 - [ ] Core shell visual/accessibility review has recorded evidence (M1-039).
 - [ ] Desktop shell task-based usability findings and linked follow-up tasks are recorded (M1-040).
-- [ ] Shared component variants and interaction states pass tests (M1-041).
+- [x] Shared component variants and interaction states pass tests (M1-041).
 - [ ] Original app/tray identity has documented rights and size/theme review (M1-042).
 - [ ] Sound preferences default off and central SoundService passes tests (M1-043).
 - [ ] Any shipped SFX has approved provenance and packaged-Windows validation (M1-044); otherwise SFX remains a no-op.
