@@ -1,0 +1,301 @@
+name: Sync task backlog to GitHub Issues
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - docs/TASK_BACKLOG.md
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Preview sync without writing GitHub Issues or milestones"
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: moonships-task-backlog-sync-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Validate and sync task backlog
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Validate task IDs, dependencies and documentation links
+        run: node scripts/validate-backlog.mjs
+
+      - name: Synchronize tasks
+        uses: actions/github-script@v9
+        env:
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+        with:
+          script: |
+            const fs = require("node:fs");
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const dryRun = process.env.DRY_RUN === "true";
+            const backlog = fs.readFileSync("docs/TASK_BACKLOG.md", "utf8");
+            const milestoneDoc = fs.readFileSync("docs/MILESTONES.md", "utf8");
+            const startMarker = "<!-- moonships-task-sync:start -->";
+            const endMarker = "<!-- moonships-task-sync:end -->";
+            const taskMarker = /<!--\\s*moonships-task-id:\\s*(M\\d+-\\d{3})\\s*-->/;
+
+            const parsedTasks = [];
+            const taskRegex = /^- \\[([ xX])\\] \\*\\*([A-Z]\\d+-\\d{3}) — ([^*]+)\\*\\*(.*)$/gm;
+            let match;
+            while ((match = taskRegex.exec(backlog)) !== null) {
+              const line = backlog.slice(0, match.index).split("\\n").length;
+              const id = match[2];
+              parsedTasks.push({
+                id: id,
+                phase: id.match(/^M\\d+/)[0],
+                title: match[3].trim(),
+                checked: match[1].toLowerCase() === "x",
+                tail: match[4].trim(),
+                line: line,
+              });
+            }
+
+            if (parsedTasks.length === 0) {
+              throw new Error("No atomic task entries found in docs/TASK_BACKLOG.md.");
+            }
+            const ids = new Set();
+            for (const task of parsedTasks) {
+              if (ids.has(task.id)) throw new Error("Duplicate backlog task ID: " + task.id);
+              ids.add(task.id);
+            }
+
+            const phaseTitles = new Map();
+            for (const row of milestoneDoc.matchAll(/^## (M\\d+) — (.+)$/gm)) {
+              phaseTitles.set(row[1], row[1] + " — " + row[2].trim());
+            }
+            for (const task of parsedTasks) {
+              if (!phaseTitles.has(task.phase)) {
+                throw new Error("Missing milestone heading for " + task.id + " in docs/MILESTONES.md.");
+              }
+              if (!task.tail.includes("**AC:**")) {
+                throw new Error("Task " + task.id + " is missing **AC:** acceptance criteria.");
+              }
+            }
+
+            const milestones = await github.paginate(github.rest.issues.listMilestones, {
+              owner: owner, repo: repo, state: "all", per_page: 100
+            });
+            const milestoneByTitle = new Map(milestones.map((item) => [item.title, item]));
+            const milestoneByPhase = new Map();
+
+            for (const phase of phaseTitles.keys()) {
+              const phaseTasks = parsedTasks.filter((task) => task.phase === phase);
+              const allDone = phaseTasks.length > 0 && phaseTasks.every((task) => task.checked);
+              const title = phaseTitles.get(phase);
+              let milestone = milestoneByTitle.get(title);
+
+              if (!milestone && allDone) {
+                core.info("Skipping GitHub milestone for completed phase " + phase + ".");
+                continue;
+              }
+              if (!milestone) {
+                if (dryRun) {
+                  core.info('DRY RUN: would create milestone "' + title + '".');
+                  continue;
+                }
+                const created = await github.rest.issues.createMilestone({
+                  owner: owner, repo: repo, title: title, state: "open",
+                  description: "Moonships delivery gate for " + title + ". See docs/MILESTONES.md."
+                });
+                milestone = created.data;
+                milestoneByTitle.set(title, milestone);
+                core.info("Created milestone " + title + " (#" + milestone.number + ").");
+              } else if (!dryRun) {
+                const desiredState = allDone ? "closed" : "open";
+                if (milestone.state !== desiredState) {
+                  const updated = await github.rest.issues.updateMilestone({
+                    owner: owner, repo: repo, milestone_number: milestone.number, state: desiredState
+                  });
+                  milestone = updated.data;
+                  milestoneByTitle.set(title, milestone);
+                  core.info("Set milestone " + title + " to " + desiredState + ".");
+                }
+              }
+              if (milestone) milestoneByPhase.set(phase, milestone);
+            }
+
+            const labelDefinitions = [
+              { name: "task", color: "1f6feb", description: "Atomic engineering task from the Moonships backlog" },
+              { name: "backlog-sync", color: "8250df", description: "Managed by the docs/TASK_BACKLOG.md sync workflow" },
+            ];
+            const currentLabels = await github.paginate(github.rest.issues.listLabelsForRepo, {
+              owner: owner, repo: repo, per_page: 100
+            });
+            const labelNames = new Set(currentLabels.map((label) => label.name));
+            if (!dryRun) {
+              for (const label of labelDefinitions) {
+                if (!labelNames.has(label.name)) {
+                  try {
+                    await github.rest.issues.createLabel({ owner: owner, repo: repo, ...label });
+                    labelNames.add(label.name);
+                    core.info('Created label "' + label.name + '".');
+                  } catch (error) {
+                    if (error.status !== 422) throw error;
+                    const fetched = await github.rest.issues.getLabel({ owner: owner, repo: repo, name: label.name });
+                    labelNames.add(fetched.data.name);
+                  }
+                }
+              }
+            }
+
+            const allIssues = await github.paginate(github.rest.issues.listForRepo, {
+              owner: owner, repo: repo, state: "all", per_page: 100
+            });
+            const linkedIssues = new Map();
+            for (const issue of allIssues) {
+              if (issue.pull_request || !issue.body) continue;
+              const marker = issue.body.match(taskMarker);
+              if (!marker) continue;
+              const id = marker[1];
+              if (linkedIssues.has(id)) {
+                throw new Error("Multiple GitHub issues use task marker " + id + ": #" +
+                  linkedIssues.get(id).number + " and #" + issue.number + ". Resolve duplicates before syncing.");
+              }
+              linkedIssues.set(id, issue);
+            }
+
+            function managedBlock(task) {
+              const status = task.checked ? "checked (complete)" : "unchecked (open)";
+              const sourceUrl = "https://github.com/" + owner + "/" + repo + "/blob/" + context.sha +
+                "/docs/TASK_BACKLOG.md#L" + task.line;
+              const scope = task.tail.replace(/^\\s*\\[(?:S|M)\\]\\s*—\\s*/, "").trim();
+              return [
+                startMarker,
+                "<!-- moonships-task-id: " + task.id + " -->",
+                "### Backlog task " + task.id + " — " + task.title,
+                "**Checklist status:** " + status,
+                "**Phase:** " + phaseTitles.get(task.phase),
+                "**Source:** [docs/TASK_BACKLOG.md, line " + task.line + "](" + sourceUrl + ")",
+                "",
+                "### Scope and acceptance criteria",
+                scope,
+                "",
+                "### AI-agent execution contract",
+                "- Read AGENTS.md, docs/AI_AGENT_GUIDE.md, and the relevant blueprint/security sections.",
+                "- Implement only this task ID; do not bundle unrelated refactors.",
+                "- Add/update tests for acceptance criteria and relevant failure cases.",
+                "- Report exact commands/results and update the backlog checkbox only after verification.",
+                "- Never invent test results or execute high-impact actions without the policy/approval requirements.",
+                "",
+                "### Dependencies",
+                "See the declared dependency IDs on the source checklist and complete them first.",
+                endMarker,
+              ].join("\\n");
+            }
+
+            function mergeManagedBlock(existingBody, block) {
+              const body = existingBody || "";
+              const start = body.indexOf(startMarker);
+              const end = body.indexOf(endMarker);
+              if (start >= 0 && end >= start) {
+                return body.slice(0, start) + block + body.slice(end + endMarker.length);
+              }
+              return body.trim() ? body.trim() + "\\n\\n" + block : block;
+            }
+
+            let createdCount = 0;
+            let updatedCount = 0;
+            let closedCount = 0;
+            let reopenedCount = 0;
+            let completedWithoutIssue = 0;
+
+            for (const task of parsedTasks) {
+              let issue = linkedIssues.get(task.id);
+              if (task.checked && !issue) {
+                completedWithoutIssue += 1;
+                continue;
+              }
+              const title = "[" + task.id + "] " + task.title;
+              const body = mergeManagedBlock(issue ? issue.body : "", managedBlock(task));
+              const milestone = milestoneByPhase.get(task.phase);
+              const labelSet = ["task", "backlog-sync"];
+
+              if (!issue) {
+                if (dryRun) {
+                  core.info("DRY RUN: would create issue " + title + " (line " + task.line + ").");
+                  createdCount += 1;
+                  continue;
+                }
+                const createParams = {
+                  owner: owner, repo: repo, title: title, body: body, labels: labelSet
+                };
+                if (milestone) createParams.milestone = milestone.number;
+                const created = await github.rest.issues.create(createParams);
+                issue = created.data;
+                linkedIssues.set(task.id, issue);
+                createdCount += 1;
+                core.info("Created #" + issue.number + " for " + task.id + ": " + title);
+              } else {
+                const desiredState = task.checked ? "closed" : "open";
+                const updates = {};
+                if (issue.title !== title) updates.title = title;
+                if ((issue.body || "") !== body) updates.body = body;
+                if (issue.state !== desiredState) {
+                  updates.state = desiredState;
+                  if (desiredState === "closed") updates.state_reason = "completed";
+                }
+                const currentIssueLabels = new Set((issue.labels || []).map((label) =>
+                  typeof label === "string" ? label : label.name));
+                const mergedLabels = [...new Set([...currentIssueLabels, ...labelSet])];
+                if (mergedLabels.length !== currentIssueLabels.size) updates.labels = mergedLabels;
+                if (milestone && (!issue.milestone || issue.milestone.number !== milestone.number)) {
+                  updates.milestone = milestone.number;
+                }
+
+                if (Object.keys(updates).length > 0) {
+                  if (dryRun) {
+                    core.info("DRY RUN: would update issue #" + issue.number + " for " + task.id +
+                      ": " + Object.keys(updates).join(", ") + ".");
+                    updatedCount += 1;
+                  } else {
+                    const updated = await github.rest.issues.update({
+                      owner: owner, repo: repo, issue_number: issue.number, ...updates
+                    });
+                    issue = updated.data;
+                    linkedIssues.set(task.id, issue);
+                    updatedCount += 1;
+                    if (updates.state === "closed") closedCount += 1;
+                    if (updates.state === "open") reopenedCount += 1;
+                  }
+                }
+              }
+            }
+
+            await core.summary
+              .addHeading("Moonships backlog sync")
+              .addTable([
+                [{ data: "Mode", header: true }, dryRun ? "DRY RUN (no writes)" : "WRITE"],
+                [{ data: "Tasks parsed", header: true }, String(parsedTasks.length)],
+                [{ data: "Issues to create / created", header: true }, String(createdCount)],
+                [{ data: "Issues to update / updated", header: true }, String(updatedCount)],
+                [{ data: "Issues closed", header: true }, String(closedCount)],
+                [{ data: "Issues reopened from unchecked backlog tasks", header: true }, String(reopenedCount)],
+                [{ data: "Completed tasks with no existing issue (skipped)", header: true }, String(completedWithoutIssue)],
+              ])
+              .addLink("Task backlog", "https://github.com/" + owner + "/" + repo +
+                "/blob/" + context.sha + "/docs/TASK_BACKLOG.md")
+              .write();
+
+            core.info("Sync summary: " + JSON.stringify({
+              dryRun: dryRun, totalTasks: parsedTasks.length, createdCount: createdCount,
+              updatedCount: updatedCount, closedCount: closedCount, reopenedCount: reopenedCount,
+              completedWithoutIssue: completedWithoutIssue
+            }));
