@@ -34,6 +34,9 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Run backlog sync regression tests
+        run: node --test scripts/backlog-sync-core.test.cjs
+
       - name: Validate task IDs, dependencies and documentation links
         run: node scripts/validate-backlog.mjs
 
@@ -59,7 +62,6 @@ jobs:
             const milestoneDoc = await readRepoText("docs/MILESTONES.md");
             const startMarker = "<!-- moonships-task-sync:start -->";
             const endMarker = "<!-- moonships-task-sync:end -->";
-            const taskMarker = /<!--\s*moonships-task-id:\s*(M\d+-\d{3})\s*-->/;
 
             const parsedTasks = [];
             const taskRegex = /^- \[([ xX])\] \*\*([A-Z]\d+-\d{3}) — ([^*]+)\*\*(.*)$/gm;
