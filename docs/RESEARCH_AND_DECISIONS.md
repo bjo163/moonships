@@ -80,6 +80,27 @@ Decision:
 - Respect robots/access controls, terms, rate limits and authentication boundaries; no bypass.
 - Treat retrieved content as untrusted data, especially if it contains instructions aimed at an AI model.
 
+## 1A. Product archetype research
+
+These products are references for **patterns and user expectations**, not codebases to clone. Validate product claims against their current official pages before adopting a dependency or copying an asset.
+
+| Reference | Useful pattern | What Moonships should learn | What not to copy blindly |
+|---|---|---|---|
+| [Microsoft PowerToys](https://github.com/microsoft/PowerToys) | Windows-first utility collection, launcher/command palette, opt-in utilities, system integration | Discoverability, keyboard-first quick access, modular utility UX and transparent per-feature settings | PowerToys-specific internals, UI assets/branding, or features that widen Moonships scope without user value |
+| [DevToys](https://github.com/DevToys-app/DevToys) | Small, focused developer tools such as converters, formatters, encoders, hash and text utilities | A tool should solve one specific job quickly and often work offline; utilities need strong input limits and useful errors | Assuming every online utility belongs in the desktop app; avoid sending private data to remote conversion sites |
+| [GitHub Projects](https://docs.github.com/en/issues/planning-and-tracking-with-projects/learning-about-projects/about-projects) | Table, board and roadmap views connected to issues/PRs and metadata | Multiple views over one canonical work model; project status and task data should remain linked | Building a full clone of a collaboration SaaS before local task workflows are proven |
+| [Linear project/issues model](https://linear.app/docs/conceptual-model) and [Projects](https://linear.app/docs/projects) | Issues as atomic units of work; projects have outcomes, milestones and progress | Keep tasks small, statuses consistent, and project outcome visible; let agents act on a bounded issue | Locking Moonships into team/cycle assumptions in a personal-first MVP |
+| [World Monitor](https://github.com/koala73/worldmonitor) | Attributed public-source aggregation, global situational awareness and cross-stream context | Source provenance, freshness, trend windows, correlation and explicit coverage limitations are product-critical | Copying source code or branding without license/trademark review; source code is currently AGPL-3.0-only, with separate service terms |
+| [OpenTelemetry](https://opentelemetry.io/docs/concepts/signals/) | Vendor-neutral telemetry model for logs, metrics and traces | Integrate and export established signals where useful rather than inventing another standard | Adding telemetry collection/export to the desktop app before there's a concrete, user-approved need |
+
+Primary-source observations:
+- Microsoft's PowerToys documentation describes a collection of Windows utilities including Command Palette; this is a reference for a power-user utility UX.
+- DevToys describes a bundle of small, specific developer tools, including converters, encoders/decoders, formatters and text utilities; this supports building small independently testable utilities rather than a giant universal tool.
+- GitHub Projects explicitly supports table, board and roadmap views and integrates work items; Linear's conceptual model likewise treats issues as the units of trackable work.
+- World Monitor's maintained repository currently labels its source AGPL-3.0-only and documents distinct source-code, hosted-service and branding terms. Do a license review before any code reuse.
+
+Design conclusion: Moonships' defensible differentiation is the **shared work context** across projects/tasks, tool runs, evidence, source intelligence, approvals and automation—not having the greatest raw count of utility buttons.
+
 ## 2. Architecture decision register
 
 ### ADR-0001 — Windows-first Tauri desktop
