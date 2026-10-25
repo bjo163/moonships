@@ -27,9 +27,11 @@ const foundationChecks = [
 
 type AppShellProps = {
   children: ReactNode;
+  theme: ThemePreference;
+  onToggleTheme: () => void;
 };
 
-export function AppShell({ children }: AppShellProps) {
+export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
   return (
     <main className="app-frame">
       <aside className="rail" aria-label="Primary navigation">
@@ -70,7 +72,7 @@ export function AppShell({ children }: AppShellProps) {
             <button
               className="theme-toggle"
               type="button"
-              onClick={toggleTheme}
+              onClick={onToggleTheme}
               aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
               title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
             >
@@ -194,7 +196,7 @@ export default function App() {
   }, []);
 
   return (
-    <AppShell>
+    <AppShell theme={theme} onToggleTheme={toggleTheme}>
       {route.kind === "page" && route.id === "overview" ? (
         <OverviewPage />
       ) : (
