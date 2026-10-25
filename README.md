@@ -121,6 +121,7 @@ moonships-workbench/
 ├── .github/
 │   ├── workflows/
 │   │   └── sync-backlog-to-issues.yml
+│   ├── dependabot.yml
 │   ├── PULL_REQUEST_TEMPLATE.md
 │   └── ISSUE_TEMPLATE/
 │       ├── bug_report.yml
