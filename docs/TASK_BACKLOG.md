@@ -47,8 +47,8 @@
 - [x] **M1-008 — Implement main AppShell layout** [S] — Sidebar, top bar and content slot only. **AC:** route/page content can be swapped without duplicating shell.
 - [x] **M1-009 — Add route registry for implemented pages** [S] — Use typed route IDs. **AC:** invalid route falls back to a not-found page instead of crashing.
 - [x] **M1-010 — Add navigation menu from UX spec** [S] — Show only implemented items or explicit Planned state. **AC:** no dead menu links.
-- [ ] **M1-011 — Implement foundational semantic design tokens** [S] — Implement the initial theme, spacing and typography tokens from DESIGN_SYSTEM.md. **AC:** shell uses semantic variables rather than scattered literal values; dark/light preference works; proposed colors are explicitly not marked contrast-certified until measured.
-- [ ] **M1-012 — Add dark and light theme toggle** [S] — Persist non-secret preference. **AC:** theme remains selected after restart.
+- [x] **M1-011 — Implement foundational semantic design tokens** [S] — Implement the initial theme, spacing and typography tokens from DESIGN_SYSTEM.md. **AC:** shell uses semantic variables rather than scattered literal values; dark/light preference works; proposed colors are explicitly not marked contrast-certified until measured.
+- [x] **M1-012 — Add dark and light theme toggle** [S] — Persist non-secret preference. **AC:** theme remains selected after restart.
 - [ ] **M1-013 — Add accessible focus and keyboard navigation** [S] — Sidebar, buttons, dialogs and search. **AC:** primary shell can be operated without a mouse.
 - [ ] **M1-014 — Implement tray icon and context menu** [S] — Open, Settings and Quit for first pass. **AC:** menu actions execute correctly in a Windows dev build.
 - [ ] **M1-015 — Implement hide-to-tray preference** [S] — Avoid implicit app exit on X when configured to hide. **AC:** window hides and can be restored; preference is persisted.
@@ -58,7 +58,7 @@
 - [ ] **M1-019 — Add notification/permission settings skeleton** [S] — Define controls without implying unimplemented monitoring. **AC:** each control has a real effect or clear Planned state.
 
 ### Core contracts and persistence
-- [ ] **M1-020 — Define stable application error codes** [S] — Implement typed errors and UI mapping for the initial app. **AC:** UI logic does not parse English error strings.
+- [x] **M1-020 — Define stable application error codes** [S] — Implement typed errors and UI mapping for the initial app. **AC:** UI logic does not parse English error strings.
 - [ ] **M1-021 — Add typed Tauri command DTO conventions** [S] — Document request/response shape and validation. **AC:** first command demonstrates the pattern.
 - [ ] **M1-022 — Add SQLite connection and per-user storage path** [S] — Use a platform-appropriate app data directory. **AC:** database is not created in arbitrary current working directory.
 - [ ] **M1-023 — Add transactional schema migration runner** [S] — Start with initial migration/version table. **AC:** fresh database migration passes and schema version is stored.
