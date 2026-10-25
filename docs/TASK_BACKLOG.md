@@ -90,7 +90,7 @@
 ## M2 — Projects & Tasks
 
 ### Data and domain services
-- [ ] **M2-001 — Add Workspace model/migration** [S] [depends: M1-023] — Seed one Personal workspace. **AC:** fresh DB includes exactly one documented default workspace.
+- [x] **M2-001 — Add Workspace model/migration** [S] [depends: M1-023] — Seed one Personal workspace. **AC:** fresh DB includes exactly one documented default workspace.
 - [ ] **M2-002 — Add Project model/migration** [S] [depends: M2-001] — Name, goal/description, status and timestamps. **AC:** constraints and defaults are tested.
 - [ ] **M2-003 — Add Task model/migration** [S] [depends: M2-001] — Project optional; title required; canonical status/priority. **AC:** task can exist in the personal inbox without a project.
 - [ ] **M2-004 — Add Label and task-label relationship** [S] [depends: M2-003] — Workspace-scoped labels. **AC:** duplicate label rules are documented and tested.

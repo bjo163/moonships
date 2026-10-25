@@ -67,3 +67,9 @@ cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 ```
 
 Preserve `main`, use existing GitHub Issues and the idempotent backlog sync; never issue a stable-release or manual-Windows PASS claim from a successful compilation alone.
+
+## M2-001 — Personal Workspace migration (2026-10-26)
+
+Implemented schema v2 in `src-tauri/src/lib.rs` with a single deterministic Personal workspace seed and transactionally recorded migration version. Source commits: [`6291d9b`](https://github.com/bjo163/moonships/commit/6291d9b4d29b8560043f521e76d7835fdc1e5a30) and rustfmt-only correction [`2a8cf7d`](https://github.com/bjo163/moonships/commit/2a8cf7d46ce3d84d91879977fcd01f461905ca50). CI [40241213681](https://github.com/bjo163/moonships/actions/runs/40241213681) has PASS for frontend production build, backlog tests, Rust formatting/Clippy and **21/21 Rust unit tests**, including the fresh DB workspace seed and upgrade from schema v1 retaining existing user metadata. At this documentation checkpoint, Windows packaging remains **IN PROGRESS**, not a runtime test. Task acceptance is satisfied by the native migration test results; Windows installer and real-Windows smoke gates remain independent.
+
+**Next schema task:** M2-002 — Add Project model/migration, using a bounded and foreign-key-validated project table associated with the default workspace.
