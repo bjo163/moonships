@@ -1,0 +1,82 @@
+name: Desktop alpha release
+
+on:
+  push:
+    branches:
+      - "release/v*.*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  windows-release:
+    name: Build and publish Windows alpha installers
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check out release branch source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js 24 LTS
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+
+      - name: Verify supported runtime
+        shell: pwsh
+        run: |
+          $nodeMajor = (node -p "process.versions.node.split('.')[0]")
+          $npmMajor = (npm --version).Split('.')[0]
+          if ($nodeMajor -ne "24") { throw "Node.js 24 is required; found $nodeMajor" }
+          if ($npmMajor -ne "11") { throw "npm 11 is required; found $npmMajor" }
+          node --version
+          npm --version
+
+      - name: Install Rust MSVC toolchain
+        shell: pwsh
+        run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy --target x86_64-pc-windows-msvc
+
+      - name: Install JavaScript dependencies
+        run: npm install
+
+      - name: Run frontend, repository and build checks
+        run: npm run check
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+
+      - name: Run Rust unit tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml --all-targets
+
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+
+      - name: Build MSI and NSIS installers
+        run: npm run tauri -- build
+
+      - name: Verify installer outputs
+        id: installers
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem "src-tauri/target/release/bundle/msi/*.msi" | Select-Object -First 1
+          $nsis = Get-ChildItem "src-tauri/target/release/bundle/nsis/*.exe" | Select-Object -First 1
+          if (-not $msi) { throw "MSI installer was not produced" }
+          if (-not $nsis) { throw "NSIS installer was not produced" }
+          "msi_path=$($msi.FullName)" >> $env:GITHUB_OUTPUT
+          "nsis_path=$($nsis.FullName)" >> $env:GITHUB_OUTPUT
+          Get-Item $msi.FullName, $nsis.FullName | Select-Object Name, Length
+
+      - name: Publish GitHub Release with installers
+        if: contains(github.ref_name, '.')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = $env:GITHUB_REF_NAME -replace "^release/", ""
+          gh release create $tag "${{ steps.installers.outputs.msi_path }}" "${{ steps.installers.outputs.nsis_path }}" --target $env:GITHUB_SHA --title "Moonships $tag" --generate-notes
