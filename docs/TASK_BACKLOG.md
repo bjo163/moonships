@@ -14,6 +14,7 @@
 - Mark an item checked only after the acceptance criteria pass and the implementation is committed/reviewable.
 - When finishing, report task ID, files changed, tests run/result, limitations, and the next unblocked task.
 - Keep actual GitHub issue state synchronized through the idempotent workflow in [TASK_ISSUE_SYNC.md](TASK_ISSUE_SYNC.md); this checklist remains the canonical task-status source. Generated issue descriptions include task scope, acceptance criteria, estimated size, and declared dependency IDs.
+- Treat task IDs as permanent sync keys: do not renumber or remove a published task ID casually. Duplicate IDs, title collisions without a marker, malformed managed bodies, or managed issue IDs absent from the backlog must stop sync for explicit reconciliation.
 
 **Estimate:** S = 1 small independently reviewable change; M = split when practical. Estimates are planning hints, not deadlines.
 
@@ -73,7 +74,7 @@
 - [ ] **M1-032 — Register safe navigation and create commands** [S] [depends: M1-009,M1-027,M1-031] — Register page navigation and safe create actions such as New Project, New Task and New Note as typed commands. **AC:** only registered commands appear; unknown IDs are rejected; risky tools open a preview instead of executing from the palette.
 - [ ] **M1-033 — Bind Ctrl+K and palette focus lifecycle** [S] [depends: M1-031] — Open the palette from the main window, focus search, support Escape and restore focus. **AC:** shortcut does not interfere with typing in editable controls or nested dialogs.
 - [ ] **M1-034 — Implement first-run onboarding and workspace profile selection** [S] [depends: M1-030] — Offer Developer, Network/NOC, Sysadmin, Security/Research, Intelligence/Research and Custom profiles that change pinned tools/layout only. **AC:** profile selection persists, can be changed later, and never silently grants permissions.
-- [ ] **M1-035 — Add idempotent backlog-to-GitHub-Issues automation** [S] — Add a GitHub Actions workflow that mirrors unchecked backlog tasks to issues by stable task ID. **AC:** repeat runs create no duplicates, checked items close managed issues, the workflow has a dry-run mode, and issue creation is restricted to main/manual runs.
+- [ ] **M1-035 — Add idempotent backlog-to-GitHub-Issues automation** [S] — Add a GitHub Actions workflow that mirrors unchecked backlog tasks to issues by stable task ID. **AC:** repeat runs create no duplicates; checked items close managed issues; dry-run mode performs no writes; issue creation runs only from main/manual triggers; duplicate IDs, unmarked title collisions, malformed managed bodies, and orphaned managed issue IDs fail closed.
 - [ ] **M1-036 — Pin backlog-sync actions and automate update review** [S] — Pin each used GitHub Action to a verified full commit SHA from its official upstream repository and configure Dependabot for GitHub Actions. **AC:** action refs are full 40-character SHAs with documented release tags; the Dependabot config schedules update PRs; backlog validation and the pinned workflow complete successfully on main.
 
 ## M2 — Projects & Tasks
