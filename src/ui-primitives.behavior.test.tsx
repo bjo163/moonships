@@ -84,9 +84,7 @@ describe("M1-041 DOM interaction and accessibility", () => {
 
     // Test the browser's cancellable boundary event directly: jsdom userEvent.tab()
     // computes another synthetic focus move even after our handler changes focus.
-    expect(fireEvent.keyDown(close, { key: "Tab", shiftKey: true, cancelable: true })).toBe(
-      false,
-    );
+    expect(fireEvent.keyDown(close, { key: "Tab", shiftKey: true, cancelable: true })).toBe(false);
     expect(document.activeElement).toBe(apply);
     expect(fireEvent.keyDown(apply, { key: "Tab", cancelable: true })).toBe(false);
     expect(document.activeElement).toBe(close);
