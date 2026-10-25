@@ -15,7 +15,7 @@ The startup-at-login setting was ambiguous ("implement or defer"). It is now exp
 
 ## 2. Design readiness follow-up
 
-The detailed audit is in [Design Readiness Audit](DESIGN_READINESS_AUDIT.md). It does not create a competing product spec: the existing Product Blueprint and UX spec remain canonical. M1-038–M1-039 close implementation-only gaps around minimum-window behavior and repeatable visual/accessibility review; M2-035 covers task-based usability validation after the project/task vertical slice exists. These checks must not be marked complete from wireframes alone.
+The detailed audit is in [Design Readiness Audit](DESIGN_READINESS_AUDIT.md). It does not create a competing product spec: the existing Product Blueprint and UX spec remain canonical. M1-038–M1-040 close implementation-only gaps around minimum-window behavior, visual/accessibility review and shell usability; M2-035 covers the separate Projects & Tasks usability check after that vertical slice exists. These checks must not be marked complete from wireframes alone.
 
 ## 3. Intentional boundaries that may look overlapping
 
