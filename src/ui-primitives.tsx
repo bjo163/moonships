@@ -134,6 +134,8 @@ export function Dialog({ open, title, description, onClose, children, labelledBy
     : undefined;
   const dialogRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!open) return;
@@ -147,7 +149,7 @@ export function Dialog({ open, title, description, onClose, children, labelledBy
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         event.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
 
@@ -181,12 +183,20 @@ export function Dialog({ open, title, description, onClose, children, labelledBy
       }
     }
 
+    function onFocusIn(event: FocusEvent) {
+      if (dialog && !dialog.contains(event.target as Node)) {
+        (closeButton ?? dialog).focus();
+      }
+    }
+
     document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("focusin", onFocusIn);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      previouslyFocused?.focus();
+      document.removeEventListener("focusin", onFocusIn);
+      if (previouslyFocused?.isConnected) previouslyFocused.focus();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 
