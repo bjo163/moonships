@@ -33,6 +33,8 @@ The current interface is a desktop shell. Projects, tasks and notes are preview-
 
 ## Release candidate: v0.1.0-alpha.2
 
+**Build source:** release branch `release/v0.1.0-alpha.2`, based on the reviewed `main` source snapshot. CI is the authority for pass/fail and installer availability.
+
 This release candidate includes responsive shell/overlay overflow hardening and a source-level accessibility review baseline. Automated assertions were added for the viewport/keyboard contract, but do not report them as passing until CI completes. The review document lists contrast spot checks and explicitly pending Windows manual tests.
 
 Previous prerelease: [v0.1.0-alpha.1](https://github.com/bjo163/moonships/releases/tag/v0.1.0-alpha.1).
