@@ -166,30 +166,6 @@
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  --color-canvas: var(--color-canvas);
-  --color-panel: var(--color-surface);
-  --color-panel-raised: var(--color-surface-raised);
-  --color-border: var(--color-border);
-  --color-text: var(--color-text-primary);
-  --color-muted: var(--color-text-muted);
-  --color-accent: var(--color-accent);
-  --color-accent-soft: var(--color-accent-soft);
-  --color-success: var(--color-status-success);
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-6: 1.5rem;
-  --space-8: 2rem;
-  --radius-card: 1rem;
-}
-:root {
-  font-family: var(--font-ui);
-  color: var(--color-text-primary);
-  background: var(--color-canvas);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
 }
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; min-height: 100vh; }
