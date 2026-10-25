@@ -1,6 +1,11 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { resolveRoute, type RouteResolution } from "./route-registry";
-import { applyThemePreference, readThemePreference, writeThemePreference, type ThemePreference } from "./theme-preference";
+import {
+  applyThemePreference,
+  readThemePreference,
+  writeThemePreference,
+  type ThemePreference,
+} from "./theme-preference";
 
 const plannedNavigationItems = [
   "My Work",
