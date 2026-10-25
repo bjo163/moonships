@@ -1,5 +1,4 @@
-import type {
-  ButtonHTMLAttributes,
+import { forwardRef, useEffect, useId, useRef, type ButtonHTMLAttributes,
   HTMLAttributes,
   InputHTMLAttributes,
   ReactNode,
@@ -16,7 +15,7 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   loadingLabel?: string;
 };
 
-export function Button({
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button({
   variant = "primary",
   size = "md",
   loading = false,
@@ -30,6 +29,7 @@ export function Button({
   return (
     <button
       {...props}
+      ref={ref}
       type={type}
       className={`ms-button ms-button--${variant} ms-button--${size}${className ? ` ${className}` : ""}`}
       disabled={disabled || loading}
@@ -120,27 +120,81 @@ export function Dialog({
   children,
   labelledBy,
 }: DialogProps) {
+  const generatedId = useId();
+  const titleId = labelledBy ?? `ms-dialog-title-${generatedId.replace(/:/g, "")}`;
+  const descriptionId = description ? `ms-dialog-description-${generatedId.replace(/:/g, "")}` : undefined;
+  const dialogRef = useRef<HTMLElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const previouslyFocused = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    const dialog = dialogRef.current;
+    const closeButton = closeButtonRef.current;
+    (closeButton ?? dialog)?.focus();
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+
+      if (event.key !== "Tab" || !dialog) return;
+      const focusable = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((element) => element.getAttribute("aria-hidden") !== "true");
+
+      if (focusable.length === 0) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && (document.activeElement === first || !dialog.contains(document.activeElement))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      previouslyFocused?.focus();
+    };
+  }, [open, onClose]);
+
   if (!open) return null;
-  const titleId = labelledBy ?? "ms-dialog-title";
-  const descriptionId = description ? "ms-dialog-description" : undefined;
 
   return (
     <div className="ms-dialog-backdrop" onMouseDown={(event) => {
       if (event.target === event.currentTarget) onClose();
     }}>
       <section
+        ref={dialogRef}
         className="ms-dialog"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
+        tabIndex={-1}
       >
         <header className="ms-dialog__header">
           <div>
             <h2 id={titleId}>{title}</h2>
             {description ? <p id={descriptionId}>{description}</p> : null}
           </div>
-          <Button variant="ghost" size="sm" aria-label="Close dialog" onClick={onClose}>×</Button>
+          <Button ref={closeButtonRef} variant="ghost" size="sm" aria-label="Close dialog" onClick={onClose}>×</Button>
         </header>
         <div className="ms-dialog__content">{children}</div>
       </section>
