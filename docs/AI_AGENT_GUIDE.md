@@ -10,7 +10,7 @@ Before changing code:
 3. Follow links to relevant sections of `docs/ARCHITECTURE.md`, `docs/UX_AND_DESIGN.md`, `docs/DATA_MODEL.md` and `docs/SECURITY_MODEL.md`.
 4. Inspect the current code and tests; never assume the task's implementation files already exist.
 
-## 2. Task execution protocol
+## 2. Source-of-truth precedence\n\n- Product scope and release intent: docs/PRODUCT_BLUEPRINT.md.\n- Menus, information architecture, user journeys and wireframes: docs/UX_AND_DESIGN.md.\n- Visual tokens, components, motion, accessibility and visual assets: docs/DESIGN_SYSTEM.md.\n- SFX behavior, event catalog, defaults and audio assets: docs/AUDIO_SFX_SPEC.md.\n- Runtime boundaries, permissions and execution: docs/ARCHITECTURE.md and docs/SECURITY_MODEL.md.\n- If sources conflict, do not invent a third rule. Propose a minimal correction to the owning document and update linked acceptance criteria before implementing the conflicting behavior.\n\n## 3. Task execution protocol
 
 For exactly one task ID:
 1. Confirm dependencies are complete and task is not already done.
@@ -26,7 +26,7 @@ For exactly one task ID:
 
 If the task asks for a feature that conflicts with architecture/security/product docs, stop and propose the smallest documentation/ADR correction before coding.
 
-## 3. Quality bar
+## 4. Quality bar
 
 - Keep changes focused, typed and testable.
 - Prefer explicit code over clever abstractions.
