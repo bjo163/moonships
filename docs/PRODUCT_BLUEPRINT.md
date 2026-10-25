@@ -141,7 +141,7 @@ Security review, reliable packaging/updating, upgrade tests, accessibility, docu
 - Scraping that bypasses access controls, paywalls, rate limits or source terms
 - Cross-platform release guarantees before Windows delivery is stable
 
-## 5A. Post-V1 expansion tracks
+## 6. Post-V1 expansion tracks
 
 The V1.0 release focuses on a safe Windows desktop foundation, personal/local-first Projects & Tasks, Cleaner/DevTools, first-level operations diagnostics, a small attributed intelligence baseline, selected specialist workflows, and bounded automation/optional AI.
 
@@ -155,7 +155,7 @@ The following catalog areas remain planned for post-V1.0; they are now represent
 
 These tracks do not authorize a feature merely by naming it. Each still requires provider/source review, explicit permissions, small acceptance-tested tasks, and a decision gate before release. Full marketplace, team sync, arbitrary remote execution and dynamic native plugins remain out of scope until their own security/design review passes.
 
-## 6. Product differentiators
+## 7. Product differentiators
 
 1. Project/task management is part of the technical workflow, not a detached board.
 2. Tool results can become task-linked artifacts with source/time/status.
@@ -164,7 +164,7 @@ These tracks do not authorize a feature merely by naming it. Each still requires
 5. World/media intelligence preserves attribution and separates observation, interpretation and confidence.
 6. Security controls apply uniformly to local tools, integrations, AI and workflows.
 
-## 7. Success measures
+## 8. Success measures
 
 Measure actual quality rather than vanity feature counts:
 - Fresh install launches and opens the main window reliably.
@@ -176,7 +176,7 @@ Measure actual quality rather than vanity feature counts:
 - Intelligence items show source and timestamps; failed/stale source status is visible.
 - A release can be reproduced, tested, signed and upgraded from the previous supported version.
 
-## 8. Product decision rule
+## 9. Product decision rule
 
 When considering a feature, ask in order:
 1. What user/job does it serve?
