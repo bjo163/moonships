@@ -1,4 +1,4 @@
-name: Backlog sync regression tests
+name: Repository regression checks
 
 on:
   pull_request:
@@ -10,6 +10,13 @@ on:
       - "scripts/validate-backlog.mjs"
       - "docs/TASK_BACKLOG.md"
       - "docs/MILESTONES.md"
+      - "package.json"
+      - "index.html"
+      - "vite.config.ts"
+      - "tsconfig*.json"
+      - "src/**"
+      - "src-tauri/**"
+      - "docs/DEVELOPMENT.md"
   push:
     branches: [main]
     paths:
@@ -20,6 +27,13 @@ on:
       - "scripts/validate-backlog.mjs"
       - "docs/TASK_BACKLOG.md"
       - "docs/MILESTONES.md"
+      - "package.json"
+      - "index.html"
+      - "vite.config.ts"
+      - "tsconfig*.json"
+      - "src/**"
+      - "src-tauri/**"
+      - "docs/DEVELOPMENT.md"
 
 permissions:
   contents: read
@@ -42,3 +56,23 @@ jobs:
         run: node --test scripts/backlog-sync-core.test.cjs
       - name: Validate backlog and local links
         run: node scripts/validate-backlog.mjs
+
+  frontend:
+    name: Frontend production build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install
+      - name: Build frontend and type-check
+        run: npm run build
+      - name: Validate Tauri configuration JSON
+        run: node -e "JSON.parse(require('node:fs').readFileSync('src-tauri/tauri.conf.json', 'utf8')); JSON.parse(require('node:fs').readFileSync('src-tauri/capabilities/default.json', 'utf8'));"
