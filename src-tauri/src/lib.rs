@@ -15,22 +15,35 @@ fn hide_to_tray_enabled(path: &std::path::Path) -> bool {
         .unwrap_or(false)
 }
 
-#[tauri::command]
-fn get_hide_to_tray(app: AppHandle) -> Result<bool, String> {
-    let path = hide_to_tray_path(&app)?;
-    Ok(hide_to_tray_enabled(&path))
+/// Stable IPC payload for reading and updating the hide-to-tray preference.
+#[derive(Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct HideToTrayPreferenceDto {
+    enabled: bool,
 }
 
 #[tauri::command]
-fn set_hide_to_tray(app: AppHandle, enabled: bool) -> Result<(), String> {
+fn get_hide_to_tray(app: AppHandle) -> Result<HideToTrayPreferenceDto, String> {
+    let path = hide_to_tray_path(&app)?;
+    Ok(HideToTrayPreferenceDto {
+        enabled: hide_to_tray_enabled(&path),
+    })
+}
+
+#[tauri::command]
+fn set_hide_to_tray(
+    app: AppHandle,
+    request: HideToTrayPreferenceDto,
+) -> Result<HideToTrayPreferenceDto, String> {
     let path = hide_to_tray_path(&app)?;
     let directory = path
         .parent()
         .ok_or_else(|| "App config directory has no parent".to_string())?;
     fs::create_dir_all(directory)
         .map_err(|error| format!("Could not create app config directory: {error}"))?;
-    fs::write(path, if enabled { "true" } else { "false" })
-        .map_err(|error| format!("Could not save hide-to-tray preference: {error}"))
+    fs::write(path, if request.enabled { "true" } else { "false" })
+        .map_err(|error| format!("Could not save hide-to-tray preference: {error}"))?;
+    Ok(request)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
