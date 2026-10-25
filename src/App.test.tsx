@@ -95,7 +95,7 @@ describe("semantic design token contract", () => {
   it("uses design tokens for component colors instead of raw color literals", async () => {
     const { readFileSync } = await import("node:fs");
     const stylesheet = readFileSync(new URL("./index.css", import.meta.url), "utf8");
-    const componentStyles = stylesheet.split("/* Component styles */")[1] ?? stylesheet.slice(stylesheet.indexOf("* { box-sizing"));
+    const componentStyles = stylesheet.slice(stylesheet.indexOf("* { box-sizing"));
     expect(componentStyles).not.toMatch(/#[0-9a-fA-F]{3,8}\\b/);
   });
 });
