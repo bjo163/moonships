@@ -41,7 +41,7 @@
 - [x] **M1-004 — Add Rust formatting/lint baseline** [S] — Configure rustfmt and clippy commands. **AC:** CI/local documented command fails on format/lint errors.
 - [x] **M1-005 — Add frontend formatting/typecheck baseline** [S] — Configure the chosen formatter/linter and TypeScript check. **AC:** one documented command runs these checks.
 - [x] **M1-006 — Add Windows CI smoke build** [S] — Build app in GitHub Actions on Windows. **AC:** workflow runs on pushes and pull requests and fails on build failure.
-- [ ] **M1-007 — Add minimal test commands to CI** [S] — Run starter Rust and frontend tests. **AC:** CI shows separate, understandable test steps.
+- [x] **M1-007 — Add minimal test commands to CI** [S] — Run starter Rust and frontend tests. **AC:** CI shows separate, understandable test steps.
 
 ### App shell and system tray
 - [ ] **M1-008 — Implement main AppShell layout** [S] — Sidebar, top bar and content slot only. **AC:** route/page content can be swapped without duplicating shell.
