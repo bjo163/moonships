@@ -53,7 +53,7 @@
 - [ ] **M1-015 — Implement hide-to-tray preference** [S] — Avoid implicit app exit on X when configured to hide. **AC:** window hides and can be restored; preference is persisted.
 - [ ] **M1-016 — Implement explicit Quit lifecycle** [S] — Stop workers and exit cleanly. **AC:** Quit ends process; ordinary Hide does not.
 - [ ] **M1-017 — Add single-instance behavior or document/test alternative** [S] — Avoid confusing duplicate windows. **AC:** second launch follows the chosen documented behavior.
-- [ ] **M1-018 — Add startup-at-login setting as opt-in or explicitly defer** [S] — No silent autostart. **AC:** if implemented, disabled by default and reversible; otherwise marked deferred.
+- [x] **M1-018 — Defer startup-at-login for the MVP** [S] — Keep automatic startup disabled; revisit only as an explicit later feature. **AC:** startup-at-login is documented as deferred and no automatic startup behavior is enabled in the MVP.
 - [ ] **M1-019 — Add notification/permission settings skeleton** [S] — Define controls without implying unimplemented monitoring. **AC:** each control has a real effect or clear Planned state.
 
 ### Core contracts and persistence
@@ -68,6 +68,12 @@
 - [ ] **M1-028 — Add capability/permission policy abstraction** [S] — Policy decision independent from frontend. **AC:** tests cover allowed, denied and approval-required results.
 - [ ] **M1-029 — Add module availability states** [S] — Available, disabled, unsupported, not_configured, degraded. **AC:** UI can distinguish unavailable from empty success.
 - [ ] **M1-030 — Add config schema version and defaults** [S] — Versioned non-secret settings. **AC:** invalid setting values fail validation and defaults are tested.
+
+- [ ] **M1-031 — Implement the Command Palette surface** [S] — Add an accessible keyboard-first overlay, query field, result list, category and risk labels. **AC:** opens, filters, navigates results with the keyboard, and has loading/empty states without executing a tool.
+- [ ] **M1-032 — Register safe navigation and create commands** [S] [depends: M1-009,M1-027,M1-031] — Register page navigation and safe create actions such as New Project, New Task and New Note as typed commands. **AC:** only registered commands appear; unknown IDs are rejected; risky tools open a preview instead of executing from the palette.
+- [ ] **M1-033 — Bind Ctrl+K and palette focus lifecycle** [S] [depends: M1-031] — Open the palette from the main window, focus search, support Escape and restore focus. **AC:** shortcut does not interfere with typing in editable controls or nested dialogs.
+- [ ] **M1-034 — Implement first-run onboarding and workspace profile selection** [S] [depends: M1-030] — Offer Developer, Network/NOC, Sysadmin, Security/Research, Intelligence/Research and Custom profiles that change pinned tools/layout only. **AC:** profile selection persists, can be changed later, and never silently grants permissions.
+- [ ] **M1-035 — Add idempotent backlog-to-GitHub-Issues automation** [S] — Add a GitHub Actions workflow that mirrors unchecked backlog tasks to issues by stable task ID. **AC:** repeat runs create no duplicates, checked items close managed issues, the workflow has a dry-run mode, and issue creation is restricted to main/manual runs.
 
 ## M2 — Projects & Tasks
 
@@ -104,6 +110,9 @@
 - [ ] **M2-030 — Add project/task import preview** [S] [depends: M2-029] — Do not commit import until user confirms. **AC:** malformed/oversized input is rejected with no partial writes.
 - [ ] **M2-031 — Add project/task repository integration tests** [S] [depends: M2-007,M2-009] — Use disposable test DB. **AC:** tests are isolated and do not touch user DB.
 - [ ] **M2-032 — Add end-to-end smoke flow for project-to-task** [S] [depends: M2-014,M2-016,M2-018] — Create project, task, status update, restart/read. **AC:** automated or documented reproducible smoke test passes.
+
+- [ ] **M2-033 — Build the Home dashboard from real local records** [S] [depends: M2-014,M2-018,M2-025] — Show recent projects, My Work counts, upcoming/overdue tasks and recent activity. **AC:** counts derive from persisted data; first-run/empty/error states are honest; no synthetic telemetry or fake activity is shown.
+- [ ] **M2-034 — Implement global search across available local entities** [S] [depends: M1-031,M2-020,M2-014] — Search project names, task titles/descriptions and registered tool names from one entry point. **AC:** results identify their entity type, are keyboard-navigable, respect local scope, and return an explicit empty state; future entities can register search adapters without changing existing searches.
 
 ## M3 — Cleaner & offline DevTools
 
