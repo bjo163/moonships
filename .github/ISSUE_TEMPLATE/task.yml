@@ -1,0 +1,58 @@
+name: Implementation task
+description: A small, testable Moonships engineering task
+title: "[TASK] "
+labels: []
+body:
+  - type: input
+    id: task_id
+    attributes:
+      label: Backlog task ID
+      description: Use an ID from docs/TASK_BACKLOG.md, or propose a new stable ID.
+      placeholder: M1-008
+    validations:
+      required: true
+  - type: textarea
+    id: user_outcome
+    attributes:
+      label: User/engineering outcome
+      description: One outcome only.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: State what changes and what must remain untouched.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Concrete, verifiable pass conditions.
+      value: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies / blocked by
+      description: List completed prerequisite task IDs.
+    validations:
+      required: false
+  - type: textarea
+    id: tests
+    attributes:
+      label: Test plan
+      description: Exact test commands or manual verification steps.
+    validations:
+      required: true
+  - type: textarea
+    id: security
+    attributes:
+      label: Security and data impact
+      description: Filesystem, shell, network, secrets, AI, permissions, or data migration implications.
+    validations:
+      required: true
