@@ -8,6 +8,12 @@ This file is the short entry point. The detailed, atomic task source of truth is
 - [ ] Verify all internal documentation links and reconcile any conflict.
 - [ ] Pick exactly one unblocked task from [Task Backlog](docs/TASK_BACKLOG.md).
 
+## GitHub Issue synchronization
+- [ ] Review `.github/workflows/sync-backlog-to-issues.yml` and run a **dry-run** from Actions.
+- [ ] Run the initial import with `dry_run = false` after reviewing the planned issue count.
+- [ ] Verify labels, milestones, task markers, duplicate prevention and checked-task closure.
+- [ ] Confirm future edits to `docs/TASK_BACKLOG.md` synchronize automatically on `main`.
+
 ## Foundation gate (M1)
 - [ ] Bootstrap Tauri 2 + React + TypeScript + Vite using current official template.
 - [ ] Establish reproducible local setup instructions.
