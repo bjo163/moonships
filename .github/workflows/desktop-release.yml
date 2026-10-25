@@ -23,12 +23,28 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Detect an already published release
+        id: release-state
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = $env:GITHUB_REF_NAME -replace "^release/", ""
+          $assetCount = gh release view $tag --repo $env:GITHUB_REPOSITORY --json assets --jq ".assets | length" 2>$null
+          if ($LASTEXITCODE -eq 0 -and [int]$assetCount -ge 2) {
+            "already_published=true" >> $env:GITHUB_OUTPUT
+          } else {
+            "already_published=false" >> $env:GITHUB_OUTPUT
+          }
+
       - name: Set up Node.js 24 LTS
+        if: steps.release-state.outputs.already_published != 'true'
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
 
       - name: Verify supported runtime
+        if: steps.release-state.outputs.already_published != 'true'
         shell: pwsh
         run: |
           $nodeMajor = (node -p "process.versions.node.split('.')[0]")
@@ -39,28 +55,36 @@ jobs:
           npm --version
 
       - name: Install Rust MSVC toolchain
+        if: steps.release-state.outputs.already_published != 'true'
         shell: pwsh
         run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy --target x86_64-pc-windows-msvc
 
       - name: Install JavaScript dependencies
+        if: steps.release-state.outputs.already_published != 'true'
         run: npm install
 
       - name: Run frontend, repository and build checks
+        if: steps.release-state.outputs.already_published != 'true'
         run: npm run check
 
       - name: Check Rust formatting
+        if: steps.release-state.outputs.already_published != 'true'
         run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
 
       - name: Run Rust unit tests
+        if: steps.release-state.outputs.already_published != 'true'
         run: cargo test --manifest-path src-tauri/Cargo.toml --all-targets
 
       - name: Run Clippy with warnings denied
+        if: steps.release-state.outputs.already_published != 'true'
         run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 
       - name: Build MSI and NSIS installers
+        if: steps.release-state.outputs.already_published != 'true'
         run: npm run tauri -- build
 
       - name: Verify installer outputs
+        if: steps.release-state.outputs.already_published != 'true'
         id: installers
         shell: pwsh
         run: |
@@ -73,10 +97,28 @@ jobs:
           Get-Item $msi.FullName, $nsis.FullName | Select-Object Name, Length
 
       - name: Publish GitHub Release with installers
-        if: contains(github.ref_name, '.')
+        if: contains(github.ref_name, '.') && steps.release-state.outputs.already_published != 'true'
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $tag = $env:GITHUB_REF_NAME -replace "^release/", ""
-          gh release create $tag "${{ steps.installers.outputs.msi_path }}" "${{ steps.installers.outputs.nsis_path }}" --target $env:GITHUB_SHA --title "Moonships $tag" --generate-notes
+          gh release create $tag "${{ steps.installers.outputs.msi_path }}" "${{ steps.installers.outputs.nsis_path }}" --target $env:GITHUB_SHA --title "Moonships $tag" --generate-notes --prerelease
+          if ($LASTEXITCODE -ne 0) {
+            $assetCount = gh release view $tag --json assets --jq ".assets | length"
+            if ($LASTEXITCODE -ne 0 -or [int]$assetCount -lt 2) {
+              throw "Release creation failed and no complete existing release was found."
+            }
+            gh release edit $tag --prerelease
+            if ($LASTEXITCODE -ne 0) { throw "Could not mark the existing release as a prerelease." }
+            Write-Host "Release already exists with $assetCount assets; confirmed prerelease status."
+          }
+
+      - name: Mark existing release as prerelease
+        if: steps.release-state.outputs.already_published == 'true'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = $env:GITHUB_REF_NAME -replace "^release/", ""
+          gh release edit $tag --repo $env:GITHUB_REPOSITORY --prerelease
