@@ -279,7 +279,7 @@
   }
 
   .ms-spinner {
-    animation-duration: 2s;
+    animation: none;
   }
 }
 
