@@ -154,11 +154,13 @@ export function Dialog({ open, title, description, onClose, children, labelledBy
       }
 
       if (event.key !== "Tab" || !dialog) return;
-      const focusable = Array.from(
-        dialog.querySelectorAll<HTMLElement>(
-          'a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])',
-        ),
-      ).filter((element) => element.getAttribute("aria-hidden") !== "true");
+      // Traverse in DOM order; comma-group selector ordering can differ in DOM simulators.
+      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>("*")).filter(
+        (element) =>
+          element.matches(
+            'a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])',
+          ) && element.getAttribute("aria-hidden") !== "true",
+      );
 
       if (focusable.length === 0) {
         event.preventDefault();
