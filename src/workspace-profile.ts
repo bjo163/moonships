@@ -52,7 +52,9 @@ export function getWorkspaceProfile(id: string | null | undefined): WorkspacePro
   return WORKSPACE_PROFILES.find((profile) => profile.id === id) ?? WORKSPACE_PROFILES[0];
 }
 
-export function readWorkspaceProfile(storage?: Pick<Storage, "getItem">): WorkspaceProfileId | null {
+export function readWorkspaceProfile(
+  storage?: Pick<Storage, "getItem">,
+): WorkspaceProfileId | null {
   try {
     const value = storage?.getItem(PROFILE_STORAGE_KEY);
     return WORKSPACE_PROFILES.some((profile) => profile.id === value)

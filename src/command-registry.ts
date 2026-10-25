@@ -2,9 +2,35 @@ import type { PaletteCommand } from "./CommandPalette";
 import type { RouteId } from "./route-registry";
 
 export type RegisteredCommand =
-  | { id: "navigation.overview"; kind: "navigate"; route: RouteId; title: string; description: string; category: string; risk: "read-only"; keywords: string[] }
-  | { id: "settings.open"; kind: "settings"; title: string; description: string; category: string; risk: "read-only"; keywords: string[] }
-  | { id: "project.create" | "task.create" | "note.create"; kind: "preview"; entity: "project" | "task" | "note"; title: string; description: string; category: string; risk: "state-change"; keywords: string[] };
+  | {
+      id: "navigation.overview";
+      kind: "navigate";
+      route: RouteId;
+      title: string;
+      description: string;
+      category: string;
+      risk: "read-only";
+      keywords: string[];
+    }
+  | {
+      id: "settings.open";
+      kind: "settings";
+      title: string;
+      description: string;
+      category: string;
+      risk: "read-only";
+      keywords: string[];
+    }
+  | {
+      id: "project.create" | "task.create" | "note.create";
+      kind: "preview";
+      entity: "project" | "task" | "note";
+      title: string;
+      description: string;
+      category: string;
+      risk: "state-change";
+      keywords: string[];
+    };
 
 export const COMMAND_REGISTRY: readonly RegisteredCommand[] = [
   {

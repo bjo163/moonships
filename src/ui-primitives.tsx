@@ -20,17 +20,20 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   loadingLabel?: string;
 };
 
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button({
-  variant = "primary",
-  size = "md",
-  loading = false,
-  loadingLabel = "Loading",
-  disabled,
-  className = "",
-  children,
-  type = "button",
-  ...props
-}: ButtonProps, ref) {
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+  {
+    variant = "primary",
+    size = "md",
+    loading = false,
+    loadingLabel = "Loading",
+    disabled,
+    className = "",
+    children,
+    type = "button",
+    ...props
+  }: ButtonProps,
+  ref,
+) {
   return (
     <button
       {...props}
@@ -84,8 +87,16 @@ export function Input({
         aria-invalid={error ? true : props["aria-invalid"]}
         aria-describedby={descriptionIds}
       />
-      {hint && !error ? <p className="ms-hint" id={hintId}>{hint}</p> : null}
-      {error ? <p className="ms-error" id={errorId} role="alert">{error}</p> : null}
+      {hint && !error ? (
+        <p className="ms-hint" id={hintId}>
+          {hint}
+        </p>
+      ) : null}
+      {error ? (
+        <p className="ms-error" id={errorId} role="alert">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -99,10 +110,7 @@ export function Badge({
   ...props
 }: HTMLAttributes<HTMLSpanElement> & { variant?: BadgeVariant }) {
   return (
-    <span
-      {...props}
-      className={`ms-badge ms-badge--${variant}${className ? ` ${className}` : ""}`}
-    >
+    <span {...props} className={`ms-badge ms-badge--${variant}${className ? ` ${className}` : ""}`}>
       {children}
     </span>
   );
@@ -117,26 +125,20 @@ export type DialogProps = {
   labelledBy?: string;
 };
 
-export function Dialog({
-  open,
-  title,
-  description,
-  onClose,
-  children,
-  labelledBy,
-}: DialogProps) {
+export function Dialog({ open, title, description, onClose, children, labelledBy }: DialogProps) {
   const generatedId = useId();
   const titleId = labelledBy ?? `ms-dialog-title-${generatedId.replace(/:/g, "")}`;
-  const descriptionId = description ? `ms-dialog-description-${generatedId.replace(/:/g, "")}` : undefined;
+  const descriptionId = description
+    ? `ms-dialog-description-${generatedId.replace(/:/g, "")}`
+    : undefined;
   const dialogRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) return;
 
-    const previouslyFocused = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
+    const previouslyFocused =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const dialog = dialogRef.current;
     const closeButton = closeButtonRef.current;
     (closeButton ?? dialog)?.focus();
@@ -163,10 +165,16 @@ export function Dialog({
 
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
-      if (event.shiftKey && (document.activeElement === first || !dialog.contains(document.activeElement))) {
+      if (
+        event.shiftKey &&
+        (document.activeElement === first || !dialog.contains(document.activeElement))
+      ) {
         event.preventDefault();
         last.focus();
-      } else if (!event.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) {
+      } else if (
+        !event.shiftKey &&
+        (document.activeElement === last || !dialog.contains(document.activeElement))
+      ) {
         event.preventDefault();
         first.focus();
       }
@@ -182,9 +190,12 @@ export function Dialog({
   if (!open) return null;
 
   return (
-    <div className="ms-dialog-backdrop" onMouseDown={(event) => {
-      if (event.target === event.currentTarget) onClose();
-    }}>
+    <div
+      className="ms-dialog-backdrop"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
       <section
         ref={dialogRef}
         className="ms-dialog"
@@ -199,7 +210,15 @@ export function Dialog({
             <h2 id={titleId}>{title}</h2>
             {description ? <p id={descriptionId}>{description}</p> : null}
           </div>
-          <Button ref={closeButtonRef} variant="ghost" size="sm" aria-label="Close dialog" onClick={onClose}>×</Button>
+          <Button
+            ref={closeButtonRef}
+            variant="ghost"
+            size="sm"
+            aria-label="Close dialog"
+            onClick={onClose}
+          >
+            ×
+          </Button>
         </header>
         <div className="ms-dialog__content">{children}</div>
       </section>
@@ -215,7 +234,11 @@ export type ToastProps = {
 
 export function Toast({ title, message, tone = "status" }: ToastProps) {
   return (
-    <div className={`ms-toast ms-toast--${tone}`} role={tone === "error" ? "alert" : "status"} aria-live={tone === "error" ? "assertive" : "polite"}>
+    <div
+      className={`ms-toast ms-toast--${tone}`}
+      role={tone === "error" ? "alert" : "status"}
+      aria-live={tone === "error" ? "assertive" : "polite"}
+    >
       <strong>{title}</strong>
       {message ? <p>{message}</p> : null}
     </div>
@@ -233,7 +256,9 @@ export function EmptyState({
 }) {
   return (
     <section className="ms-state ms-empty-state">
-      <span className="ms-state__mark" aria-hidden="true">—</span>
+      <span className="ms-state__mark" aria-hidden="true">
+        —
+      </span>
       <h2>{title}</h2>
       <p>{description}</p>
       {action ? <div className="ms-state__action">{action}</div> : null}
@@ -263,18 +288,16 @@ export function ErrorState({
     <section className="ms-state ms-error-state" role="alert">
       <h2>{title}</h2>
       <p>{description}</p>
-      {onRetry ? <Button variant="secondary" onClick={onRetry}>Try again</Button> : null}
+      {onRetry ? (
+        <Button variant="secondary" onClick={onRetry}>
+          Try again
+        </Button>
+      ) : null}
     </section>
   );
 }
 
-export function Progress({
-  value,
-  label,
-}: {
-  value: number;
-  label: string;
-}) {
+export function Progress({ value, label }: { value: number; label: string }) {
   const boundedValue = Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 0;
 
   return (

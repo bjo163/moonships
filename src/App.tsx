@@ -4,7 +4,13 @@ import { invoke } from "@tauri-apps/api/core";
 import { resolveRoute, type RouteResolution } from "./route-registry";
 import { CommandPalette } from "./CommandPalette";
 import { getPaletteCommands, getRegisteredCommand } from "./command-registry";
-import { getWorkspaceProfile, readWorkspaceProfile, writeWorkspaceProfile, WORKSPACE_PROFILES, type WorkspaceProfileId } from "./workspace-profile";
+import {
+  getWorkspaceProfile,
+  readWorkspaceProfile,
+  writeWorkspaceProfile,
+  WORKSPACE_PROFILES,
+  type WorkspaceProfileId,
+} from "./workspace-profile";
 import { describeModuleAvailability, type ModuleAvailability } from "./module-availability";
 import {
   applyThemePreference,
@@ -51,7 +57,15 @@ type AppShellProps = {
   onOpenProfile?: () => void;
 };
 
-export function AppShell({ children, theme, onToggleTheme, onOpenCommandPalette, profileLabel = "Developer", pinnedItems = [], onOpenProfile }: AppShellProps) {
+export function AppShell({
+  children,
+  theme,
+  onToggleTheme,
+  onOpenCommandPalette,
+  profileLabel = "Developer",
+  pinnedItems = [],
+  onOpenProfile,
+}: AppShellProps) {
   return (
     <main className="app-frame">
       <a className="skip-link" href="#main-content">
@@ -72,9 +86,15 @@ export function AppShell({ children, theme, onToggleTheme, onOpenCommandPalette,
             <span>Home</span>
           </a>
           {plannedNavigationItems.map((label) => (
-            <div className={`nav-item nav-item-planned${pinnedItems.includes(label) ? " nav-item-profile-pinned" : ""}`} key={label} aria-disabled="true">
+            <div
+              className={`nav-item nav-item-planned${pinnedItems.includes(label) ? " nav-item-profile-pinned" : ""}`}
+              key={label}
+              aria-disabled="true"
+            >
               <span>{label}</span>
-              <span className="nav-state">{pinnedItems.includes(label) ? "Pinned · Planned" : "Planned"}</span>
+              <span className="nav-state">
+                {pinnedItems.includes(label) ? "Pinned · Planned" : "Planned"}
+              </span>
             </div>
           ))}
         </nav>
@@ -92,7 +112,15 @@ export function AppShell({ children, theme, onToggleTheme, onOpenCommandPalette,
             <h1>Moonships Workbench</h1>
           </div>
           <div className="topbar-actions">
-            <button className="theme-toggle profile-trigger" type="button" onClick={onOpenProfile} aria-label="Change workspace profile" title="Change workspace profile">Profile: {profileLabel}</button>
+            <button
+              className="theme-toggle profile-trigger"
+              type="button"
+              onClick={onOpenProfile}
+              aria-label="Change workspace profile"
+              title="Change workspace profile"
+            >
+              Profile: {profileLabel}
+            </button>
             <button
               className="theme-toggle command-palette-trigger"
               type="button"
@@ -261,16 +289,24 @@ export function SettingsDialog({
             <span className="nav-state">Planned</span>
           </div>
           <p className="settings-note">
-            These capabilities are not connected yet. Controls stay disabled until a real
-            permission flow and user-visible behavior are implemented.
+            These capabilities are not connected yet. Controls stay disabled until a real permission
+            flow and user-visible behavior are implemented.
           </p>
           <label className="settings-checkbox settings-checkbox-disabled">
             <input type="checkbox" disabled aria-label="Desktop notifications (Planned)" />
-            <span>Desktop notifications <span className="nav-state">Planned</span></span>
+            <span>
+              Desktop notifications <span className="nav-state">Planned</span>
+            </span>
           </label>
           <label className="settings-checkbox settings-checkbox-disabled">
-            <input type="checkbox" disabled aria-label="Background monitoring permission (Planned)" />
-            <span>Background monitoring <span className="nav-state">Planned</span></span>
+            <input
+              type="checkbox"
+              disabled
+              aria-label="Background monitoring permission (Planned)"
+            />
+            <span>
+              Background monitoring <span className="nav-state">Planned</span>
+            </span>
           </label>
         </section>
       </section>
@@ -289,15 +325,30 @@ export function WorkspaceProfileDialog({
 }) {
   return (
     <div className="settings-backdrop" role="presentation">
-      <section className="settings-dialog profile-dialog" role="dialog" aria-modal="true" aria-labelledby="profile-dialog-title">
+      <section
+        className="settings-dialog profile-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="profile-dialog-title"
+      >
         <div className="settings-dialog-header">
           <div>
             <p className="eyebrow">FIRST RUN / WORKSPACE</p>
             <h2 id="profile-dialog-title">Choose your workspace profile</h2>
           </div>
-          <button className="settings-close" type="button" onClick={onClose} aria-label="Close workspace profile selector">Close</button>
+          <button
+            className="settings-close"
+            type="button"
+            onClick={onClose}
+            aria-label="Close workspace profile selector"
+          >
+            Close
+          </button>
         </div>
-        <p className="settings-note">Profiles only change suggested pinned sections and layout preferences. They never grant permissions or enable tools.</p>
+        <p className="settings-note">
+          Profiles only change suggested pinned sections and layout preferences. They never grant
+          permissions or enable tools.
+        </p>
         <div className="profile-options">
           {WORKSPACE_PROFILES.map((profile) => (
             <button
@@ -316,7 +367,9 @@ export function WorkspaceProfileDialog({
             </button>
           ))}
         </div>
-        <p className="settings-note">Saved locally in this WebView profile. No cloud sync is used.</p>
+        <p className="settings-note">
+          Saved locally in this WebView profile. No cloud sync is used.
+        </p>
       </section>
     </div>
   );
@@ -333,18 +386,34 @@ export function CommandPreviewDialog({
 }) {
   return (
     <div className="settings-backdrop" role="presentation">
-      <section className="settings-dialog" role="dialog" aria-modal="true" aria-labelledby="command-preview-title">
+      <section
+        className="settings-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="command-preview-title"
+      >
         <div className="settings-dialog-header">
           <div>
             <p className="eyebrow">REGISTERED COMMAND / PREVIEW</p>
             <h2 id="command-preview-title">{title}</h2>
           </div>
-          <button className="settings-close" type="button" onClick={onClose} aria-label="Close command preview">Close</button>
+          <button
+            className="settings-close"
+            type="button"
+            onClick={onClose}
+            aria-label="Close command preview"
+          >
+            Close
+          </button>
         </div>
         <p className="settings-note">{description}</p>
-        <p className="settings-note" role="status">No changes have been made.</p>
+        <p className="settings-note" role="status">
+          No changes have been made.
+        </p>
         <div className="settings-dialog-actions">
-          <button className="theme-toggle" type="button" onClick={onClose}>Back to workspace</button>
+          <button className="theme-toggle" type="button" onClick={onClose}>
+            Back to workspace
+          </button>
         </div>
       </section>
     </div>
@@ -388,9 +457,16 @@ export default function App() {
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-  const [profileId, setProfileId] = useState<WorkspaceProfileId>(() => readWorkspaceProfile(getBrowserStorage()) ?? "developer");
-  const [profileDialogOpen, setProfileDialogOpen] = useState(() => typeof window !== "undefined" && readWorkspaceProfile(getBrowserStorage()) === null);
-  const [commandPreview, setCommandPreview] = useState<{ title: string; description: string } | null>(null);
+  const [profileId, setProfileId] = useState<WorkspaceProfileId>(
+    () => readWorkspaceProfile(getBrowserStorage()) ?? "developer",
+  );
+  const [profileDialogOpen, setProfileDialogOpen] = useState(
+    () => typeof window !== "undefined" && readWorkspaceProfile(getBrowserStorage()) === null,
+  );
+  const [commandPreview, setCommandPreview] = useState<{
+    title: string;
+    description: string;
+  } | null>(null);
   const paletteTriggerRef = useRef<HTMLElement | null>(null);
   const [hideToTray, setHideToTray] = useState(false);
   const [hideToTrayStatus, setHideToTrayStatus] = useState("Loading preference…");
@@ -406,14 +482,24 @@ export default function App() {
   useEffect(() => {
     const isEditableTarget = (target: EventTarget | null) => {
       if (!(target instanceof HTMLElement)) return false;
-      return target.isContentEditable || Boolean(target.closest("input, textarea, select, [contenteditable=true], [role=textbox]"));
+      return (
+        target.isContentEditable ||
+        Boolean(target.closest("input, textarea, select, [contenteditable=true], [role=textbox]"))
+      );
     };
     const onGlobalKeyDown = (event: KeyboardEvent) => {
       if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "k") return;
       if (event.defaultPrevented || isEditableTarget(event.target) || commandPaletteOpen) return;
-      if (document.querySelector("[role=dialog]") || settingsOpen || profileDialogOpen || commandPreview) return;
+      if (
+        document.querySelector("[role=dialog]") ||
+        settingsOpen ||
+        profileDialogOpen ||
+        commandPreview
+      )
+        return;
       event.preventDefault();
-      paletteTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      paletteTriggerRef.current =
+        document.activeElement instanceof HTMLElement ? document.activeElement : null;
       setCommandPaletteOpen(true);
     };
     window.addEventListener("keydown", onGlobalKeyDown);
@@ -424,10 +510,11 @@ export default function App() {
     const saved = writeWorkspaceProfile(nextProfile, getBrowserStorage());
     setProfileId(nextProfile);
     setProfileDialogOpen(false);
-    if (!saved) setCommandPreview({
-      title: "Profile not persisted",
-      description: "Local storage is unavailable. This selection applies for this session only.",
-    });
+    if (!saved)
+      setCommandPreview({
+        title: "Profile not persisted",
+        description: "Local storage is unavailable. This selection applies for this session only.",
+      });
   };
 
   const selectPaletteCommand = (id: string) => {
@@ -450,7 +537,10 @@ export default function App() {
     }
     setCommandPreview({
       title: "Preview: " + command.title,
-      description: "This registered action would create a " + command.entity + ". Local persistence is not implemented yet, so no data has been created. This preview does not grant permissions or execute a tool.",
+      description:
+        "This registered action would create a " +
+        command.entity +
+        ". Local persistence is not implemented yet, so no data has been created. This preview does not grant permissions or execute a tool.",
     });
   };
 
@@ -522,7 +612,18 @@ export default function App() {
   }, []);
 
   return (
-    <AppShell theme={theme} onToggleTheme={toggleTheme} onOpenCommandPalette={() => { paletteTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setCommandPaletteOpen(true); }} profileLabel={getWorkspaceProfile(profileId).label} pinnedItems={getWorkspaceProfile(profileId).pinned} onOpenProfile={() => setProfileDialogOpen(true)}>
+    <AppShell
+      theme={theme}
+      onToggleTheme={toggleTheme}
+      onOpenCommandPalette={() => {
+        paletteTriggerRef.current =
+          document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        setCommandPaletteOpen(true);
+      }}
+      profileLabel={getWorkspaceProfile(profileId).label}
+      pinnedItems={getWorkspaceProfile(profileId).pinned}
+      onOpenProfile={() => setProfileDialogOpen(true)}
+    >
       {route.kind === "page" && route.id === "overview" ? (
         <OverviewPage />
       ) : (
@@ -535,10 +636,18 @@ export default function App() {
         onSelect={(command) => selectPaletteCommand(command.id)}
       />
       {profileDialogOpen ? (
-        <WorkspaceProfileDialog currentProfile={profileId} onSelect={selectWorkspaceProfile} onClose={() => selectWorkspaceProfile(profileId)} />
+        <WorkspaceProfileDialog
+          currentProfile={profileId}
+          onSelect={selectWorkspaceProfile}
+          onClose={() => selectWorkspaceProfile(profileId)}
+        />
       ) : null}
       {commandPreview ? (
-        <CommandPreviewDialog title={commandPreview.title} description={commandPreview.description} onClose={() => setCommandPreview(null)} />
+        <CommandPreviewDialog
+          title={commandPreview.title}
+          description={commandPreview.description}
+          onClose={() => setCommandPreview(null)}
+        />
       ) : null}
       {settingsOpen ? (
         <SettingsDialog

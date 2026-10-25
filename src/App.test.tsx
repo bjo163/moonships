@@ -4,7 +4,12 @@ import App, { AppShell, NotFoundPage, SettingsDialog } from "./App";
 import { resolveRoute } from "./route-registry";
 import { CommandPalette, filterPaletteCommands, type PaletteCommand } from "./CommandPalette";
 import { COMMAND_REGISTRY, getRegisteredCommand, getPaletteCommands } from "./command-registry";
-import { getWorkspaceProfile, readWorkspaceProfile, writeWorkspaceProfile, WORKSPACE_PROFILES } from "./workspace-profile";
+import {
+  getWorkspaceProfile,
+  readWorkspaceProfile,
+  writeWorkspaceProfile,
+  WORKSPACE_PROFILES,
+} from "./workspace-profile";
 
 describe("Moonships application shell", () => {
   it("renders the foundation status without claiming planned tools are live", () => {
@@ -147,9 +152,9 @@ describe("system tray integration contract", () => {
 
     expect(cargoManifest).toContain('features = ["tray-icon"]');
     expect(cargoManifest).toContain('tauri-plugin-single-instance = "2"');
-    expect(rustSource).toContain('tauri_plugin_single_instance::init');
+    expect(rustSource).toContain("tauri_plugin_single_instance::init");
     expect(rustSource).toContain('app.get_webview_window("main")');
-    expect(rustSource).toContain('window.set_focus()');
+    expect(rustSource).toContain("window.set_focus()");
     expect(rustSource).toContain('"open"');
     expect(rustSource).toContain('"settings"');
     expect(rustSource).toContain('"hide"');
@@ -160,8 +165,10 @@ describe("system tray integration contract", () => {
     expect(rustSource).toContain("window.hide()");
     expect(rustSource).toContain("shutdown hook must run before this explicit exit");
     expect(rustSource).toContain("struct HideToTrayPreferenceDto");
-    expect(rustSource).toContain("#[serde(rename_all = \"camelCase\", deny_unknown_fields)]");
-    expect(rustSource).toContain("get_hide_to_tray(app: AppHandle) -> Result<HideToTrayPreferenceDto, String>");
+    expect(rustSource).toContain('#[serde(rename_all = "camelCase", deny_unknown_fields)]');
+    expect(rustSource).toContain(
+      "get_hide_to_tray(app: AppHandle) -> Result<HideToTrayPreferenceDto, String>",
+    );
     expect(rustSource).toContain("request: HideToTrayPreferenceDto");
     expect(rustSource).toContain("Result<HideToTrayPreferenceDto, String>");
     expect(rustSource).toContain("CloseRequested");
@@ -181,8 +188,12 @@ describe("SQLite schema migration contract", () => {
     expect(rustSource).toContain("INSERT INTO schema_migrations (version) VALUES (1)");
     expect(rustSource).toContain(".commit()");
     expect(rustSource).toContain("run_migrations(&mut database)");
-    expect(rustSource).toContain("fresh_database_migration_persists_schema_version_and_is_idempotent");
-    expect(architecture).toContain("Each migration and its version record must commit in one SQLite transaction");
+    expect(rustSource).toContain(
+      "fresh_database_migration_persists_schema_version_and_is_idempotent",
+    );
+    expect(architecture).toContain(
+      "Each migration and its version record must commit in one SQLite transaction",
+    );
   });
 });
 
@@ -212,7 +223,7 @@ describe("typed Tauri command DTO contract", () => {
     expect(rustSource).toContain("serde::Deserialize, serde::Serialize");
     expect(rustSource).toContain("deny_unknown_fields");
     expect(appSource).toContain('invoke<{ enabled: boolean }>("get_hide_to_tray")');
-    expect(appSource).toContain('request: { enabled: nextValue }');
+    expect(appSource).toContain("request: { enabled: nextValue }");
   });
 });
 
@@ -239,7 +250,6 @@ describe("semantic design token contract", () => {
   });
 });
 
-
 describe("SQLite connection safety contract", () => {
   it("enables foreign keys and configures a bounded busy timeout on every connection", async () => {
     const { readFileSync } = await import("node:fs");
@@ -251,7 +261,9 @@ describe("SQLite connection safety contract", () => {
     expect(rustSource).toContain('execute_batch("PRAGMA foreign_keys = ON;")');
     expect(rustSource).toContain('query_row("PRAGMA foreign_keys"');
     expect(rustSource).toContain("foreign_key_violation_is_rejected_on_opened_connection");
-    expect(rustSource).toContain("every_opened_connection_enables_foreign_keys_and_sets_busy_timeout");
+    expect(rustSource).toContain(
+      "every_opened_connection_enables_foreign_keys_and_sets_busy_timeout",
+    );
     expect(architecture).toContain("Every connection enables SQLite foreign-key enforcement");
     expect(architecture).toContain("5,000 ms busy timeout");
   });
@@ -260,7 +272,10 @@ describe("SQLite connection safety contract", () => {
 describe("M1 desktop foundation contracts", () => {
   it("provides structured local logs with recursive secret-field redaction", async () => {
     const { readFileSync } = await import("node:fs");
-    const logger = readFileSync(new URL("../src-tauri/src/local_logging.rs", import.meta.url), "utf8");
+    const logger = readFileSync(
+      new URL("../src-tauri/src/local_logging.rs", import.meta.url),
+      "utf8",
+    );
     const rustSource = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
 
     expect(logger).toContain("pub enum LogLevel");
@@ -307,12 +322,20 @@ describe("M1 desktop foundation contracts", () => {
     const appSource = readFileSync(new URL("./App.tsx", import.meta.url), "utf8");
     const { describeModuleAvailability } = await import("./module-availability");
 
-    for (const state of ["available", "disabled", "unsupported", "not_configured", "degraded"] as const) {
+    for (const state of [
+      "available",
+      "disabled",
+      "unsupported",
+      "not_configured",
+      "degraded",
+    ] as const) {
       expect(availability).toContain(state);
       expect(describeModuleAvailability(state).label.length).toBeGreaterThan(0);
     }
     expect(describeModuleAvailability("not_configured").isOperational).toBe(false);
-    expect(describeModuleAvailability("not_configured").description).toContain("no operation has been attempted");
+    expect(describeModuleAvailability("not_configured").description).toContain(
+      "no operation has been attempted",
+    );
     expect(describeModuleAvailability("available").isOperational).toBe(true);
     expect(appSource).toContain('availability: "not_configured"');
     expect(appSource).toContain("describeModuleAvailability(item.availability)");
@@ -329,7 +352,6 @@ describe("M1 desktop foundation contracts", () => {
     expect(domain).toContain("deny_unknown_fields");
   });
 });
-
 
 describe("M1-031 Command Palette surface", () => {
   const commands: PaletteCommand[] = [
@@ -374,12 +396,7 @@ describe("M1-031 Command Palette surface", () => {
 
   it("renders accessible results with category and risk labels without executing a tool", () => {
     const markup = renderToStaticMarkup(
-      <CommandPalette
-        open
-        commands={commands}
-        onClose={() => {}}
-        onSelect={() => {}}
-      />,
+      <CommandPalette open commands={commands} onClose={() => {}} onSelect={() => {}} />,
     );
     expect(markup).toContain('role="dialog"');
     expect(markup).toContain('aria-modal="true"');
@@ -410,15 +427,16 @@ describe("M1-031 Command Palette surface", () => {
   });
 });
 
-
 describe("M1-032 registered command safety", () => {
   it("exposes only allowlisted command IDs and rejects unknown IDs", () => {
     const commands = getPaletteCommands();
-    expect(commands.map((command) => command.id)).toEqual(COMMAND_REGISTRY.map((command) => command.id));
+    expect(commands.map((command) => command.id)).toEqual(
+      COMMAND_REGISTRY.map((command) => command.id),
+    );
     expect(getRegisteredCommand("navigation.overview")?.kind).toBe("navigate");
     expect(getRegisteredCommand("settings.open")?.kind).toBe("settings");
     expect(getRegisteredCommand("project.create")?.kind).toBe("preview");
-    expect(getRegisteredCommand("system.shell") ).toBeUndefined();
+    expect(getRegisteredCommand("system.shell")).toBeUndefined();
     expect(commands.some((command) => command.id === "system.shell")).toBe(false);
   });
 
@@ -462,33 +480,46 @@ describe("M1-034 workspace profiles", () => {
     const values = new Map<string, string>();
     const storage = {
       getItem: (key: string) => values.get(key) ?? null,
-      setItem: (key: string, value: string) => { values.set(key, value); },
+      setItem: (key: string, value: string) => {
+        values.set(key, value);
+      },
     };
     expect(readWorkspaceProfile(storage)).toBeNull();
     expect(writeWorkspaceProfile("security_research", storage)).toBe(true);
     expect(readWorkspaceProfile(storage)).toBe("security_research");
-    expect(writeWorkspaceProfile("network_noc", {
-      setItem: () => { throw new Error("storage unavailable"); },
-    })).toBe(false);
-    expect(readWorkspaceProfile({
-      getItem: () => { throw new Error("storage unavailable"); },
-    })).toBeNull();
+    expect(
+      writeWorkspaceProfile("network_noc", {
+        setItem: () => {
+          throw new Error("storage unavailable");
+        },
+      }),
+    ).toBe(false);
+    expect(
+      readWorkspaceProfile({
+        getItem: () => {
+          throw new Error("storage unavailable");
+        },
+      }),
+    ).toBeNull();
   });
 
   it("exposes the profile selector and states that profiles do not grant permissions", () => {
     const markup = renderToStaticMarkup(<App />);
     expect(markup).toContain('aria-label="Change workspace profile"');
-    expect(markup).toContain("Profiles only change suggested pinned sections and layout preferences.");
+    expect(markup).toContain(
+      "Profiles only change suggested pinned sections and layout preferences.",
+    );
     expect(markup).toContain("They never grant permissions or enable tools.");
   });
 });
-
 
 describe("M1-038 desktop viewport and overflow contract", () => {
   it("documents the native minimum window and responsive overflow protections", async () => {
     const { readFileSync } = await import("node:fs");
     const css = readFileSync(new URL("./index.css", import.meta.url), "utf8");
-    const tauri = JSON.parse(readFileSync(new URL("../src-tauri/tauri.conf.json", import.meta.url), "utf8")) as {
+    const tauri = JSON.parse(
+      readFileSync(new URL("../src-tauri/tauri.conf.json", import.meta.url), "utf8"),
+    ) as {
       app: { windows: Array<{ minWidth: number; minHeight: number }> };
     };
 

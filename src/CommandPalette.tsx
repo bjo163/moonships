@@ -31,8 +31,9 @@ export function filterPaletteCommands(commands: PaletteCommand[], query: string)
   const normalized = query.trim().toLowerCase();
   if (!normalized) return commands;
   return commands.filter((command) =>
-    [command.title, command.description, command.category, ...(command.keywords ?? [])]
-      .some((value) => value.toLowerCase().includes(normalized)),
+    [command.title, command.description, command.category, ...(command.keywords ?? [])].some(
+      (value) => value.toLowerCase().includes(normalized),
+    ),
   );
 }
 
@@ -79,7 +80,12 @@ export function CommandPalette({
             <p className="eyebrow">QUICK ACCESS / LOCAL COMMANDS</p>
             <h2 id="command-palette-title">Command Palette</h2>
           </div>
-          <button className="settings-close" type="button" onClick={onClose} aria-label="Close Command Palette">
+          <button
+            className="settings-close"
+            type="button"
+            onClick={onClose}
+            aria-label="Close Command Palette"
+          >
             Close
           </button>
         </div>
@@ -99,14 +105,25 @@ export function CommandPalette({
           }}
           onKeyDown={handleKeyDown}
           aria-controls="command-palette-results"
-          aria-activedescendant={results[activeIndex] ? `palette-command-${results[activeIndex].id}` : undefined}
+          aria-activedescendant={
+            results[activeIndex] ? `palette-command-${results[activeIndex].id}` : undefined
+          }
         />
         <p id="command-palette-help" className="command-palette-help">
-          Use ↑ and ↓ to navigate, Enter to select, and Esc to close. Selecting a result does not execute a tool.
+          Use ↑ and ↓ to navigate, Enter to select, and Esc to close. Selecting a result does not
+          execute a tool.
         </p>
-        <div id="command-palette-results" className="command-palette-results" role="listbox" aria-label="Command results" aria-busy={loading}>
+        <div
+          id="command-palette-results"
+          className="command-palette-results"
+          role="listbox"
+          aria-label="Command results"
+          aria-busy={loading}
+        >
           {loading ? (
-            <p className="command-palette-state" role="status">Loading commands…</p>
+            <p className="command-palette-state" role="status">
+              Loading commands…
+            </p>
           ) : results.length === 0 ? (
             <p className="command-palette-state" role="status">
               {query.trim() ? "No commands match this search." : "No commands are registered yet."}
@@ -129,7 +146,9 @@ export function CommandPalette({
                 </span>
                 <span className="command-palette-result-meta">
                   <span className="command-palette-category">{command.category}</span>
-                  <span className={`command-palette-risk command-palette-risk-${command.risk}`}>{riskLabels[command.risk]}</span>
+                  <span className={`command-palette-risk command-palette-risk-${command.risk}`}>
+                    {riskLabels[command.risk]}
+                  </span>
                 </span>
               </button>
             ))

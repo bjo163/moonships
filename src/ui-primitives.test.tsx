@@ -15,7 +15,9 @@ import {
 describe("shared UI primitives", () => {
   it("renders a loading button as busy and disabled", () => {
     const markup = renderToStaticMarkup(
-      <Button loading loadingLabel="Saving changes">Save</Button>,
+      <Button loading loadingLabel="Saving changes">
+        Save
+      </Button>,
     );
 
     expect(markup).toContain('aria-busy="true"');
@@ -38,7 +40,9 @@ describe("shared UI primitives", () => {
 
   it("does not render a closed dialog and labels an open dialog", () => {
     const closed = renderToStaticMarkup(
-      <Dialog open={false} title="Preferences" onClose={() => {}}>Body</Dialog>,
+      <Dialog open={false} title="Preferences" onClose={() => {}}>
+        Body
+      </Dialog>,
     );
     const open = renderToStaticMarkup(
       <Dialog open title="Preferences" description="Change local settings" onClose={() => {}}>
@@ -56,9 +60,17 @@ describe("shared UI primitives", () => {
   it("provides explicit status semantics for toast, loading and errors", () => {
     expect(renderToStaticMarkup(<Toast title="Saved" />)).toContain('role="status"');
     expect(renderToStaticMarkup(<Toast title="Failed" tone="error" />)).toContain('role="alert"');
-    expect(renderToStaticMarkup(<LoadingState label="Loading projects" />)).toContain('aria-live="polite"');
-    expect(renderToStaticMarkup(<ErrorState description="Connection unavailable" />)).toContain("Connection unavailable");
-    expect(renderToStaticMarkup(<EmptyState title="No projects" description="Create a project to begin." />)).toContain("No projects");
+    expect(renderToStaticMarkup(<LoadingState label="Loading projects" />)).toContain(
+      'aria-live="polite"',
+    );
+    expect(renderToStaticMarkup(<ErrorState description="Connection unavailable" />)).toContain(
+      "Connection unavailable",
+    );
+    expect(
+      renderToStaticMarkup(
+        <EmptyState title="No projects" description="Create a project to begin." />,
+      ),
+    ).toContain("No projects");
   });
 
   it("uses semantic variants and bounds invalid progress values", () => {
