@@ -1,6 +1,23 @@
-use std::{fs, path::PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
+use rusqlite::Connection;
 use tauri::{AppHandle, Manager};
+
+const DATABASE_FILE_NAME: &str = "moonships.sqlite3";
+
+fn database_path(app_data_dir: &Path) -> PathBuf {
+    app_data_dir.join(DATABASE_FILE_NAME)
+}
+
+fn open_database_in(app_data_dir: &Path) -> Result<Connection, String> {
+    fs::create_dir_all(app_data_dir)
+        .map_err(|error| format!("Could not create app data directory: {error}"))?;
+    let path = database_path(app_data_dir);
+    Connection::open(path).map_err(|error| format!("Could not open Moonships database: {error}"))
+}
 
 fn hide_to_tray_path(app: &AppHandle) -> Result<PathBuf, String> {
     app.path()
@@ -65,6 +82,11 @@ pub fn run() {
         }))
         .invoke_handler(tauri::generate_handler![get_hide_to_tray, set_hide_to_tray])
         .setup(|app| {
+            let app_data_dir = app.path().app_data_dir()?;
+            // Open/create the database only under Tauri's per-user application data directory.
+            let _database = open_database_in(&app_data_dir)
+                .map_err(std::io::Error::other)?;
+
             let open = MenuItem::with_id(app, "open", "Open Moonships", true, None::<&str>)?;
             let settings = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
             let hide = MenuItem::with_id(app, "hide", "Hide Window", true, None::<&str>)?;
