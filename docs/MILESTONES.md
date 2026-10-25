@@ -59,6 +59,7 @@ Exit criteria:
 - [ ] First-run profile selection persists and does not grant new permissions.
 - [ ] Backlog validator passes; sync dry-run path is available; repeat sync creates no duplicates.
 - [ ] Workflow dependencies are pinned to verified full SHAs and update review is automated.
+- [ ] Sync reconciliation edge cases have regression coverage (M1-037).
 - [ ] No background monitoring starts without explicit configuration.
 - [ ] Database initializes/migrates without destructive reset.
 - [ ] All commands validate arguments and expose stable error codes.
