@@ -86,6 +86,10 @@ The desktop shell enforces a single-instance policy. When a second launch occurs
 
 The desktop app must store its SQLite database beneath Tauri's platform-specific per-user application data directory, never relative to the process current working directory. The initial database filename is `moonships.sqlite3`. The native storage adapter creates the application data directory if needed and opens SQLite through the Rust `rusqlite` adapter. Database schema migrations, foreign-key enforcement, and busy-timeout policy are separate follow-up tasks and must not be implied by opening the initial connection.
 
+## Transactional schema migrations
+
+The native SQLite initializer runs a versioned migration runner before the app finishes startup. The `schema_migrations` table records each applied schema version and UTC application timestamp. Each migration and its version record must commit in one SQLite transaction; an error rolls the transaction back. The runner must reject a database schema newer than the application supports and must never silently reset user data. Version 1 creates the initial `app_metadata` key/value table. Add future schema changes as explicit numbered migrations.
+
 ## Tauri command DTO conventions
 
 Every frontend-to-native command must use an explicit, named request/response contract once it crosses the Tauri IPC boundary. Do not expose internal domain structs directly as a long-lived IPC schema.
