@@ -28,7 +28,7 @@
   --radius-md: 0.7rem;
   --radius-lg: 1rem;
   --radius-card: var(--radius-lg);
-  --radius-brand-mark: 13px 13px 13px 4px;\n  --sidebar-width: 248px;\n  --sidebar-width-compact: 210px;\n  --layout-max-width: var(--layout-max-width);
+  --radius-brand-mark: 13px 13px 13px 4px;\n  --sidebar-width: 248px;\n  --sidebar-width-compact: 210px;\n  --layout-max-width: 1680px;
   --radius-pill: 999px;
   --border-width-default: 1px;
   --focus-width: 2px;
