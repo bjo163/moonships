@@ -1,5 +1,5 @@
-mod domain;
-mod local_logging;
+pub mod domain;
+pub mod local_logging;
 
 use std::{
     fs,
