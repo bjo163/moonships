@@ -50,17 +50,17 @@ jobs:
             const milestoneDoc = fs.readFileSync("docs/MILESTONES.md", "utf8");
             const startMarker = "<!-- moonships-task-sync:start -->";
             const endMarker = "<!-- moonships-task-sync:end -->";
-            const taskMarker = /<!--\\s*moonships-task-id:\\s*(M\\d+-\\d{3})\\s*-->/;
+            const taskMarker = /<!--\s*moonships-task-id:\s*(M\d+-\d{3})\s*-->/;
 
             const parsedTasks = [];
-            const taskRegex = /^- \\[([ xX])\\] \\*\\*([A-Z]\\d+-\\d{3}) — ([^*]+)\\*\\*(.*)$/gm;
+            const taskRegex = /^- \[([ xX])\] \*\*([A-Z]\d+-\d{3}) — ([^*]+)\*\*(.*)$/gm;
             let match;
             while ((match = taskRegex.exec(backlog)) !== null) {
-              const line = backlog.slice(0, match.index).split("\\n").length;
+              const line = backlog.slice(0, match.index).split("\n").length;
               const id = match[2];
               parsedTasks.push({
                 id: id,
-                phase: id.match(/^M\\d+/)[0],
+                phase: id.match(/^M\d+/)[0],
                 title: match[3].trim(),
                 checked: match[1].toLowerCase() === "x",
                 tail: match[4].trim(),
@@ -78,7 +78,7 @@ jobs:
             }
 
             const phaseTitles = new Map();
-            for (const row of milestoneDoc.matchAll(/^## (M\\d+) — (.+)$/gm)) {
+            for (const row of milestoneDoc.matchAll(/^## (M\d+) — (.+)$/gm)) {
               phaseTitles.set(row[1], row[1] + " — " + row[2].trim());
             }
             for (const task of parsedTasks) {
@@ -176,7 +176,7 @@ jobs:
               const status = task.checked ? "checked (complete)" : "unchecked (open)";
               const sourceUrl = "https://github.com/" + owner + "/" + repo + "/blob/" + context.sha +
                 "/docs/TASK_BACKLOG.md#L" + task.line;
-              const scope = task.tail.replace(/^\\s*\\[(?:S|M)\\]\\s*—\\s*/, "").trim();
+              const scope = task.tail.replace(/^\s*\[(?:S|M)\]\s*—\s*/, "").trim();
               return [
                 startMarker,
                 "<!-- moonships-task-id: " + task.id + " -->",
@@ -198,7 +198,7 @@ jobs:
                 "### Dependencies",
                 "See the declared dependency IDs on the source checklist and complete them first.",
                 endMarker,
-              ].join("\\n");
+              ].join("\n");
             }
 
             function mergeManagedBlock(existingBody, block) {
@@ -208,7 +208,7 @@ jobs:
               if (start >= 0 && end >= start) {
                 return body.slice(0, start) + block + body.slice(end + endMarker.length);
               }
-              return body.trim() ? body.trim() + "\\n\\n" + block : block;
+              return body.trim() ? body.trim() + "\n\n" + block : block;
             }
 
             let createdCount = 0;
