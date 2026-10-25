@@ -257,6 +257,26 @@ mod tests {
     }
 
     #[test]
+    fn migration_rejects_a_schema_version_newer_than_supported() {
+        let app_data_dir = unique_temp_dir("future-schema");
+        let mut connection = open_database_in(&app_data_dir).expect("database should open");
+        connection
+            .execute_batch(
+                "CREATE TABLE schema_migrations (
+                    version INTEGER PRIMARY KEY,
+                    applied_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+                );
+                INSERT INTO schema_migrations (version) VALUES (999);",
+            )
+            .expect("future schema fixture should be created");
+
+        let error = run_migrations(&mut connection).expect_err("future schema must be rejected");
+        assert!(error.contains("newer than this app supports"));
+        drop(connection);
+        let _ = fs::remove_dir_all(app_data_dir);
+    }
+
+    #[test]
     fn hide_to_tray_preference_is_fail_closed_when_missing_or_invalid() {
         let missing = std::env::temp_dir().join(format!(
             "moonships-hide-to-tray-missing-{}",
