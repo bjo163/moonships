@@ -1,4 +1,4 @@
-import { useMemo, useState, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 
 export type PaletteRisk = "read-only" | "state-change" | "destructive" | "privileged" | "remote";
 
@@ -44,9 +44,14 @@ export function CommandPalette({
   onClose,
   onSelect,
 }: CommandPaletteProps) {
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const results = useMemo(() => filterPaletteCommands(commands, query), [commands, query]);
+
+  useEffect(() => {
+    if (open) searchInputRef.current?.focus();
+  }, [open]);
 
   if (!open) return null;
 
@@ -93,7 +98,7 @@ export function CommandPalette({
           Search commands
         </label>
         <input
-          autoFocus
+          ref={searchInputRef}
           id="command-palette-search"
           className="command-palette-search"
           type="search"
