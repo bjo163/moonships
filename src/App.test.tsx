@@ -143,6 +143,10 @@ describe("system tray integration contract", () => {
     const cargoManifest = readFileSync(new URL("../src-tauri/Cargo.toml", import.meta.url), "utf8");
 
     expect(cargoManifest).toContain('features = ["tray-icon"]');
+    expect(cargoManifest).toContain('tauri-plugin-single-instance = "2"');
+    expect(rustSource).toContain('tauri_plugin_single_instance::init');
+    expect(rustSource).toContain('app.get_webview_window("main")');
+    expect(rustSource).toContain('window.set_focus()');
     expect(rustSource).toContain('"open"');
     expect(rustSource).toContain('"settings"');
     expect(rustSource).toContain('"hide"');
