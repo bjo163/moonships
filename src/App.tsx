@@ -167,13 +167,7 @@ export function SettingsDialog({
   }, [onClose]);
 
   return (
-    <div
-      className="settings-backdrop"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
+    <div className="settings-backdrop" role="presentation">
       <section
         className="settings-dialog"
         role="dialog"
