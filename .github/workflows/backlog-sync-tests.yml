@@ -17,6 +17,8 @@ on:
       - "src/**"
       - "src-tauri/**"
       - "docs/DEVELOPMENT.md"
+      - "docs/RELEASE.md"
+      - ".github/workflows/desktop-release.yml"
   push:
     branches: [main]
     paths:
