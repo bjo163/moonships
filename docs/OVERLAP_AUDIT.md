@@ -50,7 +50,7 @@ The startup-at-login setting was ambiguous ("implement or defer"). It is now exp
 | API/DataLab, Observe, authorized security, evidence/research | M6-001–M6-014 | Covered at initial integration/workflow level; individual providers are later tasks |
 | Workflow/AI/MCP control plane | M7-001–M7-015 | Covered for a bounded first implementation |
 | License, SBOM, updater, upgrade, recovery and UX release gates | M8-001–M8-017 | Covered as release gates |
-| Full CostLens, full Vault UI, full media/video ingestion, dedicated reverse-engineering suite, team sync, plugin marketplace, remote agents | Not included in first release | Deferred; each needs a small design spike + scoped task batch before implementation |
+| Full CostLens, full Vault UI, expanded media/video ingestion, dedicated reverse-engineering suite, team sync, plugin marketplace, remote agents | M9–M13 post-V1.0 milestones | Explicitly deferred into M9–M13 task batches; each still needs its own source/security review and acceptance tests before implementation |
 
 ## 4. Non-overlap invariants
 
@@ -64,4 +64,4 @@ The startup-at-login setting was ambiguous ("implement or defer"). It is now exp
 
 ## 5. Remaining scope caveat
 
-A catalog entry is not a complete implementation plan. Deferred specialist products (e.g. CostLens, full Vault UI, video/transcript connectors, full reverse engineering suite, team collaboration, marketplace and remote agents) must not be described as supported until source/provider terms, threat model, UX, small atomic tasks and tests are approved.
+A catalog entry is not a shipped feature. Deferred specialist products now have task batches under M9–M13, but must not be described as supported until their source/provider terms, threat model, UX, isolation/permission design and acceptance tests pass.
