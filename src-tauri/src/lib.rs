@@ -132,10 +132,7 @@ fn get_app_config(app: AppHandle) -> Result<domain::AppConfig, String> {
 }
 
 #[tauri::command]
-fn set_app_config(
-    app: AppHandle,
-    request: domain::AppConfig,
-) -> Result<domain::AppConfig, String> {
+fn set_app_config(app: AppHandle, request: domain::AppConfig) -> Result<domain::AppConfig, String> {
     write_app_config(&app, &request)?;
     Ok(request)
 }
