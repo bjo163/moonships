@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { resolveRoute, type RouteResolution } from "./route-registry";
+import { applyThemePreference, readThemePreference, writeThemePreference, type ThemePreference } from "./theme-preference";
 
 const plannedNavigationItems = [
   "My Work",
@@ -60,9 +61,20 @@ export function AppShell({ children }: AppShellProps) {
             <span className="eyebrow">MOONSHIPS / WORKSPACE</span>
             <h1>Moonships Workbench</h1>
           </div>
-          <span className="phase-pill">
-            <span className="status-dot" /> LOCAL-FIRST
-          </span>
+          <div className="topbar-actions">
+            <button
+              className="theme-toggle"
+              type="button"
+              onClick={toggleTheme}
+              aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+              title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+            >
+              {theme === "dark" ? "Light theme" : "Dark theme"}
+            </button>
+            <span className="phase-pill">
+              <span className="status-dot" /> LOCAL-FIRST
+            </span>
+          </div>
         </header>
         <div className="page-content">{children}</div>
       </section>
@@ -148,6 +160,16 @@ function getInitialRoute(): RouteResolution {
 
 export default function App() {
   const [route, setRoute] = useState<RouteResolution>(getInitialRoute);
+
+  useEffect(() => {
+    applyThemePreference(theme, document.documentElement);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    const nextTheme: ThemePreference = theme === "dark" ? "light" : "dark";
+    writeThemePreference(nextTheme, getBrowserStorage());
+    setTheme(nextTheme);
+  };
 
   useEffect(() => {
     const updateRoute = () => setRoute(resolveRoute(window.location.hash));
