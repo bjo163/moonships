@@ -1,6 +1,18 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { resolveRoute, type RouteResolution } from "./route-registry";
 
+const plannedNavigationItems = [
+  "My Work",
+  "Projects",
+  "Tasks",
+  "Toolbox",
+  "Security",
+  "Intelligence",
+  "Operations",
+  "Knowledge",
+  "Settings",
+] as const;
+
 const foundationChecks = [
   { label: "Desktop runtime", detail: "Tauri 2 · Rust", status: "Foundation" },
   { label: "Interface", detail: "React · TypeScript · Vite", status: "Foundation" },
@@ -24,9 +36,17 @@ export function AppShell({ children }: AppShellProps) {
           </span>
         </a>
         <div className="rail-label">WORKSPACE</div>
-        <a className="nav-item nav-item-active" href="#/overview" aria-current="page">
-          <span aria-hidden="true">◈</span> Overview
-        </a>
+        <nav className="navigation-list" aria-label="Workspace navigation">
+          <a className="nav-item nav-item-active" href="#/overview" aria-current="page">
+            <span>Home</span>
+          </a>
+          {plannedNavigationItems.map((label) => (
+            <div className="nav-item nav-item-planned" key={label} aria-disabled="true">
+              <span>{label}</span>
+              <span className="nav-state">Planned</span>
+            </div>
+          ))}
+        </nav>
         <div className="rail-note">
           <span className="status-dot" aria-hidden="true" />
           <span>Local-first foundation</span>
@@ -115,7 +135,7 @@ export function NotFoundPage({ requested }: { requested: string }) {
           changed.
         </p>
         <a className="nav-item nav-item-active" href="#/overview">
-          Return to Overview
+          Return to Home
         </a>
       </div>
     </section>
