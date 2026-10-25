@@ -44,7 +44,7 @@ Deliverables:
 - Tauri 2 + React + TypeScript + Vite app skeleton
 - Main window, navigation shell, Command Palette and proper tray lifecycle
 - First-run onboarding/profile selector that changes layout only
-- Idempotent backlog-to-GitHub-Issues workflow and dependency/link validator
+- Idempotent backlog-to-GitHub-Issues workflow, dependency/link validator, pinned action references and automated dependency update review
 - Single-instance behavior or documented intentional alternative
 - General settings and per-user local data location
 - SQLite connection, migration runner, structured app error/logging
@@ -57,7 +57,8 @@ Exit criteria:
 - [ ] Main window opens, hides/shows from tray and exits cleanly.
 - [ ] Ctrl+K opens the Command Palette; navigation and safe create actions work without AI.
 - [ ] First-run profile selection persists and does not grant new permissions.
-- [ ] Backlog validator passes; task sync dry-run is reviewed and repeat sync creates no duplicates.
+- [ ] Backlog validator passes; sync dry-run path is available; repeat sync creates no duplicates.
+- [ ] Workflow dependencies are pinned to verified full SHAs and update review is automated.
 - [ ] No background monitoring starts without explicit configuration.
 - [ ] Database initializes/migrates without destructive reset.
 - [ ] All commands validate arguments and expose stable error codes.
