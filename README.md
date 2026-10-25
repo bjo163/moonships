@@ -72,7 +72,7 @@ Detailed menus, user flows and design rules live in [UX & Design](docs/UX_AND_DE
 
 Start with a **modular monolith**, not microservices. Split into separate crates/processes only when a boundary has proven value. Do not build cloud sync, a plugin marketplace, remote agents or multi-agent orchestration into the first release.
 
-Read [Architecture](docs/ARCHITECTURE.md), [Data Model](docs/DATA_MODEL.md), [Project & Task Management](docs/PROJECT_TASK_MANAGEMENT.md), and [Security Model](docs/SECURITY_MODEL.md).
+Read [Architecture](docs/ARCHITECTURE.md), [ADR Template](docs/ADR_TEMPLATE.md), [Data Model](docs/DATA_MODEL.md), [Project & Task Management](docs/PROJECT_TASK_MANAGEMENT.md), and [Security Model](docs/SECURITY_MODEL.md).
 
 ## Delivery plan
 
@@ -115,6 +115,7 @@ moonships-workbench/
 │   └── ISSUE_TEMPLATE/
 └── docs/
     ├── PRODUCT_BLUEPRINT.md
+    ├── ADR_TEMPLATE.md
     ├── PROJECT_TASK_MANAGEMENT.md
     ├── UX_AND_DESIGN.md
     ├── ARCHITECTURE.md
