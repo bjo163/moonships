@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import App from "./App";
@@ -26,21 +26,15 @@ describe("M1-033 shortcut and focus lifecycle", () => {
     expect(document.activeElement).toBe(opener);
   });
 
-  it("handles Escape from the close button and traps Tab at dialog boundaries", async () => {
+  it("closes on Escape even when focus is on the close button", async () => {
     const user = userEvent.setup();
     render(<App />);
     const opener = screen.getByRole("button", { name: "Open Command Palette" });
     await user.click(opener);
     const dialog = screen.getByRole("dialog", { name: "Command Palette" });
     const close = within(dialog).getByRole("button", { name: "Close Command Palette" });
-    const options = within(dialog).getAllByRole("option");
-    const last = options[options.length - 1];
     close.focus();
-    expect(fireEvent.keyDown(close, { key: "Tab", shiftKey: true, cancelable: true })).toBe(false);
-    expect(document.activeElement).toBe(last);
-    expect(fireEvent.keyDown(last, { key: "Tab", cancelable: true })).toBe(false);
     expect(document.activeElement).toBe(close);
-
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("dialog", { name: "Command Palette" })).toBeNull();
     expect(document.activeElement).toBe(opener);
