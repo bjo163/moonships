@@ -129,6 +129,9 @@ moonships-workbench/
 │       └── task.yml
 └── docs/
     ├── PRODUCT_BLUEPRINT.md
+    ├── DESIGN_SYSTEM.md
+    ├── AUDIO_SFX_SPEC.md
+    ├── DESIGN_READINESS_AUDIT.md
     ├── OVERLAP_AUDIT.md
     ├── TASK_ISSUE_SYNC.md
     ├── PROJECT_TASK_MANAGEMENT.md
@@ -148,7 +151,9 @@ This is the current documentation and automation layout. Application source fold
 
 The architecture is informed by official and primary references, including:
 
-- [Tauri 2 capabilities](https://v2.tauri.app/security/capabilities/) and [Tauri project](https://github.com/tauri-apps/tauri) for the desktop shell, WebView and permission boundaries.\n- [W3C WCAG 2.2](https://www.w3.org/TR/wcag/), [Microsoft Fluent 2 Design](https://fluent2.microsoft.design/get-started/design), [Layout](https://fluent2.microsoft.design/layout) and [Motion](https://fluent2.microsoft.design/motion) for accessible interaction and design-to-code consistency.\n- [MDN Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API) for optional, user-controlled SFX implementation.
+- [Tauri 2 capabilities](https://v2.tauri.app/security/capabilities/) and [Tauri project](https://github.com/tauri-apps/tauri) for the desktop shell, WebView and permission boundaries.
+- [W3C WCAG 2.2](https://www.w3.org/TR/wcag/), [Microsoft Fluent 2 Design](https://fluent2.microsoft.design/get-started/design), [Layout](https://fluent2.microsoft.design/layout) and [Motion](https://fluent2.microsoft.design/motion) for accessible interaction and design-to-code consistency.
+- [MDN Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API) for optional, user-controlled SFX implementation.
 - [Tauri system tray](https://v2.tauri.app/learn/system-tray/) and [updater plugin](https://v2.tauri.app/plugin/updater/) for desktop lifecycle and release strategy.
 - [Model Context Protocol](https://modelcontextprotocol.io/) and the [2026-07-28 specification announcement](https://blog.modelcontextprotocol.io/posts/2026-07-28/) for an optional interoperable tool adapter; pin a tested version and review updates before adoption.
 - [OpenTelemetry signals](https://opentelemetry.io/docs/concepts/signals/) for interoperable logs, metrics and traces.
