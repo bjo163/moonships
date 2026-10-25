@@ -58,7 +58,7 @@ See [Product Blueprint](docs/PRODUCT_BLUEPRINT.md) for the detailed catalogue an
 - **Local-first operation** for core desktop functions; network access is explicit and feature-specific.
 - **AI-ready design** through typed tool contracts and provider adapters, not hard coupling to one model/vendor.
 
-Detailed menus, user flows and design rules live in [UX & Design](docs/UX_AND_DESIGN.md).
+Detailed menus, user flows and design rules live in [UX & Design](docs/UX_AND_DESIGN.md). The implementation-readiness findings and design-to-product gates are tracked in [Design Readiness Audit](docs/DESIGN_READINESS_AUDIT.md).
 
 ## Architecture (planned)
 
