@@ -19,7 +19,7 @@ The next step is not to write another competing mega-blueprint. Keep the existin
 | Navigation, workflows and low-fi layouts | `UX_AND_DESIGN.md` | Specified; not implemented or user-tested |
 | Visual tokens, components, motion and asset governance | `DESIGN_SYSTEM.md` | Canonical proposal; contrast and behavior not yet validated in app |
 | SFX event catalog and playback policy | `AUDIO_SFX_SPEC.md` | Canonical proposal; default off; no approved/shipped SFX yet |
-| Initial dark-theme tokens | `UX_AND_DESIGN.md` | Proposed values; contrast not yet measured |
+| Initial semantic palette and tokens | `DESIGN_SYSTEM.md` | Proposed values; contrast not yet measured |
 | Architecture and technology | `ARCHITECTURE.md` | Proposed baseline; no app source yet |
 | Data and security contracts | `DATA_MODEL.md`, `SECURITY_MODEL.md` | Documented baseline; runtime enforcement absent |
 | Milestones and atomic tasks | `MILESTONES.md`, `TASK_BACKLOG.md` | Planned; implementation tasks remain open until evidenced |
@@ -48,7 +48,7 @@ The next step is not to write another competing mega-blueprint. Keep the existin
 - Navigation, user flows and low-fidelity layouts only: [UX & Design](UX_AND_DESIGN.md).
 
 - Product promise, audiences, domains, V0.1–V1.0 scope and post-V1 tracks: `PRODUCT_BLUEPRINT.md`.
-- Main navigation, home, task/project flows, command palette, tray, onboarding, tool flows, dark/light theme direction, component inventory, accessibility intent, error states and low-fidelity layouts: `UX_AND_DESIGN.md`.
+- Main navigation, home, task/project flows, command palette, tray, onboarding, tool flows, shared UI states and low-fidelity layouts: `UX_AND_DESIGN.md`.
 - Internal runtime boundaries, tool contracts, policy, persistence and adapters: `ARCHITECTURE.md`.
 - Entities and persistence expectations: `DATA_MODEL.md`.
 - Threat model, capabilities, risk classes and approval rules: `SECURITY_MODEL.md`.
