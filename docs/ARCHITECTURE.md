@@ -82,6 +82,10 @@ docs/
 
 The desktop shell enforces a single-instance policy. When a second launch occurs, it must bring the existing `main` window to the foreground rather than create a confusing duplicate workspace. The tray's explicit Quit action exits the process; Hide only hides the window. If background workers are introduced, their shutdown hooks must run before explicit process exit.
 
+## Local SQLite storage location
+
+The desktop app must store its SQLite database beneath Tauri's platform-specific per-user application data directory, never relative to the process current working directory. The initial database filename is `moonships.sqlite3`. The native storage adapter creates the application data directory if needed and opens SQLite through the Rust `rusqlite` adapter. Database schema migrations, foreign-key enforcement, and busy-timeout policy are separate follow-up tasks and must not be implied by opening the initial connection.
+
 ## Tauri command DTO conventions
 
 Every frontend-to-native command must use an explicit, named request/response contract once it crosses the Tauri IPC boundary. Do not expose internal domain structs directly as a long-lived IPC schema.
