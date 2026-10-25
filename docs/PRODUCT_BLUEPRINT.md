@@ -141,6 +141,20 @@ Security review, reliable packaging/updating, upgrade tests, accessibility, docu
 - Scraping that bypasses access controls, paywalls, rate limits or source terms
 - Cross-platform release guarantees before Windows delivery is stable
 
+## 5A. Post-V1 expansion tracks
+
+The V1.0 release focuses on a safe Windows desktop foundation, personal/local-first Projects & Tasks, Cleaner/DevTools, first-level operations diagnostics, a small attributed intelligence baseline, selected specialist workflows, and bounded automation/optional AI.
+
+The following catalog areas remain planned for post-V1.0; they are now represented by their own milestone/task batches rather than being implied as complete:
+
+- **M9 — Recovery & Data Protection:** backup/restore with versioned manifest, integrity checks and explicit restore preview.
+- **M10 — Knowledge & Operations Desk:** Notes, Runbooks, incident timelines, shift handoffs and redacted reports.
+- **M11 — Advanced Security & Research Integrations:** assessment-run UI, OSINT/threat-intelligence adapters, local binary/firmware inspection, and isolated lab integrations.
+- **M12 — Advanced World Monitor & Media Intelligence:** additional permitted media/video/transcript sources, optional isolated browser automation, geospatial layers, source correlation and scheduled digests.
+- **M13 — CLI, Vault, CostLens, Extensibility & Collaboration:** shared-contract CLI, secure vault UI, provider-specific cost analysis, reviewed extension isolation, and design studies for team sync/remote agents.
+
+These tracks do not authorize a feature merely by naming it. Each still requires provider/source review, explicit permissions, small acceptance-tested tasks, and a decision gate before release. Full marketplace, team sync, arbitrary remote execution and dynamic native plugins remain out of scope until their own security/design review passes.
+
 ## 6. Product differentiators
 
 1. Project/task management is part of the technical workflow, not a detached board.
