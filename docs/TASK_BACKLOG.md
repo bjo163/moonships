@@ -40,7 +40,7 @@
 - [x] **M1-003 — Add root development scripts** [S] — Provide consistent dev, lint, test and build commands. **AC:** script names are documented and invoke real tools only.
 - [x] **M1-004 — Add Rust formatting/lint baseline** [S] — Configure rustfmt and clippy commands. **AC:** CI/local documented command fails on format/lint errors.
 - [x] **M1-005 — Add frontend formatting/typecheck baseline** [S] — Configure the chosen formatter/linter and TypeScript check. **AC:** one documented command runs these checks.
-- [ ] **M1-006 — Add Windows CI smoke build** [S] — Build app in GitHub Actions on Windows. **AC:** workflow runs on pushes and pull requests and fails on build failure.
+- [x] **M1-006 — Add Windows CI smoke build** [S] — Build app in GitHub Actions on Windows. **AC:** workflow runs on pushes and pull requests and fails on build failure.
 - [ ] **M1-007 — Add minimal test commands to CI** [S] — Run starter Rust and frontend tests. **AC:** CI shows separate, understandable test steps.
 
 ### App shell and system tray
