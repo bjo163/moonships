@@ -165,7 +165,17 @@
   z-index: 1000;
 }
 
+.ms-dialog-backdrop-dismiss {
+  background: transparent;
+  border: 0;
+  inset: 0;
+  padding: 0;
+  position: absolute;
+}
+
 .ms-dialog {
+  position: relative;
+  z-index: 1;
   background: var(--color-overlay, #0e1520);
   border: 1px solid var(--color-border-strong, #40536a);
   border-radius: var(--radius-lg, 1rem);
