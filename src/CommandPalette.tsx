@@ -66,9 +66,7 @@ export function CommandPalette({
   };
 
   return (
-    <div className="command-palette-backdrop" role="presentation" onMouseDown={(event) => {
-      if (event.target === event.currentTarget) onClose();
-    }}>
+    <div className="command-palette-backdrop" role="presentation">
       <section
         className="command-palette"
         role="dialog"
