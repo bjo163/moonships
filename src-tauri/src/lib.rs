@@ -19,6 +19,49 @@ fn open_database_in(app_data_dir: &Path) -> Result<Connection, String> {
     Connection::open(path).map_err(|error| format!("Could not open Moonships database: {error}"))
 }
 
+const CURRENT_SCHEMA_VERSION: i64 = 1;
+
+fn run_migrations(connection: &mut Connection) -> Result<(), String> {
+    let transaction = connection
+        .transaction()
+        .map_err(|error| format!("Could not begin schema migration transaction: {error}"))?;
+
+    transaction
+        .execute_batch(
+            "CREATE TABLE IF NOT EXISTS schema_migrations (
+                version INTEGER PRIMARY KEY,
+                applied_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+            );",
+        )
+        .map_err(|error| format!("Could not create schema version table: {error}"))?;
+
+    let current_version: i64 = transaction
+        .query_row("SELECT COALESCE(MAX(version), 0) FROM schema_migrations", [], |row| row.get(0))
+        .map_err(|error| format!("Could not read schema version: {error}"))?;
+
+    if current_version > CURRENT_SCHEMA_VERSION {
+        return Err(format!(
+            "Database schema version {current_version} is newer than this app supports ({CURRENT_SCHEMA_VERSION})"
+        ));
+    }
+
+    if current_version < 1 {
+        transaction
+            .execute_batch(
+                "CREATE TABLE app_metadata (
+                    key TEXT PRIMARY KEY NOT NULL,
+                    value TEXT NOT NULL
+                );
+                INSERT INTO schema_migrations (version) VALUES (1);",
+            )
+            .map_err(|error| format!("Could not apply initial schema migration: {error}"))?;
+    }
+
+    transaction
+        .commit()
+        .map_err(|error| format!("Could not commit schema migration: {error}"))
+}
+
 fn hide_to_tray_path(app: &AppHandle) -> Result<PathBuf, String> {
     app.path()
         .app_config_dir()
@@ -84,8 +127,10 @@ pub fn run() {
         .setup(|app| {
             let app_data_dir = app.path().app_data_dir()?;
             // Open/create the database only under Tauri's per-user application data directory.
-            let _database = open_database_in(&app_data_dir)
+            let mut database = open_database_in(&app_data_dir)
                 .map_err(std::io::Error::other)?;
+            run_migrations(&mut database).map_err(std::io::Error::other)?;
+            let _database = database;
 
             let open = MenuItem::with_id(app, "open", "Open Moonships", true, None::<&str>)?;
             let settings = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
