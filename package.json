@@ -12,7 +12,7 @@
     "lint": "biome lint src vite.config.ts index.html && node --check scripts/backlog-sync-core.cjs",
     "test": "vitest run",
     "check": "npm run format:check && npm run lint && npm run test:repo && npm test && npm run typecheck && npm run build",
-    "format:check": "biome check --formatter-enabled=true --linter-enabled=false --assist-enabled=false src vite.config.ts index.html",
+    "format:check": "biome check --formatter-enabled=true --linter-enabled=false --assist-enabled=false src vite.config.ts vitest.config.ts index.html",
     "test:repo": "node --test scripts/backlog-sync-core.test.cjs"
   },
   "dependencies": {
