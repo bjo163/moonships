@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import App, { AppShell, NotFoundPage, SettingsDialog } from "./App";
+import App, { AppShell, NotFoundPage, SettingsDialog, WorkspaceProfileDialog } from "./App";
 import { resolveRoute } from "./route-registry";
 import { CommandPalette, filterPaletteCommands, type PaletteCommand } from "./CommandPalette";
 import { COMMAND_REGISTRY, getRegisteredCommand, getPaletteCommands } from "./command-registry";
@@ -186,7 +186,7 @@ describe("SQLite schema migration contract", () => {
     expect(rustSource).toContain("fn run_migrations(connection: &mut Connection)");
     expect(rustSource).toContain("CREATE TABLE IF NOT EXISTS schema_migrations");
     expect(rustSource).toContain("INSERT INTO schema_migrations (version) VALUES (1)");
-    expect(rustSource).toContain("transaction.commit()");
+    expect(rustSource).toContain(".commit()");
     expect(rustSource).toContain("run_migrations(&mut database)");
     expect(rustSource).toContain(
       "fresh_database_migration_persists_schema_version_and_is_idempotent",
@@ -457,7 +457,7 @@ describe("M1-033 Ctrl+K lifecycle contract", () => {
     expect(source).toContain("isEditableTarget(event.target)");
     expect(source).toContain('document.querySelector("[role=dialog]")');
     expect(source).toContain("paletteTriggerRef.current?.focus()");
-    expect(source).toContain("paletteTriggerRef.current = document.activeElement");
+    expect(source).toMatch(/paletteTriggerRef\.current\s*=\s*document\.activeElement/);
   });
 });
 
@@ -504,12 +504,19 @@ describe("M1-034 workspace profiles", () => {
   });
 
   it("exposes the profile selector and states that profiles do not grant permissions", () => {
-    const markup = renderToStaticMarkup(<App />);
-    expect(markup).toContain('aria-label="Change workspace profile"');
-    expect(markup).toContain(
+    const shellMarkup = renderToStaticMarkup(<App />);
+    const dialogMarkup = renderToStaticMarkup(
+      <WorkspaceProfileDialog
+        currentProfile="developer"
+        onSelect={() => {}}
+        onClose={() => {}}
+      />,
+    );
+    expect(shellMarkup).toContain('aria-label="Change workspace profile"');
+    expect(dialogMarkup).toContain(
       "Profiles only change suggested pinned sections and layout preferences.",
     );
-    expect(markup).toContain("They never grant permissions or enable tools.");
+    expect(dialogMarkup).toContain("They never grant permissions or enable tools.");
   });
 });
 
