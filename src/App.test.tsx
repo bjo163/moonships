@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import App, { AppShell, NotFoundPage, SettingsDialog } from "./App";
 import { resolveRoute } from "./route-registry";
+import { CommandPalette, filterPaletteCommands, type PaletteCommand } from "./CommandPalette";
 
 describe("Moonships application shell", () => {
   it("renders the foundation status without claiming planned tools are live", () => {
@@ -324,5 +325,85 @@ describe("M1 desktop foundation contracts", () => {
     expect(domain).toContain("config_defaults_are_valid_and_schema_mismatch_fails_closed");
     expect(domain).toContain("Unsupported config schema version");
     expect(domain).toContain("deny_unknown_fields");
+  });
+});
+
+
+describe("M1-031 Command Palette surface", () => {
+  const commands: PaletteCommand[] = [
+    {
+      id: "workspace.inspect",
+      title: "Inspect workspace",
+      description: "Review local workspace status",
+      category: "Navigation",
+      risk: "read-only",
+      keywords: ["home", "overview"],
+    },
+    {
+      id: "project.create",
+      title: "New Project",
+      description: "Prepare a new project",
+      category: "Create",
+      risk: "state-change",
+      keywords: ["project"],
+    },
+    {
+      id: "system.cleanup",
+      title: "Clean storage",
+      description: "Review cleanup candidates",
+      category: "Tool",
+      risk: "destructive",
+    },
+  ];
+
+  it("filters registered palette entries by title, description, category, and keywords", () => {
+    expect(filterPaletteCommands(commands, "project").map((item) => item.id)).toEqual([
+      "project.create",
+    ]);
+    expect(filterPaletteCommands(commands, "navigation").map((item) => item.id)).toEqual([
+      "workspace.inspect",
+    ]);
+    expect(filterPaletteCommands(commands, "OVERVIEW").map((item) => item.id)).toEqual([
+      "workspace.inspect",
+    ]);
+    expect(filterPaletteCommands(commands, "not registered")).toEqual([]);
+    expect(filterPaletteCommands(commands, "  ")).toEqual(commands);
+  });
+
+  it("renders accessible results with category and risk labels without executing a tool", () => {
+    const markup = renderToStaticMarkup(
+      <CommandPalette
+        open
+        commands={commands}
+        onClose={() => {}}
+        onSelect={() => {}}
+      />,
+    );
+    expect(markup).toContain('role="dialog"');
+    expect(markup).toContain('aria-modal="true"');
+    expect(markup).toContain('role="listbox"');
+    expect(markup).toContain('role="option"');
+    expect(markup).toContain("Navigation");
+    expect(markup).toContain("Read-only");
+    expect(markup).toContain("Destructive · preview required");
+    expect(markup).toContain("Selecting a result does not execute a tool.");
+  });
+
+  it("renders honest loading and empty states", () => {
+    const loading = renderToStaticMarkup(
+      <CommandPalette open commands={[]} loading onClose={() => {}} onSelect={() => {}} />,
+    );
+    const empty = renderToStaticMarkup(
+      <CommandPalette open commands={[]} onClose={() => {}} onSelect={() => {}} />,
+    );
+    expect(loading).toContain("Loading commands…");
+    expect(loading).toContain('aria-busy="true"');
+    expect(empty).toContain("No commands are registered yet.");
+  });
+
+  it("keeps the palette closed until the user requests it from the shell", () => {
+    const markup = renderToStaticMarkup(<App />);
+    expect(markup).toContain('aria-label="Open Command Palette"');
+    expect(markup).not.toContain('id="command-palette-title"');
   });
 });
