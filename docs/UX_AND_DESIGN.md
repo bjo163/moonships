@@ -289,7 +289,7 @@ Every data/action screen must document and implement:
 
 A screen is not done merely because its happy path renders.
 
-## 10. UI acceptance checklist
+## 10. UX acceptance checklist
 
 - [ ] Sidebar labels and page hierarchy are consistent with the menu spec.
 - [ ] No menu entry implies that an unimplemented module works.
@@ -418,17 +418,3 @@ About                             Version / licenses / documentation
 ## 12. Design token source of truth
 
 The proposed palette, semantic token names, typography, spacing, radii, elevation, density and motion tokens are maintained only in [Design System](DESIGN_SYSTEM.md). Values are proposals until implemented and measured for contrast in both themes.
-
-## 13. UI design review checklist
-
-Use the full screen matrix, screenshot evidence requirements and accessibility gates in [Design System](DESIGN_SYSTEM.md). This UX-specific checklist confirms navigation and page intent only:
-
-- [ ] Sidebar labels and page hierarchy match the menu spec.
-- [ ] No menu entry implies that an unimplemented module works.
-- [ ] Global search works on local commands without AI.
-- [ ] Focus order and keyboard shortcuts are documented.
-- [ ] Empty/loading/offline/stale/permission-denied/error states are designed.
-- [ ] Destructive operations require preview and separate confirmation.
-- [ ] Tray lifecycle follows user settings and supports a genuine Quit path.
-- [ ] Long tasks show progress and only advertise cancellation when supported.
-- [ ] All primary interactions have keyboard support and visible focus.
