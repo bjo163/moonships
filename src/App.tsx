@@ -294,8 +294,8 @@ export default function App() {
 
   useEffect(() => {
     let cancelled = false;
-    void invoke<boolean>("get_hide_to_tray")
-      .then((enabled) => {
+    void invoke<{ enabled: boolean }>("get_hide_to_tray")
+      .then(({ enabled }) => {
         if (!cancelled) {
           setHideToTray(enabled);
           setHideToTrayStatus("Preference loaded from this device.");
@@ -315,8 +315,13 @@ export default function App() {
     const nextValue = !hideToTray;
     setHideToTray(nextValue);
     setHideToTrayStatus("Saving preference…");
-    void invoke("set_hide_to_tray", { enabled: nextValue })
-      .then(() => setHideToTrayStatus("Preference saved on this device."))
+    void invoke<{ enabled: boolean }>("set_hide_to_tray", {
+      request: { enabled: nextValue },
+    })
+      .then(({ enabled }) => {
+        setHideToTray(enabled);
+        setHideToTrayStatus("Preference saved on this device.");
+      })
       .catch(() => {
         setHideToTray(!nextValue);
         setHideToTrayStatus("Could not save. Open Settings in the Moonships desktop app.");
