@@ -156,11 +156,29 @@ describe("system tray integration contract", () => {
     expect(rustSource).toContain("app.exit(0)");
     expect(rustSource).toContain("window.hide()");
     expect(rustSource).toContain("shutdown hook must run before this explicit exit");
-    expect(rustSource).toContain("get_hide_to_tray(app: AppHandle)");
-    expect(rustSource).toContain("set_hide_to_tray(app: AppHandle, enabled: bool)");
+    expect(rustSource).toContain("struct HideToTrayPreferenceDto");
+    expect(rustSource).toContain("#[serde(rename_all = \"camelCase\", deny_unknown_fields)]");
+    expect(rustSource).toContain("get_hide_to_tray(app: AppHandle) -> Result<HideToTrayPreferenceDto, String>");
+    expect(rustSource).toContain("request: HideToTrayPreferenceDto");
+    expect(rustSource).toContain("Result<HideToTrayPreferenceDto, String>");
     expect(rustSource).toContain("CloseRequested");
     expect(rustSource).toContain("window.hide()");
     expect(rustSource).toContain("hide_to_tray_enabled");
+  });
+});
+
+describe("typed Tauri command DTO contract", () => {
+  it("uses a documented request/response DTO and rejects unknown request fields", async () => {
+    const { readFileSync } = await import("node:fs");
+    const rustSource = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
+    const cargoManifest = readFileSync(new URL("../src-tauri/Cargo.toml", import.meta.url), "utf8");
+    const appSource = readFileSync(new URL("./App.tsx", import.meta.url), "utf8");
+
+    expect(cargoManifest).toContain('serde = { version = "1", features = ["derive"] }');
+    expect(rustSource).toContain("serde::Deserialize, serde::Serialize");
+    expect(rustSource).toContain("deny_unknown_fields");
+    expect(appSource).toContain('invoke<{ enabled: boolean }>("get_hide_to_tray")');
+    expect(appSource).toContain('request: { enabled: nextValue }');
   });
 });
 
