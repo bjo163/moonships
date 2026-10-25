@@ -38,6 +38,16 @@ describe("shared UI primitives", () => {
     expect(markup).toContain("Name is required");
   });
 
+  it("generates a unique input ID when none is supplied and connects its hint", () => {
+    const markup = renderToStaticMarkup(<Input label="Project code" hint="Optional code" />);
+    const generatedId = markup.match(/id="(ms-input-[^"]+)"/)?.[1];
+
+    expect(generatedId).toBeDefined();
+    expect(markup).toContain(`for="${generatedId}"`);
+    expect(markup).toContain(`aria-describedby="${generatedId}-hint"`);
+    expect(markup).toContain(`id="${generatedId}-hint"`);
+  });
+
   it("does not render a closed dialog and labels an open dialog", () => {
     const closed = renderToStaticMarkup(
       <Dialog open={false} title="Preferences" onClose={() => {}}>
