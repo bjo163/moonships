@@ -277,6 +277,79 @@ export function SettingsDialog({
   );
 }
 
+export function WorkspaceProfileDialog({
+  currentProfile,
+  onSelect,
+  onClose,
+}: {
+  currentProfile: WorkspaceProfileId;
+  onSelect: (profile: WorkspaceProfileId) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="settings-backdrop" role="presentation">
+      <section className="settings-dialog profile-dialog" role="dialog" aria-modal="true" aria-labelledby="profile-dialog-title">
+        <div className="settings-dialog-header">
+          <div>
+            <p className="eyebrow">FIRST RUN / WORKSPACE</p>
+            <h2 id="profile-dialog-title">Choose your workspace profile</h2>
+          </div>
+          <button className="settings-close" type="button" onClick={onClose} aria-label="Close workspace profile selector">Close</button>
+        </div>
+        <p className="settings-note">Profiles only change suggested pinned sections and layout preferences. They never grant permissions or enable tools.</p>
+        <div className="profile-options">
+          {WORKSPACE_PROFILES.map((profile) => (
+            <button
+              className={`profile-option${profile.id === currentProfile ? " profile-option-selected" : ""}`}
+              key={profile.id}
+              type="button"
+              aria-pressed={profile.id === currentProfile}
+              onClick={() => onSelect(profile.id)}
+            >
+              <span className="profile-option-copy">
+                <strong>{profile.label}</strong>
+                <span>{profile.description}</span>
+                <small>Pinned: {profile.pinned.join(" · ")}</small>
+              </span>
+              {profile.id === currentProfile ? <span className="nav-state">Selected</span> : null}
+            </button>
+          ))}
+        </div>
+        <p className="settings-note">Saved locally in this WebView profile. No cloud sync is used.</p>
+      </section>
+    </div>
+  );
+}
+
+export function CommandPreviewDialog({
+  title,
+  description,
+  onClose,
+}: {
+  title: string;
+  description: string;
+  onClose: () => void;
+}) {
+  return (
+    <div className="settings-backdrop" role="presentation">
+      <section className="settings-dialog" role="dialog" aria-modal="true" aria-labelledby="command-preview-title">
+        <div className="settings-dialog-header">
+          <div>
+            <p className="eyebrow">REGISTERED COMMAND / PREVIEW</p>
+            <h2 id="command-preview-title">{title}</h2>
+          </div>
+          <button className="settings-close" type="button" onClick={onClose} aria-label="Close command preview">Close</button>
+        </div>
+        <p className="settings-note">{description}</p>
+        <p className="settings-note" role="status">No changes have been made.</p>
+        <div className="settings-dialog-actions">
+          <button className="theme-toggle" type="button" onClick={onClose}>Back to workspace</button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 export function NotFoundPage({ requested }: { requested: string }) {
   return (
     <section className="hero" aria-labelledby="not-found-title">
