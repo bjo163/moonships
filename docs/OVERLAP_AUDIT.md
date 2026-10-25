@@ -15,7 +15,7 @@ The startup-at-login setting was ambiguous ("implement or defer"). It is now exp
 
 ## 2. Design readiness follow-up
 
-The detailed audit is in [Design Readiness Audit](DESIGN_READINESS_AUDIT.md). It does not create a competing product spec: the existing Product Blueprint and UX spec remain canonical. M1-038–M1-040 close implementation-only gaps around minimum-window behavior, visual/accessibility review and shell usability; M2-035 covers the separate Projects & Tasks usability check after that vertical slice exists. These checks must not be marked complete from wireframes alone.
+The detailed readiness findings are in [Design Readiness Audit](DESIGN_READINESS_AUDIT.md). The [Design System](DESIGN_SYSTEM.md) is the single source of truth for visual tokens/components/motion/accessibility/assets; [Audio & SFX Specification](AUDIO_SFX_SPEC.md) is the single source for sound events, defaults and audio assets. [UX & Design](UX_AND_DESIGN.md) retains information architecture, user journeys and wireframes only. Do not duplicate these specifications. M1-038–M1-045 cover implementation readiness for window behavior, shell visual/accessibility review, usability, components, assets, optional SFX and screenshot evidence; M2-035 covers separate Projects & Tasks usability after that vertical slice exists. These checks must not be marked complete from wireframes alone.
 
 ## 3. Intentional boundaries that may look overlapping
 
