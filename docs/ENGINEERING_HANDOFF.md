@@ -27,11 +27,13 @@ The following task checkboxes were previously stale. Their acceptance is support
 
 **Intentionally still open:** M1-001 requires actual fresh-clone app launch proof; M1-016/017 need actual Windows Quit/Hide and second-instance behavior; M1-031–033 require behavior-level Command Palette/shortcut verification; M1-038/039/040 require viewport, visual/contrast, accessibility and manual Windows observations; M1-042–045 retain icon/asset, sound and screenshot gate work. No untested gate is marked as verified.
 
-## Next task — M1-031 (unblocked)
+## M1-031 — Command Palette verified and next task
 
-The existing `src/CommandPalette.tsx` already renders a keyboard-first overlay, filtering, risk/category labels, loading/empty states. Before checking M1-031, add DOM interaction evidence for typing, ArrowUp/Down, Enter, Escape, loading and zero-results with no tool execution. Audit two edge cases: the active index may become stale after the command collection changes, and `aria-activedescendant` may reference an option hidden by loading. Fix real defects only. Then verify CI and update the existing task/issue (do not make a parallel Palette).
+The existing palette now has behavior-level DOM tests plus stale-selection fixes. [Implementation CI #40193893988](https://github.com/bjo163/moonships/actions/runs/40193893988) completed **SUCCESS (5/5 jobs)** at code commit `664758da0d9eb19dec3f71fbe69aa5dbb79fdee3`, including **56/56 frontend tests**, Rust formatting/Clippy/tests, backlog regression and Windows installer packaging. Five tests in `src/command-palette.behavior.test.tsx` verify keyboard opening/focus, query filtering, Arrow navigation, Enter/Escape, loading/empty state, no hidden ARIA active descendant, stale-index recovery and reset after reopening. `src/CommandPalette.tsx` fixes the corresponding edge cases without expanding permissions.
 
-M1-032 and M1-033 depend on M1-031; after it is verified, review each existing implementation and test its remaining acceptance independently. M1-040 remains blocked by real Windows tests even after these dependencies pass.
+**Next unblocked task: M1-032** — registered safe navigation/create preview commands. `src/command-registry.ts` already declares a strict registry and `src/App.tsx` previews non-operational create actions. Verify with DOM tests that only registered commands appear; unknown IDs are rejected; safe navigation and Settings work; state-changing create actions show a truthful no-execution preview rather than executing tools. Do not reimplement an existing registry. After M1-032, assess M1-033 Ctrl+K focus lifecycle with DOM tests, then tackle the other independent M1 backlog tasks.
+
+**Reminder:** CI packaging does not prove real Windows tray lifecycle or WCAG compliance. M1-016/017/039/040 remain gated on manual evidence. M1-034 is complete only as WebView-local profile preference behavior; native config synchronization remains outside the checked acceptance criteria.
 
 ## Windows manual batch — NOT TESTED on current main
 
