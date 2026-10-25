@@ -29,9 +29,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # A missing prerelease is an expected first-publish case, not a fatal PowerShell error.
+          $ErrorActionPreference = "Continue"
+          $PSNativeCommandUseErrorActionPreference = $false
           $tag = $env:GITHUB_REF_NAME -replace "^release/", ""
           $assetCount = gh release view $tag --repo $env:GITHUB_REPOSITORY --json assets --jq ".assets | length" 2>$null
-          if ($LASTEXITCODE -eq 0 -and [int]$assetCount -ge 2) {
+          $viewExitCode = $LASTEXITCODE
+          if ($viewExitCode -eq 0 -and [int]$assetCount -ge 2) {
             "already_published=true" >> $env:GITHUB_OUTPUT
           } else {
             "already_published=false" >> $env:GITHUB_OUTPUT
