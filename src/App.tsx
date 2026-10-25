@@ -1,8 +1,10 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { resolveRoute, type RouteResolution } from "./route-registry";
 import { CommandPalette } from "./CommandPalette";
+import { getPaletteCommands, getRegisteredCommand } from "./command-registry";
+import { getWorkspaceProfile, readWorkspaceProfile, writeWorkspaceProfile, type WorkspaceProfileId } from "./workspace-profile";
 import { describeModuleAvailability, type ModuleAvailability } from "./module-availability";
 import {
   applyThemePreference,
@@ -44,9 +46,11 @@ type AppShellProps = {
   theme: ThemePreference;
   onToggleTheme: () => void;
   onOpenCommandPalette?: () => void;
+  profileLabel?: string;
+  onOpenProfile?: () => void;
 };
 
-export function AppShell({ children, theme, onToggleTheme, onOpenCommandPalette }: AppShellProps) {
+export function AppShell({ children, theme, onToggleTheme, onOpenCommandPalette, profileLabel = "Developer", onOpenProfile }: AppShellProps) {
   return (
     <main className="app-frame">
       <a className="skip-link" href="#main-content">
@@ -87,6 +91,7 @@ export function AppShell({ children, theme, onToggleTheme, onOpenCommandPalette 
             <h1>Moonships Workbench</h1>
           </div>
           <div className="topbar-actions">
+            <button className="theme-toggle profile-trigger" type="button" onClick={onOpenProfile} aria-label="Change workspace profile" title="Change workspace profile">Profile: {profileLabel}</button>
             <button
               className="theme-toggle command-palette-trigger"
               type="button"
@@ -309,6 +314,10 @@ export default function App() {
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [profileId, setProfileId] = useState<WorkspaceProfileId>(() => readWorkspaceProfile(getBrowserStorage()) ?? "developer");
+  const [profileDialogOpen, setProfileDialogOpen] = useState(() => typeof window !== "undefined" && readWorkspaceProfile(getBrowserStorage()) === null);
+  const [commandPreview, setCommandPreview] = useState<{ title: string; description: string } | null>(null);
+  const paletteTriggerRef = useRef<HTMLElement | null>(null);
   const [hideToTray, setHideToTray] = useState(false);
   const [hideToTrayStatus, setHideToTrayStatus] = useState("Loading preference…");
 
