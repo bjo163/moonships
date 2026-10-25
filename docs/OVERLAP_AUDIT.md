@@ -13,7 +13,7 @@ The prior backlog did not have atomic tasks for all visible core UX behaviors ev
 
 The startup-at-login setting was ambiguous ("implement or defer"). It is now explicitly deferred for MVP; startup remains off by default. The app must not silently register itself to launch at login.
 
-## 2. Intentional boundaries that may look overlapping
+## 2. Design readiness follow-up\n\nThe detailed audit is in [Design Readiness Audit](DESIGN_READINESS_AUDIT.md). It does not create a competing product spec: the existing Product Blueprint and UX spec remain canonical. M1-038–M1-040 close implementation-only gaps around minimum-window behavior, repeatable visual/accessibility review, and task-based usability validation. These checks must not be marked complete from wireframes alone.\n\n## 3. Intentional boundaries that may look overlapping
 
 | Potential overlap | Canonical responsibility | Explicit non-overlap rule |
 |---|---|---|
@@ -31,11 +31,11 @@ The startup-at-login setting was ambiguous ("implement or defer"). It is now exp
 | Secure Vault vs App Settings | Vault stores secret material through OS-secure storage; settings store preferences and secret references | No token/password in settings JSON, project data, logs, exports or prompts |
 | GitHub issue vs backlog checkbox | Backlog is canonical planned/completed task state; issue is its actionable discussion/execution mirror | Issue closure alone does not mark the checkbox; checked task closes generated issue on the next sync |
 
-## 3. Coverage matrix
+## 4. Coverage matrix
 
 | Spec surface/capability | Backlog coverage | Result |
 |---|---|---|
-| Main window and navigation shell | M1-008–M1-010 | Covered |
+| Main window and navigation shell | M1-008–M1-010 | Covered in backlog; implementation open |\n| Design readiness, minimum-window behavior and UI QA | Design Readiness Audit; M1-038–M1-040 | Newly tracked; implementation/validation open |
 | Theme, keyboard accessibility, tray lifecycle, single instance | M1-011–M1-017 | Covered |
 | Startup-at-login | M1-018 | Explicitly deferred and documented |
 | Settings skeleton, notification/permission settings | M1-019, M1-030 | Covered for foundation; provider-specific pages later |
@@ -54,7 +54,7 @@ The startup-at-login setting was ambiguous ("implement or defer"). It is now exp
 | License, SBOM, updater, upgrade, recovery and UX release gates | M8-001–M8-017 | Covered as release gates |
 | Full CostLens, full Vault UI, expanded media/video ingestion, dedicated reverse-engineering suite, team sync, plugin marketplace, remote agents | M9–M13 post-V1.0 milestones | Explicitly deferred into M9–M13 task batches; each still needs its own source/security review and acceptance tests before implementation |
 
-## 4. Non-overlap invariants
+## 5. Non-overlap invariants
 
 - One canonical task status and priority model across UI views.
 - One policy engine for native tools, workflows and AI-requested calls.
@@ -64,6 +64,6 @@ The startup-at-login setting was ambiguous ("implement or defer"). It is now exp
 - No feature should implement another module's private behavior. Call a declared contract or link a source result.
 - A product domain may contain many modules, but a module needs one owner, one purpose, explicit inputs/outputs and defined permissions.
 
-## 5. Remaining scope caveat
+## 6. Remaining scope caveat
 
 A catalog entry is not a shipped feature. Deferred specialist products now have task batches under M9–M13, but must not be described as supported until their source/provider terms, threat model, UX, isolation/permission design and acceptance tests pass.
