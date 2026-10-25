@@ -1,0 +1,44 @@
+name: Backlog sync regression tests
+
+on:
+  pull_request:
+    paths:
+      - "scripts/backlog-sync-core.cjs"
+      - "scripts/backlog-sync-core.test.cjs"
+      - ".github/workflows/sync-backlog-to-issues.yml"
+      - ".github/workflows/backlog-sync-tests.yml"
+      - "scripts/validate-backlog.mjs"
+      - "docs/TASK_BACKLOG.md"
+      - "docs/MILESTONES.md"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/backlog-sync-core.cjs"
+      - "scripts/backlog-sync-core.test.cjs"
+      - ".github/workflows/sync-backlog-to-issues.yml"
+      - ".github/workflows/backlog-sync-tests.yml"
+      - "scripts/validate-backlog.mjs"
+      - "docs/TASK_BACKLOG.md"
+      - "docs/MILESTONES.md"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backlog-sync-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regression:
+    name: Backlog sync regression tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Test reconciliation and dry-run safety
+        run: node --test scripts/backlog-sync-core.test.cjs
+      - name: Validate backlog and local links
+        run: node scripts/validate-backlog.mjs

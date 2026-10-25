@@ -34,6 +34,9 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Run backlog sync regression tests
+        run: node --test scripts/backlog-sync-core.test.cjs
+
       - name: Validate task IDs, dependencies and documentation links
         run: node scripts/validate-backlog.mjs
 
@@ -59,7 +62,6 @@ jobs:
             const milestoneDoc = await readRepoText("docs/MILESTONES.md");
             const startMarker = "<!-- moonships-task-sync:start -->";
             const endMarker = "<!-- moonships-task-sync:end -->";
-            const taskMarker = /<!--\s*moonships-task-id:\s*(M\d+-\d{3})\s*-->/;
 
             const parsedTasks = [];
             const taskRegex = /^- \[([ xX])\] \*\*([A-Z]\d+-\d{3}) — ([^*]+)\*\*(.*)$/gm;
@@ -168,35 +170,10 @@ jobs:
             const allIssues = await github.paginate(github.rest.issues.listForRepo, {
               owner: owner, repo: repo, state: "all", per_page: 100
             });
-            const linkedIssues = new Map();
-            const unmanagedTitleCollisions = [];
-            for (const issue of allIssues) {
-              if (issue.pull_request) continue;
-              const marker = issue.body ? issue.body.match(taskMarker) : null;
-              if (marker) {
-                const id = marker[1];
-                if (linkedIssues.has(id)) {
-                  throw new Error("Multiple GitHub issues use task marker " + id + ": #" +
-                    linkedIssues.get(id).number + " and #" + issue.number + ". Resolve duplicates before syncing.");
-                }
-                linkedIssues.set(id, issue);
-                continue;
-              }
-              const titleMatch = issue.title.match(/^\[([A-Z]\d+-\d{3})\]/);
-              if (titleMatch && ids.has(titleMatch[1])) {
-                unmanagedTitleCollisions.push("#" + issue.number + " (" + titleMatch[1] + ")");
-              }
-            }
-            if (unmanagedTitleCollisions.length > 0) {
-              throw new Error("Issue title collides with a backlog task ID but lacks a sync marker: " +
-                unmanagedTitleCollisions.join(", ") + ". Add the correct marker or rename/reconcile the issue before syncing.");
-            }
-            const orphanedTaskIssues = [...linkedIssues.entries()].filter(([id]) => !ids.has(id));
-            if (orphanedTaskIssues.length > 0) {
-              throw new Error("Managed task issue marker(s) are absent from docs/TASK_BACKLOG.md: " +
-                orphanedTaskIssues.map(([id, issue]) => id + " (#" + issue.number + ")").join(", ") +
-                ". Restore the original task ID or explicitly reconcile these issues before syncing.");
-            }
+            const { preflightIssueSnapshot, planTaskAction, runWrite } = require(process.cwd() + "/scripts/backlog-sync-core.cjs");
+            // Validate the complete issue snapshot before the first write. This makes malformed
+            // managed blocks and reconciliation conflicts fail closed rather than mid-sync.
+            const linkedIssues = preflightIssueSnapshot({ tasks: parsedTasks, issues: allIssues });
 
             function managedBlock(task) {
               const status = task.checked ? "checked (complete)" : "unchecked (open)";
@@ -260,63 +237,56 @@ jobs:
 
             for (const task of parsedTasks) {
               let issue = linkedIssues.get(task.id);
-              if (task.checked && !issue) {
-                completedWithoutIssue += 1;
-                continue;
-              }
-              const title = "[" + task.id + "] " + task.title;
               const body = mergeManagedBlock(issue ? issue.body : "", managedBlock(task));
               const milestone = milestoneByPhase.get(task.phase);
               const labelSet = ["task", "backlog-sync"];
+              const action = planTaskAction({ task, issue, body, milestone, labelSet });
 
-              if (!issue) {
-                if (dryRun) {
-                  core.info("DRY RUN: would create issue " + title + " (line " + task.line + ").");
+              if (action.type === "skip") {
+                completedWithoutIssue += 1;
+                continue;
+              }
+              if (action.type === "noop") continue;
+
+              if (action.type === "create") {
+                const createParams = {
+                  owner: owner, repo: repo, title: action.title, body: action.body, labels: action.labels
+                };
+                if (action.milestone) createParams.milestone = action.milestone.number;
+                const writeResult = await runWrite({
+                  dryRun,
+                  operation: () => github.rest.issues.create(createParams)
+                });
+                if (!writeResult.performed) {
+                  core.info("DRY RUN: would create issue " + action.title + " (line " + task.line + ").");
                   createdCount += 1;
                   continue;
                 }
-                const createParams = {
-                  owner: owner, repo: repo, title: title, body: body, labels: labelSet
-                };
-                if (milestone) createParams.milestone = milestone.number;
-                const created = await github.rest.issues.create(createParams);
-                issue = created.data;
+                issue = writeResult.value.data;
                 linkedIssues.set(task.id, issue);
                 createdCount += 1;
-                core.info("Created #" + issue.number + " for " + task.id + ": " + title);
-              } else {
-                const desiredState = task.checked ? "closed" : "open";
-                const updates = {};
-                if (issue.title !== title) updates.title = title;
-                if ((issue.body || "") !== body) updates.body = body;
-                if (issue.state !== desiredState) {
-                  updates.state = desiredState;
-                  if (desiredState === "closed") updates.state_reason = "completed";
-                }
-                const currentIssueLabels = new Set((issue.labels || []).map((label) =>
-                  typeof label === "string" ? label : label.name));
-                const mergedLabels = [...new Set([...currentIssueLabels, ...labelSet])];
-                if (mergedLabels.length !== currentIssueLabels.size) updates.labels = mergedLabels;
-                if (milestone && (!issue.milestone || issue.milestone.number !== milestone.number)) {
-                  updates.milestone = milestone.number;
-                }
+                core.info("Created #" + issue.number + " for " + task.id + ": " + action.title);
+                continue;
+              }
 
-                if (Object.keys(updates).length > 0) {
-                  if (dryRun) {
-                    core.info("DRY RUN: would update issue #" + issue.number + " for " + task.id +
-                      ": " + Object.keys(updates).join(", ") + ".");
-                    updatedCount += 1;
-                  } else {
-                    const updated = await github.rest.issues.update({
-                      owner: owner, repo: repo, issue_number: issue.number, ...updates
-                    });
-                    issue = updated.data;
-                    linkedIssues.set(task.id, issue);
-                    updatedCount += 1;
-                    if (updates.state === "closed") closedCount += 1;
-                    if (updates.state === "open") reopenedCount += 1;
-                  }
+              if (action.type === "update") {
+                const writeResult = await runWrite({
+                  dryRun,
+                  operation: () => github.rest.issues.update({
+                    owner: owner, repo: repo, issue_number: action.issueNumber, ...action.updates
+                  })
+                });
+                if (!writeResult.performed) {
+                  core.info("DRY RUN: would update issue #" + action.issueNumber + " for " + task.id +
+                    ": " + Object.keys(action.updates).join(", ") + ".");
+                  updatedCount += 1;
+                  continue;
                 }
+                issue = writeResult.value.data;
+                linkedIssues.set(task.id, issue);
+                updatedCount += 1;
+                if (action.updates.state === "closed") closedCount += 1;
+                if (action.updates.state === "open") reopenedCount += 1;
               }
             }
 
