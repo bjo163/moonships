@@ -7,7 +7,7 @@
 
 ## Executive conclusion
 
-Moonships already has a substantial written product contract. The repository should not be described as having “no design”: `PRODUCT_BLUEPRINT.md` defines product scope and release stages, while `UX_AND_DESIGN.md` includes navigation, key flows, wireframes, initial design tokens, states and a UI checklist. The gap is that the design is still **documentary and unvalidated**: there is no implemented desktop shell, no running UI, no visual regression evidence, and no user test evidence.
+Moonships already has a substantial written product contract. The repository should not be described as having “no design”: `PRODUCT_BLUEPRINT.md` defines product scope and release stages, while `UX_AND_DESIGN.md` includes navigation, key flows, wireframes, initial design tokens, states and a UI checklist. The gap is that the design is still **documentary and unvalidated**: there is no implemented desktop shell, no running UI, no visual regression evidence, no approved shipped asset pack, and no user test evidence. The canonical UI design contract is now docs/DESIGN_SYSTEM.md and the canonical sound contract is docs/AUDIO_SFX_SPEC.md; these are specifications, not implemented product features.
 
 The next step is not to write another competing mega-blueprint. Keep the existing documents canonical, close the small implementation-readiness gaps listed here, then build the smallest real vertical slice and validate it on Windows.
 
@@ -16,7 +16,7 @@ The next step is not to write another competing mega-blueprint. Keep the existin
 | Area | Evidence in repository | Honest status |
 |---|---|---|
 | Product proposition and audiences | `PRODUCT_BLUEPRINT.md` | Specified; needs prioritization validation |
-| Navigation, workflows and low-fi layouts | `UX_AND_DESIGN.md` | Specified; not implemented or user-tested |
+| Navigation, workflows and low-fi layouts | `UX_AND_DESIGN.md` | Specified; not implemented or user-tested |\n| Visual tokens, components, motion and asset governance | `DESIGN_SYSTEM.md` | Canonical proposal; contrast and behavior not yet validated in app |\n| SFX event catalog and playback policy | `AUDIO_SFX_SPEC.md` | Canonical proposal; default off; no approved/shipped SFX yet |
 | Initial dark-theme tokens | `UX_AND_DESIGN.md` | Proposed values; contrast not yet measured |
 | Architecture and technology | `ARCHITECTURE.md` | Proposed baseline; no app source yet |
 | Data and security contracts | `DATA_MODEL.md`, `SECURITY_MODEL.md` | Documented baseline; runtime enforcement absent |
@@ -39,7 +39,7 @@ The next step is not to write another competing mega-blueprint. Keep the existin
 
 ## Design readiness findings
 
-### Already covered (do not create parallel specifications)
+### Canonical design sources (do not create parallel specifications)\n\n- UI tokens, component behavior, visual identity, motion, accessibility, asset provenance and visual QA: [Design System](DESIGN_SYSTEM.md).\n- SFX defaults, semantic event IDs, playback/throttling, asset manifest and tests: [Audio & SFX Specification](AUDIO_SFX_SPEC.md).\n- Navigation, user flows and low-fidelity layouts only: [UX & Design](UX_AND_DESIGN.md).
 
 - Product promise, audiences, domains, V0.1–V1.0 scope and post-V1 tracks: `PRODUCT_BLUEPRINT.md`.
 - Main navigation, home, task/project flows, command palette, tray, onboarding, tool flows, dark/light theme direction, component inventory, accessibility intent, error states and low-fidelity layouts: `UX_AND_DESIGN.md`.
@@ -60,7 +60,7 @@ The next step is not to write another competing mega-blueprint. Keep the existin
 7. **Navigation needs honest unavailable states.** Routes must distinguish implemented pages from Planned/Not configured/Unsupported; no dead links and no fabricated live data.
 8. **Data and job states need consistency.** The UI must distinguish a job's lifecycle from business activity history and diagnostic logs; no fake progress, fake cancellation, or success on partial/provider failure.
 9. **No product validation evidence exists yet.** After the first vertical slice, run a small task-based usability review with representative workflows and record friction before expanding the menu.
-10. **License and external-source review remain release gates.** UI inspiration does not grant permission to copy code, assets, branding or data.
+10. **Sound and visual assets need provenance.** No sound file, logo, illustration or font ships until license/source, fallback and review status are recorded; SFX remains off by default.\n11. **License and external-source review remain release gates.** UI inspiration does not grant permission to copy code, assets, branding or data.
 
 ## Recommended screen build order
 
