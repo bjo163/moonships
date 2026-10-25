@@ -74,6 +74,7 @@
 - [ ] **M1-033 — Bind Ctrl+K and palette focus lifecycle** [S] [depends: M1-031] — Open the palette from the main window, focus search, support Escape and restore focus. **AC:** shortcut does not interfere with typing in editable controls or nested dialogs.
 - [ ] **M1-034 — Implement first-run onboarding and workspace profile selection** [S] [depends: M1-030] — Offer Developer, Network/NOC, Sysadmin, Security/Research, Intelligence/Research and Custom profiles that change pinned tools/layout only. **AC:** profile selection persists, can be changed later, and never silently grants permissions.
 - [ ] **M1-035 — Add idempotent backlog-to-GitHub-Issues automation** [S] — Add a GitHub Actions workflow that mirrors unchecked backlog tasks to issues by stable task ID. **AC:** repeat runs create no duplicates, checked items close managed issues, the workflow has a dry-run mode, and issue creation is restricted to main/manual runs.
+- [ ] **M1-036 — Pin backlog-sync actions and automate update review** [S] — Pin each used GitHub Action to a verified full commit SHA from its official upstream repository and configure Dependabot for GitHub Actions. **AC:** action refs are full 40-character SHAs with documented release tags; the Dependabot config schedules update PRs; backlog validation and the pinned workflow complete successfully on main.
 
 ## M2 — Projects & Tasks
 
