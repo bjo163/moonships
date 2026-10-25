@@ -10,12 +10,12 @@ The workflow `.github/workflows/sync-backlog-to-issues.yml` runs when `docs/TASK
 
 For every task line in the backlog:
 - Unchecked and no linked issue: create an issue titled `[TASK-ID] Task title`.
-- Unchecked and linked issue: update the generated task section/title and ensure the issue is open.
+- Unchecked and linked issue: update the generated task section/title, estimate, scope, acceptance criteria, dependency IDs and source link; ensure the issue is open.
 - Checked and linked open issue: update the generated section and close the issue as completed.
 - Checked and no linked issue: do nothing; completed design/meta tasks need not have issues.
-- Task IDs are the identity; issue title text is not the identity.
+- Each generated issue carries its stable task ID marker, estimated size and declared prerequisite IDs. Task IDs are the identity; issue title text is not the identity.
 - Existing text outside the generated body markers and issue comments are preserved.
-- The workflow ensures labels `task` and `backlog-sync`, and milestone association for active phases.
+- The workflow ensures labels `task` and `backlog-sync`, and milestone association for active phases. Changes to either the backlog or milestone document trigger sync on `main`.
 - M0 does not need a GitHub milestone if all M0 checkboxes are already checked.
 - A repeated sync is safe; it should not create duplicate issues.
 
