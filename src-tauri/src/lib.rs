@@ -1,12 +1,14 @@
 use std::{
     fs,
     path::{Path, PathBuf},
+    time::Duration,
 };
 
 use rusqlite::Connection;
 use tauri::{AppHandle, Manager};
 
 const DATABASE_FILE_NAME: &str = "moonships.sqlite3";
+const DATABASE_BUSY_TIMEOUT_MS: u64 = 5_000;
 
 fn database_path(app_data_dir: &Path) -> PathBuf {
     app_data_dir.join(DATABASE_FILE_NAME)
@@ -16,7 +18,24 @@ fn open_database_in(app_data_dir: &Path) -> Result<Connection, String> {
     fs::create_dir_all(app_data_dir)
         .map_err(|error| format!("Could not create app data directory: {error}"))?;
     let path = database_path(app_data_dir);
-    Connection::open(path).map_err(|error| format!("Could not open Moonships database: {error}"))
+    let connection = Connection::open(path)
+        .map_err(|error| format!("Could not open Moonships database: {error}"))?;
+
+    connection
+        .busy_timeout(Duration::from_millis(DATABASE_BUSY_TIMEOUT_MS))
+        .map_err(|error| format!("Could not configure SQLite busy timeout: {error}"))?;
+    connection
+        .execute_batch("PRAGMA foreign_keys = ON;")
+        .map_err(|error| format!("Could not enable SQLite foreign keys: {error}"))?;
+
+    let foreign_keys_enabled: i64 = connection
+        .query_row("PRAGMA foreign_keys", [], |row| row.get(0))
+        .map_err(|error| format!("Could not verify SQLite foreign-key enforcement: {error}"))?;
+    if foreign_keys_enabled != 1 {
+        return Err("SQLite foreign-key enforcement is not enabled".to_string());
+    }
+
+    Ok(connection)
 }
 
 const CURRENT_SCHEMA_VERSION: i64 = 1;
@@ -193,7 +212,7 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::{database_path, hide_to_tray_enabled, open_database_in, run_migrations, CURRENT_SCHEMA_VERSION, DATABASE_FILE_NAME};
+    use super::{database_path, hide_to_tray_enabled, open_database_in, run_migrations, CURRENT_SCHEMA_VERSION, DATABASE_BUSY_TIMEOUT_MS, DATABASE_FILE_NAME};
     use std::{
         fs,
         path::Path,
@@ -233,6 +252,47 @@ mod tests {
 
         assert!(app_data_dir.is_dir());
         assert!(expected_database.is_file());
+        let _ = fs::remove_dir_all(app_data_dir);
+    }
+
+    #[test]
+    fn every_opened_connection_enables_foreign_keys_and_sets_busy_timeout() {
+        let app_data_dir = unique_temp_dir("sqlite-pragmas");
+        let connection = open_database_in(&app_data_dir).expect("database should open");
+
+        let foreign_keys_enabled: i64 = connection
+            .query_row("PRAGMA foreign_keys", [], |row| row.get(0))
+            .expect("foreign-key pragma should be readable");
+        let busy_timeout_ms: i64 = connection
+            .query_row("PRAGMA busy_timeout", [], |row| row.get(0))
+            .expect("busy timeout pragma should be readable");
+
+        assert_eq!(foreign_keys_enabled, 1);
+        assert_eq!(busy_timeout_ms, DATABASE_BUSY_TIMEOUT_MS as i64);
+        drop(connection);
+        let _ = fs::remove_dir_all(app_data_dir);
+    }
+
+    #[test]
+    fn foreign_key_violation_is_rejected_on_opened_connection() {
+        let app_data_dir = unique_temp_dir("sqlite-foreign-key");
+        let connection = open_database_in(&app_data_dir).expect("database should open");
+        connection
+            .execute_batch(
+                "CREATE TABLE parent_records (id INTEGER PRIMARY KEY);
+                 CREATE TABLE child_records (
+                    id INTEGER PRIMARY KEY,
+                    parent_id INTEGER NOT NULL REFERENCES parent_records(id)
+                 );",
+            )
+            .expect("foreign-key fixture should be created");
+
+        let result = connection.execute(
+            "INSERT INTO child_records (id, parent_id) VALUES (?1, ?2)",
+            rusqlite::params![1, 999],
+        );
+        assert!(result.is_err(), "invalid parent reference must be rejected");
+        drop(connection);
         let _ = fs::remove_dir_all(app_data_dir);
     }
 
