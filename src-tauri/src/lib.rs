@@ -1,3 +1,6 @@
+mod domain;
+mod local_logging;
+
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -145,6 +148,18 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![get_hide_to_tray, set_hide_to_tray])
         .setup(|app| {
             let app_data_dir = app.path().app_data_dir()?;
+            let startup_event = local_logging::LogEvent::new(
+                local_logging::LogLevel::Info,
+                local_logging::LogCategory::AppLifecycle,
+                "app_starting",
+                std::collections::BTreeMap::new(),
+            );
+            if let Err(error) = local_logging::write_event(
+                &app_data_dir.join("logs").join("moonships.log"),
+                &startup_event,
+            ) {
+                eprintln!("Moonships local logging initialization failed: {error}");
+            }
             // Open/create the database only under Tauri's per-user application data directory.
             let mut database = open_database_in(&app_data_dir)
                 .map_err(std::io::Error::other)?;
