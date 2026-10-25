@@ -64,7 +64,10 @@ Exit criteria:
 - [ ] No background monitoring starts without explicit configuration.
 - [ ] Database initializes/migrates without destructive reset.
 - [ ] All commands validate arguments and expose stable error codes.
-- [ ] CI has clear required checks and no fake status badges.\n- [ ] Minimum-window/overflow behavior is documented and verified (M1-038).\n- [ ] Core shell visual/accessibility review has recorded evidence (M1-039).\n- [ ] App can be used without cloud account or model provider.
+- [ ] CI has clear required checks and no fake status badges.
+- [ ] Minimum-window/overflow behavior is documented and verified (M1-038).
+- [ ] Core shell visual/accessibility review has recorded evidence (M1-039).
+- [ ] App can be used without cloud account or model provider.
 
 ## M2 — Projects & Tasks
 
