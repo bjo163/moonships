@@ -88,7 +88,7 @@ Read [Architecture](docs/ARCHITECTURE.md), [ADR Template](docs/ADR_TEMPLATE.md),
 | **M7 — Automation & AI** | Deterministic workflows, AI provider interface, approval gates; MCP as optional adapter |
 | **M8 — Stable release** | Security, accessibility, performance, upgrade, packaging and release checks |
 
-The milestones and granular checkboxes are maintained in [Milestones](docs/MILESTONES.md) and [Task Backlog](docs/TASK_BACKLOG.md). An AI coding agent should execute one small task at a time and update the checklist only after verifying the acceptance criteria.
+The milestones and granular checkboxes are maintained in [Milestones](docs/MILESTONES.md) and [Task Backlog](docs/TASK_BACKLOG.md). The [Backlog → GitHub Issues workflow](docs/TASK_ISSUE_SYNC.md) mirrors tasks to issues by stable ID, and [Overlap Audit](docs/OVERLAP_AUDIT.md) documents feature boundaries and deferred coverage. An AI coding agent should execute one small task at a time and update the checklist only after verifying the acceptance criteria.
 
 ## Start here
 
@@ -96,7 +96,7 @@ The milestones and granular checkboxes are maintained in [Milestones](docs/MILES
 2. Review [UX & Design](docs/UX_AND_DESIGN.md).
 3. Review [Architecture](docs/ARCHITECTURE.md) and [Data Model](docs/DATA_MODEL.md).
 4. Understand the [Security Model](docs/SECURITY_MODEL.md).
-5. Pick the first unchecked task in [Task Backlog](docs/TASK_BACKLOG.md), respecting its dependencies.
+5. Review [Overlap Audit](docs/OVERLAP_AUDIT.md) and [Backlog → GitHub Issues sync](docs/TASK_ISSUE_SYNC.md).\n6. Pick the first unblocked unchecked task in [Task Backlog](docs/TASK_BACKLOG.md), respecting dependencies.\n7. Follow [AI Agent Guide](docs/AI_AGENT_GUIDE.md) and root [AGENTS.md](AGENTS.md) before changing code.
 6. Follow [AI Agent Guide](docs/AI_AGENT_GUIDE.md) and root [AGENTS.md](AGENTS.md) before changing code.
 7. Review [Research & Decisions](docs/RESEARCH_AND_DECISIONS.md) for licensing and unresolved owner decisions.
 
