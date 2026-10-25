@@ -2,7 +2,7 @@
 
 ## Automated Windows release
 
-Push a version tag such as `v0.1.0-alpha.1` to start `.github/workflows/desktop-release.yml`.
+Create a release branch such as `release/v0.1.0-alpha.1` from the exact commit to publish. Once this workflow is merged into `main`, pushing that branch starts `.github/workflows/desktop-release.yml`; the workflow creates the matching `v0.1.0-alpha.1` tag on the same commit and publishes the release assets.
 
 The workflow:
 1. Verifies Node.js 24 LTS and npm 11.
