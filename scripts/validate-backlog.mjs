@@ -147,7 +147,7 @@ for (const [sourceFile, original] of fileContents.entries()) {
   }
 }
 
-if (backlog && !backlog.includes("docs/TASK_ISSUE_SYNC.md")) {
+if (backlog && !backlog.includes("TASK_ISSUE_SYNC.md")) {
   errors.push("Task backlog does not document its GitHub Issues sync contract.");
 }
 
