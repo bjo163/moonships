@@ -143,8 +143,8 @@ describe("system tray integration contract", () => {
     expect(rustSource).toContain('"quit"');
     expect(rustSource).toContain('app.emit("tray-settings", ())');
     expect(rustSource).toContain("app.exit(0)");
-    expect(rustSource).toContain('"get_hide_to_tray"');
-    expect(rustSource).toContain('"set_hide_to_tray"');
+    expect(rustSource).toContain("get_hide_to_tray(app: AppHandle)");
+    expect(rustSource).toContain("set_hide_to_tray(app: AppHandle, enabled: bool)");
     expect(rustSource).toContain("CloseRequested");
     expect(rustSource).toContain("window.hide()");
     expect(rustSource).toContain("hide_to_tray_enabled");
