@@ -84,3 +84,19 @@ jobs:
         run: npm run build
       - name: Validate Tauri configuration JSON
         run: node -e "JSON.parse(require('node:fs').readFileSync('src-tauri/tauri.conf.json', 'utf8')); JSON.parse(require('node:fs').readFileSync('src-tauri/capabilities/default.json', 'utf8'));"
+
+  rust-quality:
+    name: Rust format and Clippy
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Rust stable quality tools
+        run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy --target x86_64-pc-windows-msvc
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
