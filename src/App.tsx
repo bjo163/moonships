@@ -47,10 +47,11 @@ type AppShellProps = {
   onToggleTheme: () => void;
   onOpenCommandPalette?: () => void;
   profileLabel?: string;
+  pinnedItems?: readonly string[];
   onOpenProfile?: () => void;
 };
 
-export function AppShell({ children, theme, onToggleTheme, onOpenCommandPalette, profileLabel = "Developer", onOpenProfile }: AppShellProps) {
+export function AppShell({ children, theme, onToggleTheme, onOpenCommandPalette, profileLabel = "Developer", pinnedItems = [], onOpenProfile }: AppShellProps) {
   return (
     <main className="app-frame">
       <a className="skip-link" href="#main-content">
@@ -71,9 +72,9 @@ export function AppShell({ children, theme, onToggleTheme, onOpenCommandPalette,
             <span>Home</span>
           </a>
           {plannedNavigationItems.map((label) => (
-            <div className="nav-item nav-item-planned" key={label} aria-disabled="true">
+            <div className={`nav-item nav-item-planned${pinnedItems.includes(label) ? " nav-item-profile-pinned" : ""}`} key={label} aria-disabled="true">
               <span>{label}</span>
-              <span className="nav-state">Planned</span>
+              <span className="nav-state">{pinnedItems.includes(label) ? "Pinned · Planned" : "Planned"}</span>
             </div>
           ))}
         </nav>
@@ -399,11 +400,7 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
-    if (commandPaletteOpen) {
-      paletteTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    } else {
-      paletteTriggerRef.current?.focus();
-    }
+    if (!commandPaletteOpen) paletteTriggerRef.current?.focus();
   }, [commandPaletteOpen]);
 
   useEffect(() => {
@@ -524,7 +521,7 @@ export default function App() {
   }, []);
 
   return (
-    <AppShell theme={theme} onToggleTheme={toggleTheme} onOpenCommandPalette={() => { paletteTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setCommandPaletteOpen(true); }} profileLabel={getWorkspaceProfile(profileId).label} onOpenProfile={() => setProfileDialogOpen(true)}>
+    <AppShell theme={theme} onToggleTheme={toggleTheme} onOpenCommandPalette={() => { paletteTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setCommandPaletteOpen(true); }} profileLabel={getWorkspaceProfile(profileId).label} pinnedItems={getWorkspaceProfile(profileId).pinned} onOpenProfile={() => setProfileDialogOpen(true)}>
       {route.kind === "page" && route.id === "overview" ? (
         <OverviewPage />
       ) : (
