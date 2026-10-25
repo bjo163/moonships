@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - docs/TASK_BACKLOG.md
+      - docs/MILESTONES.md
   workflow_dispatch:
     inputs:
       dry_run:
@@ -183,13 +184,26 @@ jobs:
             function managedBlock(task) {
               const status = task.checked ? "checked (complete)" : "unchecked (open)";
               const sourceUrl = "https://github.com/" + owner + "/" + repo + "/blob/main/docs/TASK_BACKLOG.md";
-              const scope = task.tail.replace(/^\s*\[(?:S|M)\]\s*—\s*/, "").trim();
+              const estimateMatch = task.tail.match(/^\s*\[([SM])\]/);
+              const dependencyMatch = task.tail.match(/\[depends:\s*([^\]]+)\]/i);
+              const dependencyIds = dependencyMatch
+                ? dependencyMatch[1].split(/[\s,]+/).filter(Boolean)
+                : [];
+              const scope = task.tail
+                .replace(/^\s*\[(?:S|M)\]\s*/, "")
+                .replace(/\[depends:\s*[^\]]+\]\s*/i, "")
+                .replace(/^\s*—\s*/, "")
+                .trim();
+              const dependencySummary = dependencyIds.length > 0
+                ? "Declared dependency task IDs: " + dependencyIds.join(", ") + ". Resolve each prerequisite before starting this task."
+                : "No explicit task-ID dependency is declared. Still honor milestone gates and the relevant design/security prerequisites.";
               return [
                 startMarker,
                 "<!-- moonships-task-id: " + task.id + " -->",
                 "### Backlog task " + task.id + " — " + task.title,
                 "**Checklist status:** " + status,
                 "**Phase:** " + phaseTitles.get(task.phase),
+                "**Estimated size:** " + (estimateMatch ? estimateMatch[1] : "unspecified"),
                 "**Source:** [docs/TASK_BACKLOG.md](" + sourceUrl + ") — task ID " + task.id + ".",
                 "",
                 "### Scope and acceptance criteria",
@@ -203,7 +217,7 @@ jobs:
                 "- Never invent test results or execute high-impact actions without the policy/approval requirements.",
                 "",
                 "### Dependencies",
-                "See the declared dependency IDs on the source checklist and complete them first.",
+                dependencySummary,
                 endMarker,
               ].join("\n");
             }
