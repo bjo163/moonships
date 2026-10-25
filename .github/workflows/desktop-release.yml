@@ -112,6 +112,7 @@ jobs:
             gh release edit $tag --prerelease
             if ($LASTEXITCODE -ne 0) { throw "Could not mark the existing release as a prerelease." }
             Write-Host "Release already exists with $assetCount assets; confirmed prerelease status."
+          }
 
       - name: Mark existing release as prerelease
         if: steps.release-state.outputs.already_published == 'true'
@@ -121,4 +122,3 @@ jobs:
         run: |
           $tag = $env:GITHUB_REF_NAME -replace "^release/", ""
           gh release edit $tag --repo $env:GITHUB_REPOSITORY --prerelease
-          }
