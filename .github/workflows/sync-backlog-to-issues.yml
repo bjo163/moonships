@@ -182,8 +182,7 @@ jobs:
 
             function managedBlock(task) {
               const status = task.checked ? "checked (complete)" : "unchecked (open)";
-              const sourceUrl = "https://github.com/" + owner + "/" + repo + "/blob/" + context.sha +
-                "/docs/TASK_BACKLOG.md#L" + task.line;
+              const sourceUrl = "https://github.com/" + owner + "/" + repo + "/blob/main/docs/TASK_BACKLOG.md";
               const scope = task.tail.replace(/^\s*\[(?:S|M)\]\s*—\s*/, "").trim();
               return [
                 startMarker,
@@ -191,7 +190,7 @@ jobs:
                 "### Backlog task " + task.id + " — " + task.title,
                 "**Checklist status:** " + status,
                 "**Phase:** " + phaseTitles.get(task.phase),
-                "**Source:** [docs/TASK_BACKLOG.md, line " + task.line + "](" + sourceUrl + ")",
+                "**Source:** [docs/TASK_BACKLOG.md](" + sourceUrl + ") — search for task ID `" + task.id + "`.
                 "",
                 "### Scope and acceptance criteria",
                 scope,
