@@ -2,8 +2,8 @@
 
 const START_MARKER = '<!-- moonships-task-sync:start -->';
 const END_MARKER = '<!-- moonships-task-sync:end -->';
-const TASK_MARKER = /<!--\\s*moonships-task-id:\\s*(M\\d+-\\d{3})\\s*-->/g;
-const TASK_TITLE = /^\\[([A-Z]\\d+-\\d{3})\\]/;
+const TASK_MARKER = /<!--\s*moonships-task-id:\s*(M\d+-\d{3})\s*-->/g;
+const TASK_TITLE = /^\[([A-Z]\d+-\d{3})\]/;
 
 function preflightIssueSnapshot({ tasks, issues }) {
   const taskIds = new Set();
