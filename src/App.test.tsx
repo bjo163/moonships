@@ -47,6 +47,11 @@ describe("Moonships application shell", () => {
     expect(markup).toContain('type="checkbox"');
     expect(markup).toContain("Hide to tray on close");
     expect(markup).toContain('role="status" aria-live="polite"');
+    expect(markup).toContain("Notification and permission controls");
+    expect(markup).toContain("These capabilities are not connected yet.");
+    expect(markup).toContain('aria-label="Desktop notifications (Planned)"');
+    expect(markup).toContain('aria-label="Background monitoring permission (Planned)"');
+    expect(markup).toContain('class="nav-state">Planned</span>');
   });
 
   it("keeps shared navigation and header around replaceable page content", () => {
