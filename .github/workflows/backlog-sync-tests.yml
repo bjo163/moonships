@@ -78,7 +78,7 @@ jobs:
         run: npm run format:check
       - name: Run root lint command
         run: npm run lint
-      - name: Run root test command
+      - name: Run frontend unit tests
         run: npm test
       - name: Run root typecheck command
         run: npm run typecheck
@@ -136,3 +136,17 @@ jobs:
             src-tauri/target/release/bundle/nsis/*.exe
           if-no-files-found: error
           retention-days: 14
+
+  rust-tests:
+    name: Rust unit tests
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Rust stable Windows target
+        run: rustup toolchain install stable --profile minimal --target x86_64-pc-windows-msvc
+      - name: Run Rust unit tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml --all-targets
