@@ -413,6 +413,7 @@ export default function App() {
       if (event.defaultPrevented || isEditableTarget(event.target) || commandPaletteOpen) return;
       if (document.querySelector("[role=dialog]") || settingsOpen || profileDialogOpen || commandPreview) return;
       event.preventDefault();
+      paletteTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       setCommandPaletteOpen(true);
     };
     window.addEventListener("keydown", onGlobalKeyDown);
