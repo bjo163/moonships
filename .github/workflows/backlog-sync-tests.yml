@@ -74,7 +74,13 @@ jobs:
         run: node -e "if (process.versions.node.split('.')[0] !== '22') process.exit(1)" && npm --version | grep -E '^10\.'
       - name: Install dependencies
         run: npm install
-      - name: Build frontend and type-check
+      - name: Run root lint command
+        run: npm run lint
+      - name: Run root test command
+        run: npm test
+      - name: Run root typecheck command
+        run: npm run typecheck
+      - name: Build frontend
         run: npm run build
       - name: Validate Tauri configuration JSON
         run: node -e "JSON.parse(require('node:fs').readFileSync('src-tauri/tauri.conf.json', 'utf8')); JSON.parse(require('node:fs').readFileSync('src-tauri/capabilities/default.json', 'utf8'));"

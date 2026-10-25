@@ -39,9 +39,22 @@ npm install
 npm run tauri -- dev
 ```
 
+## Standard root scripts
+
+- `npm run dev`: start the Vite development server.
+- `npm run lint`: syntax-check the repository's Node-based sync tool. Frontend lint/format tooling is tracked separately in M1-005.
+- `npm test`: run the Node regression tests for backlog issue synchronization.
+- `npm run typecheck`: run strict TypeScript project checks.
+- `npm run build`: type-check and build the frontend production bundle.
+- `npm run check`: run the current lint, test, typecheck and build gates.
+- `npm run tauri -- dev`: run the Tauri desktop shell.
+
 ## Checks
 
 ```powershell
+npm run lint
+npm test
+npm run typecheck
 npm run build
 cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
 cargo test --manifest-path src-tauri/Cargo.toml
