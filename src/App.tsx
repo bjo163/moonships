@@ -228,6 +228,11 @@ export function SettingsDialog({
   hideToTrayStatus: string;
   onToggleHideToTray: () => void;
 }) {
+  const closeRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    closeRef.current?.focus();
+  }, []);
+
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -253,6 +258,7 @@ export function SettingsDialog({
             className="settings-close"
             type="button"
             onClick={onClose}
+            ref={closeRef}
             aria-label="Close settings"
           >
             Close
@@ -452,6 +458,11 @@ export function CommandPreviewDialog({
   description: string;
   onClose: () => void;
 }) {
+  const closeRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    closeRef.current?.focus();
+  }, []);
+
   return (
     <div className="settings-backdrop" role="presentation">
       <section
@@ -469,6 +480,7 @@ export function CommandPreviewDialog({
             className="settings-close"
             type="button"
             onClick={onClose}
+            ref={closeRef}
             aria-label="Close command preview"
           >
             Close
@@ -545,8 +557,11 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
-    if (!commandPaletteOpen) paletteTriggerRef.current?.focus();
-  }, [commandPaletteOpen]);
+    // Return to the opener only after the last overlay closes.
+    if (!commandPaletteOpen && !settingsOpen && !commandPreview && !profileDialogOpen) {
+      paletteTriggerRef.current?.focus();
+    }
+  }, [commandPaletteOpen, settingsOpen, commandPreview, profileDialogOpen]);
 
   useEffect(() => {
     const isEditableTarget = (target: EventTarget | null) => {

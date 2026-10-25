@@ -60,10 +60,7 @@ export function CommandPalette({
   if (!open) return null;
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      onClose();
-    } else if (!loading && event.key === "ArrowDown" && results.length > 0) {
+    if (!loading && event.key === "ArrowDown" && results.length > 0) {
       event.preventDefault();
       setActiveIndex((selectedIndex + 1) % results.length);
     } else if (!loading && event.key === "ArrowUp" && results.length > 0) {
@@ -75,6 +72,29 @@ export function CommandPalette({
     }
   };
 
+  const handleDialogKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      onClose();
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const elements = Array.from(
+      event.currentTarget.querySelectorAll<HTMLElement>(
+        "button:not(:disabled), input:not(:disabled)",
+      ),
+    );
+    const first = elements[0];
+    const last = elements[elements.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last?.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first?.focus();
+    }
+  };
+
   return (
     <div className="command-palette-backdrop" role="presentation">
       <section
@@ -83,6 +103,7 @@ export function CommandPalette({
         aria-modal="true"
         aria-labelledby="command-palette-title"
         aria-describedby="command-palette-help"
+        onKeyDown={handleDialogKeyDown}
       >
         <div className="command-palette-heading">
           <div>
