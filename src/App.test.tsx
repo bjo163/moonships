@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import App, { AppShell, NotFoundPage, SettingsDialog, WorkspaceProfileDialog } from "./App";
+import App, { AppShell, NotFoundPage, SettingsDialog } from "./App";
 import { resolveRoute } from "./route-registry";
 import { CommandPalette, filterPaletteCommands, type PaletteCommand } from "./CommandPalette";
 import { COMMAND_REGISTRY, getRegisteredCommand, getPaletteCommands } from "./command-registry";
