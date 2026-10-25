@@ -144,7 +144,10 @@ pub fn write_event(path: &Path, event: &LogEvent) -> Result<(), String> {
 mod tests {
     use super::*;
     use serde_json::json;
-    use std::{fs, time::{SystemTime, UNIX_EPOCH}};
+    use std::{
+        fs,
+        time::{SystemTime, UNIX_EPOCH},
+    };
 
     #[test]
     fn structured_logs_redact_secret_fields_recursively() {
@@ -159,7 +162,12 @@ mod tests {
                 "nested": { "client_secret": "private-client-secret" }
             }),
         );
-        let event = LogEvent::new(LogLevel::Info, LogCategory::Security, "credential_check", fields);
+        let event = LogEvent::new(
+            LogLevel::Info,
+            LogCategory::Security,
+            "credential_check",
+            fields,
+        );
 
         let line = render_event(&event).expect("event should serialize");
         assert!(!line.contains("top-secret-token-value"));
@@ -172,7 +180,10 @@ mod tests {
 
     #[test]
     fn local_log_writer_appends_json_lines_to_app_owned_path() {
-        let unique = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
         let directory = std::env::temp_dir().join(format!("moonships-log-{unique}"));
         let path = directory.join("logs").join("moonships.log");
         let event = LogEvent::new(
