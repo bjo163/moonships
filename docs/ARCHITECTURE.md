@@ -19,7 +19,7 @@
 | AI | Optional provider abstraction, added after tool contracts are stable | No model lock-in and no AI requirement |
 | MCP | Optional version-pinned integration | Interoperability without coupling core to evolving protocol |
 
-Use current official docs at implementation time; pin dependency versions and review breaking changes. Tauri capabilities constrain which commands/plugins are exposed to each webview, but capability configuration does not replace validation in native code.
+Use current official docs at implementation time; pin dependency versions and review breaking changes. Tauri capabilities constrain which commands/plugins are exposed to each webview, but capability configuration does not replace validation in native code. Record architecture changes using the [ADR template](ADR_TEMPLATE.md) and update the decision register when relevant.
 
 ## 2. Runtime layers
 
