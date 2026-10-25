@@ -58,7 +58,11 @@ fn run_migrations(connection: &mut Connection) -> Result<(), String> {
         .map_err(|error| format!("Could not create schema version table: {error}"))?;
 
     let current_version: i64 = transaction
-        .query_row("SELECT COALESCE(MAX(version), 0) FROM schema_migrations", [], |row| row.get(0))
+        .query_row(
+            "SELECT COALESCE(MAX(version), 0) FROM schema_migrations",
+            [],
+            |row| row.get(0),
+        )
         .map_err(|error| format!("Could not read schema version: {error}"))?;
 
     if current_version > CURRENT_SCHEMA_VERSION {
@@ -161,8 +165,7 @@ pub fn run() {
                 eprintln!("Moonships local logging initialization failed: {error}");
             }
             // Open/create the database only under Tauri's per-user application data directory.
-            let mut database = open_database_in(&app_data_dir)
-                .map_err(std::io::Error::other)?;
+            let mut database = open_database_in(&app_data_dir).map_err(std::io::Error::other)?;
             run_migrations(&mut database).map_err(std::io::Error::other)?;
             let _database = database;
 
@@ -227,7 +230,10 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::{database_path, hide_to_tray_enabled, open_database_in, run_migrations, CURRENT_SCHEMA_VERSION, DATABASE_BUSY_TIMEOUT_MS, DATABASE_FILE_NAME};
+    use super::{
+        database_path, hide_to_tray_enabled, open_database_in, run_migrations,
+        CURRENT_SCHEMA_VERSION, DATABASE_BUSY_TIMEOUT_MS, DATABASE_FILE_NAME,
+    };
     use std::{
         fs,
         path::Path,
@@ -318,13 +324,17 @@ mod tests {
         run_migrations(&mut connection).expect("fresh migration should succeed");
 
         let version: i64 = connection
-            .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| row.get(0))
+            .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| {
+                row.get(0)
+            })
             .expect("schema version should be recorded");
         assert_eq!(version, CURRENT_SCHEMA_VERSION);
 
         run_migrations(&mut connection).expect("migration should be safe to rerun");
         let version_after_rerun: i64 = connection
-            .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| row.get(0))
+            .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| {
+                row.get(0)
+            })
             .expect("schema version should remain available");
         assert_eq!(version_after_rerun, CURRENT_SCHEMA_VERSION);
         drop(connection);
