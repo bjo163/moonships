@@ -80,3 +80,10 @@ jobs:
         run: |
           $tag = $env:GITHUB_REF_NAME -replace "^release/", ""
           gh release create $tag "${{ steps.installers.outputs.msi_path }}" "${{ steps.installers.outputs.nsis_path }}" --target $env:GITHUB_SHA --title "Moonships $tag" --generate-notes
+          if ($LASTEXITCODE -ne 0) {
+            $assetCount = gh release view $tag --json assets --jq ".assets | length"
+            if ($LASTEXITCODE -ne 0 -or [int]$assetCount -lt 2) {
+              throw "Release creation failed and no complete existing release was found."
+            }
+            Write-Host "Release already exists with $assetCount assets; keeping the published release."
+          }
