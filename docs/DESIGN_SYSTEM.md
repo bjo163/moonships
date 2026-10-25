@@ -1,6 +1,6 @@
 # Moonships Design System
 
-**Status:** Canonical design contract — proposed; implementation and validation pending  
+**Status:** Canonical design contract — proposed; initial semantic token implementation in progress; contrast and Windows visual validation pending  
 **Scope:** UI structure, visual identity, design tokens, components, motion, accessibility, asset governance and visual QA.  
 **Companion:** [Audio & SFX Specification](AUDIO_SFX_SPEC.md) is authoritative for sound behavior and audio assets.  
 **Information architecture:** [UX, Navigation & Design Specification](UX_AND_DESIGN.md) owns menus, user journeys and low-fidelity page layouts. It must reference this document rather than redefine visual tokens.
