@@ -5,7 +5,7 @@
 
 Moonships is planned as a **Windows-first desktop workbench** that brings technical utilities, project and task management, system/network diagnostics, authorized security testing, world/media intelligence, and controlled automation into one modular workspace.
 
-**Project status: blueprint / pre-implementation.** This repository is being established as the product specification and execution source of truth. Features described here are planned, not claims of existing functionality.
+**Project status: blueprint / pre-implementation.** This repository currently serves as the product specification and execution source of truth. Features described here are planned, not claims of existing functionality.
 
 <p align="center">
   <img alt="Project status" src="https://img.shields.io/badge/status-blueprint%20phase-64748b">
@@ -126,7 +126,7 @@ moonships-workbench/
     └── RESEARCH_AND_DECISIONS.md
 ```
 
-This is the **target documentation layout**. Each file is added as the blueprint is committed; actual implementation may later add or revise source folders.
+This is the current documentation layout. Implementation source folders, tests and workflows will be added as their roadmap tasks are executed.
 
 ## Research and design references
 
