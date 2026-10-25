@@ -1,10 +1,16 @@
+import type { ReactNode } from "react";
+
 const foundationChecks = [
   { label: "Desktop runtime", detail: "Tauri 2 · Rust", status: "Foundation" },
   { label: "Interface", detail: "React · TypeScript · Vite", status: "Foundation" },
   { label: "Data and tools", detail: "Not connected yet", status: "Planned" },
 ];
 
-export default function App() {
+type AppShellProps = {
+  children: ReactNode;
+};
+
+export function AppShell({ children }: AppShellProps) {
   return (
     <main className="app-frame">
       <aside className="rail" aria-label="Primary navigation">
@@ -27,65 +33,80 @@ export default function App() {
         <div className="rail-footer">BUILD · MANAGE · OBSERVE</div>
       </aside>
 
-      <section className="main-panel" id="home">
+      <section className="main-panel">
         <header className="topbar">
           <div>
-            <span className="eyebrow">DESKTOP FOUNDATION / 00</span>
-            <h1>Workbench overview</h1>
+            <span className="eyebrow">MOONSHIPS / WORKSPACE</span>
+            <h1>Moonships Workbench</h1>
           </div>
           <span className="phase-pill">
-            <span className="status-dot" /> FOUNDATION
+            <span className="status-dot" /> LOCAL-FIRST
           </span>
         </header>
-
-        <section className="hero" aria-labelledby="hero-title">
-          <div className="hero-orbit" aria-hidden="true">
-            <span />
-            <i />
-            <b />
-          </div>
-          <div className="hero-copy">
-            <p className="eyebrow">YOUR SPACE. YOUR SIGNAL.</p>
-            <h2 id="hero-title">
-              A clear starting point
-              <br />
-              for complex work.
-            </h2>
-            <p className="hero-description">
-              Moonships is being built as a local-first technical workbench. This starter screen
-              confirms the interface foundation; operational tools are not connected yet.
-            </p>
-            <span className="quiet-chip">PRE-IMPLEMENTATION SHELL</span>
-          </div>
-        </section>
-
-        <section className="section-heading">
-          <div>
-            <p className="eyebrow">SYSTEM MAP / 01</p>
-            <h2>Foundation status</h2>
-          </div>
-          <span className="muted">No external services connected</span>
-        </section>
-
-        <div className="status-grid">
-          {foundationChecks.map((item, index) => (
-            <article className="status-card" key={item.label}>
-              <div className="card-index">0{index + 1}</div>
-              <h3>{item.label}</h3>
-              <p>{item.detail}</p>
-              <span className={item.status === "Planned" ? "state state-planned" : "state"}>
-                <span className="state-dot" />
-                {item.status}
-              </span>
-            </article>
-          ))}
-        </div>
-
-        <footer className="page-footer">
-          <span>MOONSHIPS WORKBENCH</span>
-          <span>Build the core. Verify every signal.</span>
-        </footer>
+        <div className="page-content">{children}</div>
       </section>
     </main>
+  );
+}
+
+function OverviewPage() {
+  return (
+    <div id="home">
+      <section className="hero" aria-labelledby="hero-title">
+        <div className="hero-orbit" aria-hidden="true">
+          <span />
+          <i />
+          <b />
+        </div>
+        <div className="hero-copy">
+          <p className="eyebrow">YOUR SPACE. YOUR SIGNAL.</p>
+          <h2 id="hero-title">
+            A clear starting point
+            <br />
+            for complex work.
+          </h2>
+          <p className="hero-description">
+            Moonships is being built as a local-first technical workbench. This starter screen
+            confirms the interface foundation; operational tools are not connected yet.
+          </p>
+          <span className="quiet-chip">PRE-IMPLEMENTATION SHELL</span>
+        </div>
+      </section>
+
+      <section className="section-heading">
+        <div>
+          <p className="eyebrow">SYSTEM MAP / 01</p>
+          <h2>Workbench overview</h2>
+        </div>
+        <span className="muted">No external services connected</span>
+      </section>
+
+      <div className="status-grid">
+        {foundationChecks.map((item, index) => (
+          <article className="status-card" key={item.label}>
+            <div className="card-index">0{index + 1}</div>
+            <h3>{item.label}</h3>
+            <p>{item.detail}</p>
+            <span className={item.status === "Planned" ? "state state-planned" : "state"}>
+              <span className="state-dot" />
+              {item.status}
+            </span>
+          </article>
+        ))}
+      </div>
+
+      <footer className="page-footer">
+        <span>MOONSHIPS WORKBENCH</span>
+        <span>Build the core. Verify every signal.</span>
+      </footer>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AppShell>
+      <OverviewPage />
+    </AppShell>
   );
 }
