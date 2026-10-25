@@ -64,15 +64,15 @@ Validate saved view schema and migration version.
 
 ### AppSetting
 Fields: key, value_json, schema_version, updated_at.
-Only non-secret preferences; secrets use OS credential storage or a dedicated secure abstraction.
+Only non-secret preferences; secrets use OS credential storage or a dedicated secure abstraction. The initial typed config schema is version 1 with dark theme, Developer profile, Info logging and hide-to-tray disabled by default. Reject unknown fields and unsupported schema versions rather than silently coercing them.
 
 ### ToolDefinition (registered tool metadata)
 Fields: id, version, api_version, name, description, category, platform_support, input_schema_json, output_schema_json, permissions_json, risk_class, enabled, source_type, created_at.
-Do not store executable code in the registry. MVP tool definitions are compiled-in.
+Do not store executable code in the registry. MVP tool definitions are compiled-in. The native contract includes ID, semantic version, API version, input/output schemas, risk class, required permissions and enabled state.
 
 ### ToolRun / Job
 Fields: id, tool_id, tool_version, input_redacted_json, status, started_at?, finished_at?, duration_ms?, output_summary?, error_code?, error_redacted?, initiated_by, approval_id?, correlation_id?, cancellability, created_at.
-Sensitive arguments and raw secrets must not be persisted. Large outputs go to artifacts with bounded retention.
+Canonical job statuses are queued, running, waiting_approval, succeeded, partial, failed, cancelled and timed_out. Sensitive arguments and raw secrets must not be persisted. Large outputs go to artifacts with bounded retention.
 
 ### ApprovalRequest
 Fields: id, action_id, tool_id, target_summary, risk_class, preview_json, requested_at, expires_at?, decision, decided_at?, decision_context?.
