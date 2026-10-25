@@ -68,7 +68,7 @@
 - [ ] **M1-027 — Define ToolDefinition and ToolResult types** [S] — Include ID/version/schema/risk/permissions and structured outcome. **AC:** sample tool can be registered in a unit test.
 - [ ] **M1-028 — Add capability/permission policy abstraction** [S] — Policy decision independent from frontend. **AC:** tests cover allowed, denied and approval-required results.
 - [ ] **M1-029 — Add module availability states** [S] — Available, disabled, unsupported, not_configured, degraded. **AC:** UI can distinguish unavailable from empty success.
-- [ ] **M1-030 — Add config schema version and defaults** [S] — Versioned non-secret settings. **AC:** invalid setting values fail validation and defaults are tested.
+- [x] **M1-030 — Add config schema version and defaults** [S] — Versioned non-secret settings. **AC:** invalid setting values fail validation and defaults are tested.
 
 - [ ] **M1-031 — Implement the Command Palette surface** [S] — Add an accessible keyboard-first overlay, query field, result list, category and risk labels. **AC:** opens, filters, navigates results with the keyboard, and has loading/empty states without executing a tool.
 - [ ] **M1-032 — Register safe navigation and create commands** [S] [depends: M1-009,M1-027,M1-031] — Register page navigation and safe create actions such as New Project, New Task and New Note as typed commands. **AC:** only registered commands appear; unknown IDs are rejected; risky tools open a preview instead of executing from the palette.
