@@ -13,7 +13,11 @@ The prior backlog did not have atomic tasks for all visible core UX behaviors ev
 
 The startup-at-login setting was ambiguous ("implement or defer"). It is now explicitly deferred for MVP; startup remains off by default. The app must not silently register itself to launch at login.
 
-## 2. Design readiness follow-up\n\nThe detailed audit is in [Design Readiness Audit](DESIGN_READINESS_AUDIT.md). It does not create a competing product spec: the existing Product Blueprint and UX spec remain canonical. M1-038–M1-040 close implementation-only gaps around minimum-window behavior, repeatable visual/accessibility review, and task-based usability validation. These checks must not be marked complete from wireframes alone.\n\n## 3. Intentional boundaries that may look overlapping
+## 2. Design readiness follow-up
+
+The detailed audit is in [Design Readiness Audit](DESIGN_READINESS_AUDIT.md). It does not create a competing product spec: the existing Product Blueprint and UX spec remain canonical. M1-038–M1-039 close implementation-only gaps around minimum-window behavior and repeatable visual/accessibility review; M2-035 covers task-based usability validation after the project/task vertical slice exists. These checks must not be marked complete from wireframes alone.
+
+## 3. Intentional boundaries that may look overlapping
 
 | Potential overlap | Canonical responsibility | Explicit non-overlap rule |
 |---|---|---|
@@ -35,7 +39,7 @@ The startup-at-login setting was ambiguous ("implement or defer"). It is now exp
 
 | Spec surface/capability | Backlog coverage | Result |
 |---|---|---|
-| Main window and navigation shell | M1-008–M1-010 | Covered in backlog; implementation open |\n| Design readiness, minimum-window behavior and UI QA | Design Readiness Audit; M1-038–M1-040 | Newly tracked; implementation/validation open |
+| Main window and navigation shell | M1-008–M1-010 | Covered in backlog; implementation open |\n| Design readiness, minimum-window behavior and UI QA | Design Readiness Audit; M1-038–M1-039 and M2-035 | Newly tracked; implementation/validation open |
 | Theme, keyboard accessibility, tray lifecycle, single instance | M1-011–M1-017 | Covered |
 | Startup-at-login | M1-018 | Explicitly deferred and documented |
 | Settings skeleton, notification/permission settings | M1-019, M1-030 | Covered for foundation; provider-specific pages later |
