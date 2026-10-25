@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { listen } from "@tauri-apps/api/event";
 import { resolveRoute, type RouteResolution } from "./route-registry";
 import {
   applyThemePreference,
@@ -148,6 +149,52 @@ function OverviewPage() {
   );
 }
 
+export function SettingsDialog({
+  theme,
+  onToggleTheme,
+  onClose,
+}: {
+  theme: ThemePreference;
+  onToggleTheme: () => void;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [onClose]);
+
+  return (
+    <div className="settings-backdrop" role="presentation" onMouseDown={(event) => {
+      if (event.target === event.currentTarget) onClose();
+    }}>
+      <section className="settings-dialog" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+        <div className="settings-dialog-header">
+          <div>
+            <p className="eyebrow">WORKSPACE / PREFERENCES</p>
+            <h2 id="settings-title">Settings</h2>
+          </div>
+          <button className="settings-close" type="button" onClick={onClose} aria-label="Close settings">
+            Close
+          </button>
+        </div>
+        <div className="settings-row">
+          <div>
+            <h3>Appearance</h3>
+            <p>Choose the theme used by this workspace.</p>
+          </div>
+          <button className="theme-toggle" type="button" onClick={onToggleTheme}>
+            Switch to {theme === "dark" ? "light" : "dark"} theme
+          </button>
+        </div>
+        <p className="settings-note">Other preferences will appear here when their controls are implemented.</p>
+      </section>
+    </div>
+  );
+}
+
 export function NotFoundPage({ requested }: { requested: string }) {
   return (
     <section className="hero" aria-labelledby="not-found-title">
@@ -183,6 +230,7 @@ export default function App() {
   const [theme, setTheme] = useState<ThemePreference>(() =>
     readThemePreference(getBrowserStorage()),
   );
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     applyThemePreference(theme, document.documentElement);
@@ -193,6 +241,25 @@ export default function App() {
     writeThemePreference(nextTheme, getBrowserStorage());
     setTheme(nextTheme);
   };
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    let cancelled = false;
+
+    void listen("tray-settings", () => setSettingsOpen(true))
+      .then((stopListening) => {
+        if (cancelled) stopListening();
+        else unlisten = stopListening;
+      })
+      .catch(() => {
+        // Browser preview does not provide Tauri events; the app remains usable.
+      });
+
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, []);
 
   useEffect(() => {
     const updateRoute = () => setRoute(resolveRoute(window.location.hash));
@@ -207,6 +274,13 @@ export default function App() {
       ) : (
         <NotFoundPage requested={route.kind === "not-found" ? route.requested : ""} />
       )}
+      {settingsOpen ? (
+        <SettingsDialog
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          onClose={() => setSettingsOpen(false)}
+        />
+      ) : null}
     </AppShell>
   );
 }

@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import App, { AppShell, NotFoundPage } from "./App";
+import App, { AppShell, NotFoundPage, SettingsDialog } from "./App";
 import { resolveRoute } from "./route-registry";
 
 describe("Moonships application shell", () => {
@@ -26,6 +26,17 @@ describe("Moonships application shell", () => {
     expect(markup).toContain('id="main-content" tabindex="-1"');
     expect(markup).toContain('aria-label="Switch to light theme"');
     expect(markup).toContain('type="button"');
+  });
+
+  it("renders an accessible Settings dialog with a working theme action and close control", () => {
+    const markup = renderToStaticMarkup(
+      <SettingsDialog theme="dark" onToggleTheme={() => {}} onClose={() => {}} />,
+    );
+
+    expect(markup).toContain('role="dialog" aria-modal="true" aria-labelledby="settings-title"');
+    expect(markup).toContain("Settings");
+    expect(markup).toContain("Switch to light theme");
+    expect(markup).toContain('aria-label="Close settings"');
   });
 
   it("keeps shared navigation and header around replaceable page content", () => {
@@ -107,6 +118,21 @@ describe("keyboard accessibility styles", () => {
 
     expect(stylesheet).toContain("@media (prefers-reduced-motion: reduce)");
     expect(stylesheet).toContain("transition-duration: .01ms !important");
+  });
+});
+
+describe("system tray integration contract", () => {
+  it("registers Open, Settings and Quit native menu actions", async () => {
+    const { readFileSync } = await import("node:fs");
+    const rustSource = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
+    const cargoManifest = readFileSync(new URL("../src-tauri/Cargo.toml", import.meta.url), "utf8");
+
+    expect(cargoManifest).toContain('features = ["tray-icon"]');
+    expect(rustSource).toContain('"open"');
+    expect(rustSource).toContain('"settings"');
+    expect(rustSource).toContain('"quit"');
+    expect(rustSource).toContain('app.emit("tray-settings", ())');
+    expect(rustSource).toContain("app.exit(0)");
   });
 });
 
