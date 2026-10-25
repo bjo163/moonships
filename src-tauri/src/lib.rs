@@ -42,6 +42,14 @@ pub fn run() {
     };
 
     tauri::Builder::default()
+        // A second launch focuses the existing window instead of creating a duplicate instance.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.unminimize();
+                let _ = window.set_focus();
+            }
+        }))
         .invoke_handler(tauri::generate_handler![get_hide_to_tray, set_hide_to_tray])
         .setup(|app| {
             let open = MenuItem::with_id(app, "open", "Open Moonships", true, None::<&str>)?;
