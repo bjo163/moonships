@@ -1,0 +1,40 @@
+name: Bug report
+description: Report a reproducible Moonships defect
+title: "[BUG] "
+labels: []
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Expected vs actual behavior
+      description: Explain what should happen and what happened.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      description: Minimal steps and safe fixture/test data.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: App version, Windows edition/build, relevant runtime versions.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Redacted logs or evidence
+      description: Remove credentials, tokens, personal paths and private user data before sharing.
+    validations:
+      required: false
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact and suspected risk
+      description: Include data loss, permissions, security or privacy impact if relevant.
+    validations:
+      required: true
