@@ -325,6 +325,30 @@ export default function App() {
     applyThemePreference(theme, document.documentElement);
   }, [theme]);
 
+  useEffect(() => {
+    if (commandPaletteOpen) {
+      paletteTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    } else {
+      paletteTriggerRef.current?.focus();
+    }
+  }, [commandPaletteOpen]);
+
+  useEffect(() => {
+    const isEditableTarget = (target: EventTarget | null) => {
+      if (!(target instanceof HTMLElement)) return false;
+      return target.isContentEditable || Boolean(target.closest("input, textarea, select, [contenteditable=true], [role=textbox]"));
+    };
+    const onGlobalKeyDown = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "k") return;
+      if (event.defaultPrevented || isEditableTarget(event.target) || commandPaletteOpen) return;
+      if (document.querySelector("[role=dialog]") || settingsOpen || profileDialogOpen || commandPreview) return;
+      event.preventDefault();
+      setCommandPaletteOpen(true);
+    };
+    window.addEventListener("keydown", onGlobalKeyDown);
+    return () => window.removeEventListener("keydown", onGlobalKeyDown);
+  }, [commandPaletteOpen, settingsOpen, profileDialogOpen, commandPreview]);
+
   const toggleTheme = () => {
     const nextTheme: ThemePreference = theme === "dark" ? "light" : "dark";
     writeThemePreference(nextTheme, getBrowserStorage());
