@@ -274,17 +274,17 @@ describe("M1 desktop foundation contracts", () => {
     const { readFileSync } = await import("node:fs");
     const domain = readFileSync(new URL("../src-tauri/src/domain.rs", import.meta.url), "utf8");
 
-    for (const status of [
-      "queued",
-      "running",
-      "waiting_approval",
-      "succeeded",
-      "partial",
-      "failed",
-      "cancelled",
-      "timed_out",
+    for (const variant of [
+      "Queued",
+      "Running",
+      "WaitingApproval",
+      "Succeeded",
+      "Partial",
+      "Failed",
+      "Cancelled",
+      "TimedOut",
     ]) {
-      expect(domain).toContain(status === "waiting_approval" ? "WaitingApproval" : status[0].toUpperCase() + status.slice(1));
+      expect(domain).toContain(variant);
     }
     expect(domain).toContain("pub struct ToolDefinition");
     expect(domain).toContain("pub struct ToolResult");
