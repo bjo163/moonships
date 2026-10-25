@@ -76,7 +76,6 @@ describe("Moonships application shell", () => {
   });
 });
 
-
 describe("semantic design token contract", () => {
   it("defines both theme palettes and keeps the proposed palette explicitly uncertified", async () => {
     const { readFileSync } = await import("node:fs");
