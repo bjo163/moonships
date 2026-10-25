@@ -115,7 +115,7 @@
   --color-border-strong: #aab7c8;
   --color-text-primary: #172033;
   --color-text-muted: #536176;
-  --color-text-subtle: #66758a;
+  --color-text-subtle: #58677b;
   --color-text-inverse: #f8fafc;
   --color-accent: #6356d9;
   --color-accent-hover: #5144c7;
@@ -507,3 +507,93 @@ h1 { font-size: var(--text-xl); letter-spacing: -.035em; margin: .45rem 0 0; }
   outline-offset: var(--focus-offset);
 }
 .settings-dialog-actions { display: flex; justify-content: flex-end; margin-top: var(--space-4); }
+
+
+/* M1-038: explicit desktop viewport and overflow contract. */
+.app-frame,
+.main-panel,
+.page-content {
+  min-width: 0;
+}
+.main-panel {
+  min-height: 100vh;
+  overflow: auto;
+}
+.page-content {
+  overflow-wrap: anywhere;
+}
+.status-grid,
+.topbar-actions,
+.section-heading,
+.page-footer {
+  min-width: 0;
+}
+.status-card,
+.hero-copy {
+  min-width: 0;
+}
+.settings-backdrop,
+.command-palette-backdrop {
+  overflow-y: auto;
+}
+.settings-dialog,
+.command-palette {
+  min-width: 0;
+  max-height: calc(100dvh - 3rem);
+  overflow-y: auto;
+}
+.profile-option-copy,
+.profile-option-copy > span,
+.profile-option-copy small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 1100px) {
+  .topbar-actions {
+    justify-content: flex-start;
+  }
+  .topbar {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+}
+@media (max-height: 720px) {
+  .main-panel {
+    min-height: 0;
+  }
+  .command-palette-backdrop {
+    padding-top: var(--space-3);
+  }
+  .settings-backdrop {
+    place-items: start center;
+    padding: var(--space-3);
+  }
+}
+@media (max-width: 960px) {
+  .app-frame {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .rail {
+    padding: var(--space-3) var(--space-4);
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .rail-label,
+  .navigation-list,
+  .rail-note,
+  .rail-footer {
+    display: none;
+  }
+}
+@media (max-width: 620px) {
+  .topbar-actions > * {
+    max-width: 100%;
+  }
+  .profile-trigger,
+  .command-palette-trigger {
+    white-space: normal;
+  }
+}
