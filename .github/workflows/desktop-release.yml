@@ -139,7 +139,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $tag = $env:GITHUB_REF_NAME -replace "^release/", ""
-          gh release create $tag "${{ steps.installers.outputs.msi_path }}" "${{ steps.installers.outputs.nsis_path }}" --target $env:GITHUB_SHA --title "Moonships $tag" --generate-notes --prerelease
+          $releaseCommit = (git rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or -not $releaseCommit) { throw "Could not determine the exact source commit used for the installers." }
+          gh release create $tag "${{ steps.installers.outputs.msi_path }}" "${{ steps.installers.outputs.nsis_path }}" --target $releaseCommit --title "Moonships $tag" --generate-notes --prerelease
           if ($LASTEXITCODE -ne 0) {
             $assetCount = gh release view $tag --json assets --jq ".assets | length"
             if ($LASTEXITCODE -ne 0 -or [int]$assetCount -lt 2) {
