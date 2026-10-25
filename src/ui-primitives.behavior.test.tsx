@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useState } from "react";
@@ -82,9 +82,13 @@ describe("M1-041 DOM interaction and accessibility", () => {
     const apply = within(dialog).getByRole("button", { name: "Apply" });
     expect(document.activeElement).toBe(close);
 
-    await user.tab({ shift: true });
+    // Test the browser's cancellable boundary event directly: jsdom userEvent.tab()
+    // computes another synthetic focus move even after our handler changes focus.
+    expect(fireEvent.keyDown(close, { key: "Tab", shiftKey: true, cancelable: true })).toBe(
+      false,
+    );
     expect(document.activeElement).toBe(apply);
-    await user.tab();
+    expect(fireEvent.keyDown(apply, { key: "Tab", cancelable: true })).toBe(false);
     expect(document.activeElement).toBe(close);
     await user.tab();
     expect(document.activeElement).toBe(within(dialog).getByRole("textbox", { name: "Nickname" }));
