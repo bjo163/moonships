@@ -80,8 +80,8 @@ describe("M1-041 DOM interaction and accessibility", () => {
     const dialog = screen.getByRole("dialog");
     const close = within(dialog).getByRole("button", { name: "Close dialog" });
     const apply = within(dialog).getByRole("button", { name: "Apply" });
-    const focusable = Array.from(dialog.querySelectorAll<HTMLElement>("*")).filter(
-      (element) => element.matches("button:not(:disabled), input:not(:disabled)"),
+    const focusable = Array.from(dialog.querySelectorAll<HTMLElement>("*")).filter((element) =>
+      element.matches("button:not(:disabled), input:not(:disabled)"),
     );
     expect(focusable).toEqual([
       close,
