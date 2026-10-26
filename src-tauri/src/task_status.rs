@@ -52,7 +52,9 @@ mod tests {
             validate_priority(priority).expect("canonical priority");
         }
         for invalid in ["", "archived", "wip", "DONE"] {
-            assert!(validate_status(invalid).unwrap_err().starts_with("VALIDATION_FAILED:"));
+            assert!(validate_status(invalid)
+                .unwrap_err()
+                .starts_with("VALIDATION_FAILED:"));
         }
         assert!(validate_priority("urgent").is_err());
     }

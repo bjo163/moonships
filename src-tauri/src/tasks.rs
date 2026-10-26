@@ -142,7 +142,6 @@ pub fn create_task(connection: &mut Connection, request: CreateTask) -> Result<T
     Ok(created)
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UpdateTask {
