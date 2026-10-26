@@ -127,6 +127,24 @@ struct ListTasksRequestDto {}
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct TaskRequestDto {
+    id: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct UpdateTaskRequestDto {
+    id: String,
+    project_id: Option<String>,
+    title: String,
+    description: Option<String>,
+    due_at: Option<String>,
+    status: String,
+    priority: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct TaskDto {
     id: String,
     workspace_id: String,
@@ -470,6 +488,31 @@ fn list_tasks(app: AppHandle, request: ListTasksRequestDto) -> Result<TaskListRe
 }
 
 #[tauri::command]
+fn get_task(app: AppHandle, request: TaskRequestDto) -> Result<TaskDto, String> {
+    let connection = open_personal_workspace_database(&app)?;
+    tasks::get_task(&connection, PERSONAL_WORKSPACE_ID, &request.id).map(TaskDto::from)
+}
+
+#[tauri::command]
+fn update_task(app: AppHandle, request: UpdateTaskRequestDto) -> Result<TaskDto, String> {
+    let mut connection = open_personal_workspace_database(&app)?;
+    tasks::update_task(
+        &mut connection,
+        tasks::UpdateTask {
+            workspace_id: PERSONAL_WORKSPACE_ID.to_string(),
+            id: request.id,
+            project_id: request.project_id,
+            title: request.title,
+            description: request.description,
+            due_at: request.due_at,
+            status: request.status,
+            priority: request.priority,
+        },
+    )
+    .map(TaskDto::from)
+}
+
+#[tauri::command]
 fn get_project_overview(
     app: AppHandle,
     request: ProjectOverviewRequestDto,
@@ -590,6 +633,8 @@ pub fn run() {
             update_project,
             create_task,
             list_tasks,
+            get_task,
+            update_task,
             get_project_overview
         ])
         .setup(|app| {
@@ -676,8 +721,9 @@ mod tests {
         database_path, hide_to_tray_enabled, open_database_in, run_migrations,
         CreateProjectRequestDto, CreateTaskRequestDto, ListProjectsRequestDto, ListTasksRequestDto,
         ProjectActivityDto, ProjectDto, ProjectListResponseDto, ProjectOverviewRequestDto,
-        ProjectOverviewResponseDto, TaskDto, TaskListResponseDto, CURRENT_SCHEMA_VERSION,
-        DATABASE_BUSY_TIMEOUT_MS, DATABASE_FILE_NAME, PERSONAL_WORKSPACE_ID,
+        ProjectOverviewResponseDto, TaskDto, TaskListResponseDto, TaskRequestDto,
+        UpdateTaskRequestDto, CURRENT_SCHEMA_VERSION, DATABASE_BUSY_TIMEOUT_MS, DATABASE_FILE_NAME,
+        PERSONAL_WORKSPACE_ID,
     };
     use std::{
         fs,
@@ -785,6 +831,27 @@ mod tests {
         assert_eq!(json["tasks"][0]["projectId"], "project-id");
         assert_eq!(json["tasks"][0]["createdAt"], "2026-10-26T00:00:00Z");
         assert!(json["tasks"][0].get("workspace_id").is_none());
+    }
+
+    #[test]
+    fn task_detail_and_update_ipc_reject_scope_and_arbitrary_fields() {
+        let request: TaskRequestDto =
+            serde_json::from_str(r#"{"id":"task-id"}"#).expect("task ID request");
+        assert_eq!(request.id, "task-id");
+        assert!(serde_json::from_str::<TaskRequestDto>(
+            r#"{"id":"task-id","workspaceId":"other"}"#
+        )
+        .is_err());
+
+        let update: UpdateTaskRequestDto = serde_json::from_str(
+            r#"{"id":"task-id","projectId":null,"title":"Updated","description":"Details","dueAt":"2026-10-27T12:30:00Z","status":"todo","priority":"p1"}"#,
+        )
+        .expect("typed task update");
+        assert_eq!(update.due_at.as_deref(), Some("2026-10-27T12:30:00Z"));
+        assert!(serde_json::from_str::<UpdateTaskRequestDto>(
+            r#"{"id":"task-id","projectId":null,"title":"Task","description":null,"dueAt":null,"status":"todo","priority":"p2","path":"C:/data"}"#
+        )
+        .is_err());
     }
 
     #[test]

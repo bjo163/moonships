@@ -348,6 +348,14 @@ fn read_task(
         .ok_or_else(|| "NOT_FOUND: task not found in workspace".to_string())
 }
 
+pub fn get_task(connection: &Connection, workspace_id: &str, id: &str) -> Result<Task, String> {
+    let (task, archived_at) = read_task(connection, workspace_id.trim(), id.trim())?;
+    if archived_at.is_some() {
+        return Err("NOT_FOUND: task is archived".to_string());
+    }
+    Ok(task)
+}
+
 pub fn update_task(connection: &mut Connection, request: UpdateTask) -> Result<Task, String> {
     let workspace_id = request.workspace_id.trim();
     let id = request.id.trim();
@@ -484,6 +492,20 @@ mod tests {
             status: None,
             priority: None,
         }
+    }
+
+    #[test]
+    fn get_task_is_workspace_scoped_and_hides_archived_records() {
+        let mut connection = fixture();
+        let task = create_task(&mut connection, request()).expect("create task");
+        assert_eq!(get_task(&connection, PERSONAL, &task.id).unwrap(), task);
+        assert!(get_task(&connection, "another-workspace", &task.id)
+            .unwrap_err()
+            .starts_with("NOT_FOUND:"));
+        archive_task(&mut connection, PERSONAL, &task.id).expect("archive task");
+        assert!(get_task(&connection, PERSONAL, &task.id)
+            .unwrap_err()
+            .starts_with("NOT_FOUND:"));
     }
 
     #[test]

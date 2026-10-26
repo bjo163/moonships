@@ -21,6 +21,7 @@ export type RouteId = keyof typeof ROUTE_REGISTRY;
 export type RouteResolution =
   | { kind: "page"; id: RouteId }
   | { kind: "project-overview"; projectId: string }
+  | { kind: "task-detail"; taskId: string }
   | { kind: "not-found"; requested: string };
 
 export function resolveRoute(input: string): RouteResolution {
@@ -30,6 +31,15 @@ export function resolveRoute(input: string): RouteResolution {
     try {
       const projectId = decodeURIComponent(projectMatch[1]);
       if (projectId && projectId.length <= 128) return { kind: "project-overview", projectId };
+    } catch {
+      return { kind: "not-found", requested: input };
+    }
+  }
+  const taskMatch = path.match(/^tasks\/([^/]+)$/i);
+  if (taskMatch) {
+    try {
+      const taskId = decodeURIComponent(taskMatch[1]);
+      if (taskId && taskId.length <= 128) return { kind: "task-detail", taskId };
     } catch {
       return { kind: "not-found", requested: input };
     }

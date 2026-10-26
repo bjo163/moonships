@@ -61,9 +61,10 @@ function mockResponses(tasks: TaskRecord[] = sampleTasks) {
 describe("M2-018 persisted Task List", () => {
   it("renders persisted active tasks and sorts a copy deterministically", async () => {
     const user = userEvent.setup();
+    const onOpenTask = vi.fn();
     mockResponses();
     const originalOrder = sampleTasks.map((task) => task.id);
-    render(<TaskListPage onCreateTask={() => undefined} />);
+    render(<TaskListPage onCreateTask={() => undefined} onOpenTask={onOpenTask} />);
 
     const table = await screen.findByRole("table", {
       name: "Active tasks in the Personal workspace",
@@ -76,6 +77,8 @@ describe("M2-018 persisted Task List", () => {
     ).toEqual(["Alpha task", "alpha task", "Zeta task"]);
     expect(within(table).getByText("Moonships")).toBeTruthy();
     expect(within(table).getAllByText("Personal inbox")).toHaveLength(2);
+    await user.click(within(table).getByRole("button", { name: "Alpha task" }));
+    expect(onOpenTask).toHaveBeenCalledWith("task-a");
     expect(sampleTasks.map((task) => task.id)).toEqual(originalOrder);
 
     await user.click(within(table).getByRole("button", { name: "Sort by priority ascending" }));
@@ -111,7 +114,7 @@ describe("M2-018 persisted Task List", () => {
       if (command === undefined) return taskAttempt === 1 ? { projects: [project] } : { tasks: [] };
       throw new Error(`Unexpected command: ${command}`);
     });
-    render(<TaskListPage onCreateTask={() => undefined} />);
+    render(<TaskListPage onCreateTask={() => undefined} onOpenTask={() => undefined} />);
 
     expect(await screen.findByText("Tasks are unavailable")).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Try again" }));
@@ -125,7 +128,7 @@ describe("M2-018 persisted Task List", () => {
       if (command === undefined) return { tasks: sampleTasks.slice(0, 1) };
       throw new Error(`Unexpected command: ${command}`);
     });
-    render(<TaskListPage onCreateTask={() => undefined} />);
+    render(<TaskListPage onCreateTask={() => undefined} onOpenTask={() => undefined} />);
 
     expect(await screen.findByText("Zeta task")).toBeTruthy();
     expect(screen.getByRole("status").textContent).toContain(

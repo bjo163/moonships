@@ -22,7 +22,13 @@ function formatUpdatedAt(value: string): string {
   );
 }
 
-export function TaskListPage({ onCreateTask }: { onCreateTask: () => void }) {
+export function TaskListPage({
+  onCreateTask,
+  onOpenTask,
+}: {
+  onCreateTask: () => void;
+  onOpenTask: (taskId: string) => void;
+}) {
   const [tasks, setTasks] = useState<TaskRecord[]>([]);
   const [projects, setProjects] = useState<ProjectRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -152,7 +158,13 @@ export function TaskListPage({ onCreateTask }: { onCreateTask: () => void }) {
                   return (
                     <tr key={task.id}>
                       <th scope="row">
-                        <span className="tasks-table__title">{task.title}</span>
+                        <button
+                          type="button"
+                          className="tasks-table__title-link"
+                          onClick={() => onOpenTask(task.id)}
+                        >
+                          {task.title}
+                        </button>
                         {task.description ? (
                           <span className="tasks-table__description">{task.description}</span>
                         ) : null}

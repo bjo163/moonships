@@ -5,6 +5,7 @@ import { resolveRoute, type RouteId, type RouteResolution } from "./route-regist
 import { ProjectsPage } from "./ProjectsPage";
 import { ProjectOverviewPage } from "./ProjectOverviewPage";
 import { TaskListPage } from "./TaskListPage";
+import { TaskDetailPage } from "./TaskDetailPage";
 import { TaskCreateDialog } from "./TaskCreateDialog";
 import { Button } from "./ui-primitives";
 import { CommandPalette } from "./CommandPalette";
@@ -761,7 +762,9 @@ export default function App() {
           ? route.id
           : route.kind === "project-overview"
             ? "projects"
-            : "overview"
+            : route.kind === "task-detail"
+              ? "tasks"
+              : "overview"
       }
       onToggleTheme={toggleTheme}
       onOpenCommandPalette={() => {
@@ -787,7 +790,14 @@ export default function App() {
       ) : route.kind === "project-overview" ? (
         <ProjectOverviewPage projectId={route.projectId} onCreateTask={openTaskCreation} />
       ) : route.kind === "page" && route.id === "tasks" ? (
-        <TaskListPage onCreateTask={() => openTaskCreation()} />
+        <TaskListPage
+          onCreateTask={() => openTaskCreation()}
+          onOpenTask={(taskId) => {
+            window.location.hash = `#/tasks/${encodeURIComponent(taskId)}`;
+          }}
+        />
+      ) : route.kind === "task-detail" ? (
+        <TaskDetailPage taskId={route.taskId} />
       ) : (
         <NotFoundPage requested={route.kind === "not-found" ? route.requested : ""} />
       )}
