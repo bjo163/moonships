@@ -124,9 +124,9 @@ Opening a Project from the Projects list shows its saved name, status, goal and 
 Future detail tabs may include Overview, Tasks, Roadmap, Notes/Docs, Activity and Settings. Add them only when their data and interactions exist.
 
 ### Task detail
-Fields: title, description, status, priority, project, parent/subtasks, assignee (optional local profile or team integration), labels, due date, estimate (optional), dependencies, comments, linked artifacts/references, created/updated timestamps and activity.
-Actions: edit, duplicate, archive, link artifact, create subtask, add dependency, copy link/reference, export.
-Do not require every advanced field to create a basic task.
+The M2-017 initial detail route opens from a Task title in the active Tasks list. It loads the persisted title, description, status, priority, due date/time and Project/inbox association. Title, description, status, priority and optional due date/time can be edited; saving uses the scoped native Task update service and confirms only the returned saved record. The datetime-local control displays local time and sends an RFC 3339 instant; the service stores UTC. Missing/archived Task, loading, recoverable save failure and saved states are explicit. If Project names cannot load, Task details remain usable and the notice distinguishes that failure from an archived/unavailable Project. Do not require advanced fields to create a basic task.
+
+Future detail fields may include parent/subtasks, assignee, labels, estimate, dependencies, comments, linked artifacts/references and activity. Duplicate, archive, link-artifact, dependency and export actions remain scheduled separately.
 
 ### Default status set
 - Backlog
