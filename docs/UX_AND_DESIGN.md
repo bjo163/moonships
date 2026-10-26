@@ -95,7 +95,7 @@
 
 **Navigation rule:** the IA is a target map, not permission to ship empty pages. Hide unavailable modules or mark them clearly as “Planned”; never present placeholder screens as working tools.
 
-M3-015 through M3-018 expose local JSON, YAML, Base64 and URL tools under one DevTools navigation item. Each tool has labelled inputs, accessible result/error feedback and bounded output. YAML parser errors include stable parser codes and source positions. Base64 offers UTF-8 text, hexadecimal byte and decode modes; non-UTF-8 decoded data is clearly identified as binary. URL tools distinguish component encoding from full URL handling, which preserves reserved separators and validates absolute URLs. The page states that content stays local; other listed DevTools remain planned until implemented.
+M3-015 through M3-019 expose local JSON, YAML, Base64, URL and UUID tools under one DevTools navigation item. Each tool has labelled inputs, accessible result/error feedback and bounded output. YAML parser errors include stable parser codes and source positions. Base64 offers UTF-8 text, hexadecimal byte and decode modes; non-UTF-8 decoded data is clearly identified as binary. URL tools distinguish component encoding from full URL handling, which preserves reserved separators and validates absolute URLs. UUID generation identifies the v4 secure random source and visibly fails if unavailable; validation states the canonical RFC format it accepts. The page states that content stays local; other listed DevTools remain planned until implemented.
 
 ## 3. Home dashboard
 

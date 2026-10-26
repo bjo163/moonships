@@ -192,6 +192,8 @@ M3-017 adds local Base64 conversion for UTF-8 text and explicit hexadecimal byte
 
 M3-018 distinguishes standalone URL components from absolute full URLs. Component operations use `encodeURIComponent`/`decodeURIComponent`; full URL operations use the browser URL parser and `decodeURI`, preserving reserved URL delimiters while validating absolute URL structure. UTF-8 input and displayed output are bounded, and malformed percent escapes/URLs return stable local errors.
 
+M3-019 adds a local UUID v4 generator using the browser's Web Crypto `randomUUID()` API, which is specified to use cryptographically secure randomness. It fails closed if the API is unavailable, throws, or returns a malformed value; there is no weak-randomness fallback. The validator accepts canonical UUID versions 1–8 using the RFC variant, plus the Nil UUID. Both operations run in memory without network, provider or filesystem access.
+
 ## 7. Error model
 
 Use stable error codes/categories:

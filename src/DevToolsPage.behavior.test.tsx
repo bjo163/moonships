@@ -69,4 +69,18 @@ describe("offline DevTools page", () => {
       "https://example.com/a%20b?q=one&next=/path#section",
     );
   });
+
+  it("generates a local UUID and validates a canonical UUID", () => {
+    render(<DevToolsPage />);
+    fireEvent.click(screen.getByRole("button", { name: "UUID" }));
+    fireEvent.click(screen.getByRole("button", { name: "Generate UUID" }));
+    expect(screen.getByLabelText("UUID v4").getAttribute("value")).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    );
+    fireEvent.change(screen.getByLabelText("UUID input"), {
+      target: { value: "36b8f84d-df4e-4d49-b662-bcde71a8764f" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Validate UUID" }));
+    expect(screen.getByText("Valid UUID")).toBeTruthy();
+  });
 });

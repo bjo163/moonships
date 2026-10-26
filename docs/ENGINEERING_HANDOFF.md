@@ -365,3 +365,7 @@ Added three local modes: UTF-8 text to Base64, hex bytes to Base64, and Base64 t
 ## M3-018 URL encode/decode — 2026-10-26
 
 Added distinct component and full URL modes. Components use `encodeURIComponent`/`decodeURIComponent`, so reserved characters become data; full URLs use the URL parser and `decodeURI`, which preserve structural delimiters and require an absolute URL. UTF-8 input and output are bounded; malformed percent escapes and invalid URLs return distinct structured errors. The utility never opens or fetches the target. Verification passed: focused URL/UI tests 10/10; `npm run check` passed repository tests 8/8, frontend tests 144/144, lint, typecheck and production build; backlog validation and `git diff --check`. Existing Biome schema/deprecation notices and four Task List non-null assertion warnings remain. **Next task:** M3-019 UUID generator/validator.
+
+## M3-019 UUID generator/validator — 2026-10-26
+
+Added local UUID v4 generation backed by Web Crypto `randomUUID()` and canonical UUID validation. Generation fails closed when the API is missing, throws or returns malformed output; no insecure random fallback exists. Validation accepts UUID versions 1–8 using the RFC variant, plus the Nil UUID, matching the format stated in the UI. The tool uses no provider, network or filesystem capability. Focused and full verification pending. **Next task:** M3-020 SHA-256 file/text hash utility.

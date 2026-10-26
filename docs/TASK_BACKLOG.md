@@ -150,7 +150,7 @@
 - [x] **M3-016 — Add YAML formatter/validator only with vetted parser** [S] — Keep parser selection explicit. **AC:** invalid YAML returns structured error.
 - [x] **M3-017 — Add Base64 encode/decode** [S] — Handle UTF-8 and binary-vs-text clearly. **AC:** round-trip test passes.
 - [x] **M3-018 — Add URL encode/decode** [S] — Distinguish components from full URLs. **AC:** reserved-character fixtures pass.
-- [ ] **M3-019 — Add UUID generator/validator** [S] — Use vetted random source/library. **AC:** output conforms to declared UUID format.
+- [x] **M3-019 — Add UUID generator/validator** [S] — Use vetted random source/library. **AC:** output conforms to declared UUID format.
 - [ ] **M3-020 — Add SHA-256 file/text hash utility** [S] — Stream large files. **AC:** known test vectors pass and memory use is bounded.
 - [ ] **M3-021 — Add text diff utility** [S] — Side-by-side or unified result. **AC:** inserts/deletes/empty files are tested.
 - [ ] **M3-022 — Add timestamp converter** [S] — Unix/ISO conversion. **AC:** invalid values and timezone display are clear.

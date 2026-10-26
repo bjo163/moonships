@@ -2,11 +2,12 @@ import { useState } from "react";
 import { Base64DevToolsPanel } from "./Base64DevToolsPanel";
 import { formatJsonInput, MAX_JSON_INPUT_BYTES } from "./json-formatter";
 import { UrlDevToolsPanel } from "./UrlDevToolsPanel";
+import { UuidDevToolsPanel } from "./UuidDevToolsPanel";
 import { Button } from "./ui-primitives";
 import { YamlDevToolsPanel } from "./YamlDevToolsPanel";
 
 export function DevToolsPage() {
-  const [activeTool, setActiveTool] = useState<"json" | "yaml" | "base64" | "url">("json");
+  const [activeTool, setActiveTool] = useState<"json" | "yaml" | "base64" | "url" | "uuid">("json");
 
   return (
     <section className="json-devtools" aria-labelledby="devtools-title">
@@ -49,6 +50,13 @@ export function DevToolsPage() {
         >
           URL
         </Button>
+        <Button
+          variant={activeTool === "uuid" ? "primary" : "secondary"}
+          aria-pressed={activeTool === "uuid"}
+          onClick={() => setActiveTool("uuid")}
+        >
+          UUID
+        </Button>
       </fieldset>
       {activeTool === "json" ? (
         <JsonFormatterPanel />
@@ -56,8 +64,10 @@ export function DevToolsPage() {
         <YamlDevToolsPanel />
       ) : activeTool === "base64" ? (
         <Base64DevToolsPanel />
-      ) : (
+      ) : activeTool === "url" ? (
         <UrlDevToolsPanel />
+      ) : (
+        <UuidDevToolsPanel />
       )}
     </section>
   );
