@@ -99,9 +99,9 @@
 - [x] **M2-007 — Add repository/service for creating a project** [S] [depends: M2-002] — No UI coupling. **AC:** unit test covers create and validation.
 - [x] **M2-008 — Add repository/service for updating/archiving a project** [S] [depends: M2-007] — Avoid accidental hard deletion. **AC:** update/archive behavior is tested.
 - [x] **M2-009 — Add repository/service for creating a task** [S] [depends: M2-003] — Apply canonical defaults. **AC:** minimal title-only create works.
-- [ ] **M2-010 — Add repository/service for updating a task** [S] [depends: M2-009] — Validate state transitions. **AC:** invalid status/priority is rejected.
+- [x] **M2-010 — Add repository/service for updating a task** [S] [depends: M2-009] — Validate state transitions. **AC:** invalid status/priority is rejected.
 - [ ] **M2-011 — Add task archive/restore behavior** [S] [depends: M2-010] — Keep history. **AC:** archived items can be filtered and restored.
-- [ ] **M2-012 — Add task status transition helper** [S] [depends: M2-003] — One canonical transition policy. **AC:** views cannot define their own incompatible status set.
+- [x] **M2-012 — Add task status transition helper** [S] [depends: M2-003] — One canonical transition policy. **AC:** views cannot define their own incompatible status set.
 - [ ] **M2-013 — Add due date/time serialization rules** [S] [depends: M2-003] — UTC persistence, local display. **AC:** tests cover round trip.
 - [ ] **M2-014 — Add project list/create/edit UI** [S] [depends: M1-008,M2-007] — Basic fields only. **AC:** project persists after app restart.
 - [ ] **M2-015 — Add project overview page** [S] [depends: M2-014] — Show goal, status, count and recent activity. **AC:** zero-task state is meaningful and accurate.

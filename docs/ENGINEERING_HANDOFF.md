@@ -1,6 +1,19 @@
 # Moonships — Engineering Continuity & Foundation Evidence
 
-## Current checkpoint — M2-008 project update/archive accepted (2026-10-26)
+## Current checkpoint — M2-010 Task update and M2-012 status policy (2026-10-26)
+
+**Canonical branch:** `main`. **Accepted implementation SHA:** [63816b2](https://github.com/bjo163/moonships/commit/63816b29a2d1d103f2e504855a7746c68b84ff59). **Complete CI:** [40254246931](https://github.com/bjo163/moonships/actions/runs/40254246931) — **SUCCESS 5/5 jobs**: Rust formatting and Clippy (warnings denied), **49/49 Rust tests**, frontend production build, backlog sync regression and Windows installer package smoke build. Windows package construction is not actual installer execution or user testing.
+
+**M2-012 (#46):** `src-tauri/src/task_status.rs` owns the initial seven canonical Task statuses, four priorities and change/no-op validation. Because product docs do not define restricted transition edges, the initial policy permits explicit transitions among canonical statuses and rejects unknown values; UI adapters must use the Task service rather than invent a second policy. Direct tests cover allowed, invalid, and unchanged transitions.
+
+**M2-010 (#44):** `src-tauri/src/tasks.rs` provides validated `UpdateTask` requests. The service checks task/workspace/project scope, active parent project, title/status/priority/description, unchanged edits, missing records, and preserves original creation metadata. The entity mutation and trusted ActivityEvent are atomic; error injection tests prove rollback without partial edits. Project association can be changed or cleared safely. Added task test coverage and centralized create validation; no schema migration or user-data reset.
+
+**Canonical backlog:** M2-010 and M2-012 are checked after acceptance. Existing issues #44 and #46 should close via the idempotent backlog-sync workflow; check that result separately. **Remaining immediate next task:** M2-011 Task archive/restore, followed by M2-013 due date semantics, M2-004/005 relationships and the real native IPC + React Projects/Tasks workflow (M2-014–022/025/028/031/032). M2-033/034/035, M1 Windows manual and release gates remain open. Current published release is still `v0.1.0-alpha.2`, not a stable MVP.
+
+---
+
+
+## Previous checkpoint — M2-008 project update/archive accepted (2026-10-26)
 
 **Canonical branch:** `main`. **Verified code:** [e83930b](https://github.com/bjo163/moonships/commit/e83930bde4d40d8d978a4dc45643e43e49d908e5). **Relevant CI run:** [40253359963](https://github.com/bjo163/moonships/actions/runs/40253359963) — Rust format/Clippy PASS, 43/43 Rust unit tests PASS, frontend production build PASS, backlog sync regression PASS; the Windows installer smoke-build remained pending at the time of this checkpoint. Inspect its final conclusion; do not treat packaging as Windows runtime validation.
 
