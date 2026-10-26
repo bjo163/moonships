@@ -160,6 +160,7 @@ Before executing an assessment:
 - Network providers must disclose what is sent and why.
 - Make background fetch intervals visible and configurable.
 - Export excludes secrets by default.
+- M2-029 Project/Task export is initiated by a visible user action and uses a native Save dialog; the renderer never supplies a filesystem path or writes bytes. Native code derives the Personal workspace, emits only the versioned Project/Task/activity schema, excludes app settings, metadata, logs, credentials and restricted activity, validates the serialized document, and writes only to the path returned by that dialog. The export includes user-authored descriptions, so the UI tells users to review content before sharing. Cancellation saves nothing; an I/O error is reported as a failure, never as success.
 - Local database backup can still contain sensitive data; document this and offer encryption or user-controlled encrypted storage if needed.
 - Do not add analytics/telemetry that transmits usage data by default.
 

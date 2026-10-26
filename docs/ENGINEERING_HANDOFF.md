@@ -1,5 +1,11 @@
 # Moonships — Engineering Continuity & Foundation Evidence
 
+## M2-029 Project & Task export — 2026-10-26
+
+Added schema-v1 JSON export for all Personal workspace Projects/Tasks (active and archived) plus normal-sensitivity trusted Activity. The strict manifest carries `schemaVersion`, Cargo `appVersion`, and UTC `exportedAt`; the native validator checks canonical fields, scope, IDs, timestamps and relationships, then serializes and reparses the typed schema before saving. App settings, `app_metadata`, logs, stored credentials and restricted Activity are omitted. A user-visible native Save dialog chooses the destination; no path or file bytes come from the frontend. Cancellation and I/O errors do not report success. Project and Task list screens expose the action and warn users that authored descriptions are included.
+
+**Verification passed:** targeted Rust export tests and disposable SQLite integration test (4/4); targeted UI behavior and Projects/Tasks regression tests (15/15); `cargo test --manifest-path src-tauri/Cargo.toml --all-targets` (93/93); Clippy with warnings denied; `cargo fmt -- --check`; `npm run check` (repository tests 8/8, frontend tests 101/101, typecheck and production build); Windows `npm run tauri -- build` produced MSI and NSIS installers; backlog validation and `git diff --check`. Full desktop Save dialog interaction could not be verified because the app launcher surfaced an older installed single-instance shell that lacks these Projects/Tasks screens; no export was saved. CI and issue sync are pending. M2-029 is accepted by automated evidence; M2-030 is next. M2 exit gates remain open.
+
 ## M2-027 Task creation shortcut — 2026-10-26
 
 Added `Ctrl+Alt+N` (`⌘+Option+N` on Mac) to open the shared persisted Task creation dialog, and exposed the shortcut on the global New task button. It ignores editable targets and active dialogs/overlays, preserving typing and focus context. The dialog retains its existing focus management and native IPC persistence behavior.

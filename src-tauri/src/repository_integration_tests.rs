@@ -2,7 +2,7 @@
 
 use rusqlite::{params, Connection};
 
-use crate::{labels, projects, run_migrations, task_dependencies, tasks};
+use crate::{labels, project_task_export, projects, run_migrations, task_dependencies, tasks};
 
 const PERSONAL: &str = "00000000-0000-4000-8000-000000000001";
 
@@ -109,6 +109,102 @@ fn project_and_task_services_persist_a_scoped_workflow_in_an_isolated_database()
     assert_eq!(projects_count, 1);
     assert_eq!(linked_tasks, 1);
     assert_eq!(activity_count, 5);
+}
+
+#[test]
+fn project_task_export_is_versioned_scoped_and_excludes_restricted_and_config_data() {
+    let mut connection = disposable_database();
+    connection
+        .execute(
+            "INSERT INTO workspaces (id, name) VALUES ('other-workspace', 'Other')",
+            [],
+        )
+        .expect("other workspace");
+    let project = create_project(&mut connection, PERSONAL, "Export project");
+    let task = create_task(
+        &mut connection,
+        PERSONAL,
+        Some(project.id.clone()),
+        "Export task",
+    );
+    let other_project = create_project(&mut connection, "other-workspace", "Out of scope");
+    let _other_task = create_task(
+        &mut connection,
+        "other-workspace",
+        Some(other_project.id),
+        "Out of scope task",
+    );
+    connection
+        .execute(
+            "UPDATE tasks SET archived_at = '2026-10-26T00:00:00Z' WHERE id = ?1",
+            params![task.id],
+        )
+        .expect("archive fixture task");
+    connection
+        .execute(
+            "UPDATE projects SET status = 'archived', archived_at = '2026-10-26T00:00:00Z',
+                 color_token = 'signal-cyan', start_date = '2026-10-01', target_date = '2026-10-31'
+             WHERE id = ?1",
+            params![project.id],
+        )
+        .expect("archive fixture project");
+    connection
+        .execute(
+            "UPDATE tasks SET estimate_minutes = 30, completed_at = '2026-10-25T00:00:00Z' WHERE id = ?1",
+            params![task.id],
+        )
+        .expect("add fixture task fields");
+    connection
+        .execute(
+            "INSERT INTO activity_events (
+                id, workspace_id, actor_type, entity_type, entity_id, project_id, task_id,
+                action, occurred_at, summary, sensitivity
+             ) VALUES (
+                'restricted-export-event', ?1, 'local', 'task', ?2, NULL, ?2,
+                'updated', '2026-10-26T00:00:00Z', 'restricted export sentinel', 'restricted'
+             )",
+            params![PERSONAL, task.id],
+        )
+        .expect("insert restricted activity");
+    connection
+        .execute(
+            "INSERT INTO app_metadata (key, value) VALUES ('test.secret', 'credential sentinel')",
+            [],
+        )
+        .expect("insert unrelated secret metadata");
+
+    let export = project_task_export::load_personal_export(&connection, "0.1.0-2")
+        .expect("load Personal export");
+    let json = export
+        .to_json()
+        .expect("serialize and validate export schema");
+    let parsed: project_task_export::ProjectTaskExport =
+        serde_json::from_str(&json).expect("strict export deserialization");
+
+    assert_eq!(
+        parsed.schema_version,
+        project_task_export::EXPORT_SCHEMA_VERSION
+    );
+    assert_eq!(parsed.projects.len(), 1);
+    assert_eq!(parsed.projects[0].id, project.id);
+    assert_eq!(parsed.projects[0].status, "archived");
+    assert_eq!(
+        parsed.projects[0].color_token.as_deref(),
+        Some("signal-cyan")
+    );
+    assert_eq!(
+        parsed.projects[0].target_date.as_deref(),
+        Some("2026-10-31")
+    );
+    assert_eq!(parsed.tasks.len(), 1);
+    assert_eq!(parsed.tasks[0].id, task.id);
+    assert!(parsed.tasks[0].archived_at.is_some());
+    assert_eq!(parsed.tasks[0].estimate_minutes, Some(30));
+    assert!(parsed.tasks[0].completed_at.is_some());
+    assert!(!parsed.activity_events.is_empty());
+    assert!(!json.contains("Out of scope"));
+    assert!(!json.contains("restricted export sentinel"));
+    assert!(!json.contains("credential sentinel"));
 }
 
 #[test]

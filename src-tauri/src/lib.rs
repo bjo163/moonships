@@ -4,6 +4,7 @@ pub mod domain;
 pub mod labels;
 pub mod local_logging;
 pub mod milestones;
+pub mod project_task_export;
 pub mod projects;
 pub mod task_dependencies;
 pub mod task_status;
@@ -113,6 +114,16 @@ impl From<projects::Project> for ProjectDto {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct ProjectListResponseDto {
     projects: Vec<ProjectDto>,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ExportProjectTaskResponseDto {
+    cancelled: bool,
+    file_name: Option<String>,
+    project_count: usize,
+    task_count: usize,
+    activity_event_count: usize,
 }
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
@@ -680,6 +691,59 @@ fn update_project(app: AppHandle, request: UpdateProjectRequestDto) -> Result<Pr
 }
 
 #[tauri::command]
+async fn export_project_task_data(app: AppHandle) -> Result<ExportProjectTaskResponseDto, String> {
+    #[cfg(not(windows))]
+    {
+        let _ = app;
+        Err("UNSUPPORTED: Project and Task export is currently available on Windows".to_string())
+    }
+
+    #[cfg(windows)]
+    {
+        tauri::async_runtime::spawn_blocking(move || {
+            let connection = open_personal_workspace_database(&app)?;
+            let document =
+                project_task_export::load_personal_export(&connection, env!("CARGO_PKG_VERSION"))?;
+            let json = document.to_json()?;
+            let project_count = document.projects.len();
+            let task_count = document.tasks.len();
+            let activity_event_count = document.activity_events.len();
+            let window = app
+                .get_webview_window("main")
+                .ok_or_else(|| "IO_ERROR: main window is unavailable".to_string())?;
+            let Some(path) = rfd::FileDialog::new()
+                .set_parent(&window)
+                .set_title("Export Moonships Projects and Tasks")
+                .set_file_name("moonships-projects-tasks.json")
+                .add_filter("JSON", &["json"])
+                .save_file()
+            else {
+                return Ok(ExportProjectTaskResponseDto {
+                    cancelled: true,
+                    file_name: None,
+                    project_count: 0,
+                    task_count: 0,
+                    activity_event_count: 0,
+                });
+            };
+            std::fs::write(&path, json)
+                .map_err(|_| "IO_ERROR: could not save the selected export file".to_string())?;
+            Ok(ExportProjectTaskResponseDto {
+                cancelled: false,
+                file_name: path
+                    .file_name()
+                    .map(|name| name.to_string_lossy().into_owned()),
+                project_count,
+                task_count,
+                activity_event_count,
+            })
+        })
+        .await
+        .map_err(|_| "IO_ERROR: export operation did not complete".to_string())?
+    }
+}
+
+#[tauri::command]
 fn create_task(app: AppHandle, request: CreateTaskRequestDto) -> Result<TaskDto, String> {
     let mut connection = open_personal_workspace_database(&app)?;
     tasks::create_task(
@@ -940,6 +1004,7 @@ pub fn run() {
             list_projects,
             create_project,
             update_project,
+            export_project_task_data,
             create_task,
             list_tasks,
             get_task,

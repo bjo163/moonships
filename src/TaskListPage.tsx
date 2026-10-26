@@ -17,6 +17,7 @@ import {
   updateTask,
 } from "./tasks-api";
 import { Badge, Button, EmptyState, ErrorState, LoadingState } from "./ui-primitives";
+import { ProjectTaskExportButton } from "./ProjectTaskExportButton";
 
 const SORT_COLUMNS: Array<{ key: TaskSortKey; label: string }> = [
   { key: "title", label: "Task" },
@@ -215,7 +216,10 @@ export function TaskListPage({
           <h2 id="tasks-title">Tasks</h2>
           <p className="muted">Active tasks stored on this device in your Personal workspace.</p>
         </div>
-        <Button onClick={onCreateTask}>New task</Button>
+        <div className="tasks-page__header-actions">
+          <ProjectTaskExportButton />
+          <Button onClick={onCreateTask}>New task</Button>
+        </div>
       </header>
 
       <div className="tasks-page__toolbar">
