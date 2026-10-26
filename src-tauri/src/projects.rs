@@ -66,6 +66,9 @@ pub fn create_project(
     ) {
         return Err("VALIDATION_FAILED: unsupported project status".to_string());
     }
+    if status == "archived" {
+        return Err("VALIDATION_FAILED: archive projects through the archive operation".to_string());
+    }
     let project_key = nonempty_optional(request.project_key, MAX_KEY_CHARS)?;
     let description = nonempty_optional(request.description, MAX_DESCRIPTION_CHARS)?;
     let goal = nonempty_optional(request.goal, MAX_GOAL_CHARS)?;
@@ -375,6 +378,12 @@ mod tests {
 
         let mut invalid = request();
         invalid.status = Some("unknown".to_string());
+        assert!(create_project(&mut connection, invalid)
+            .unwrap_err()
+            .starts_with("VALIDATION_FAILED:"));
+
+        let mut invalid = request();
+        invalid.status = Some("archived".to_string());
         assert!(create_project(&mut connection, invalid)
             .unwrap_err()
             .starts_with("VALIDATION_FAILED:"));
