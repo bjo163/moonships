@@ -6,7 +6,7 @@
 
 **Local verification passed:** targeted Task tests 16/16; `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`; `cargo test --manifest-path src-tauri/Cargo.toml --all-targets` (58 passed, 0 failed); `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`; `npm run check` (8 repository tests, 67 frontend tests, typecheck and production build); and `npm run tauri -- build` (Windows executable, MSI and NSIS bundles). Biome emits its known config-schema mismatch warning documented in the M2-011 section. The test generated a temporary Cargo.lock because the repository does not carry one; it is excluded from the change.
 
-M2-013 source and model contract are locally verified and ready for the implementation commit. Backlog status and existing issue #47 remain pending the commit and push. Exact next task after M2-013 sync: M2-031 — isolated Project/Task repository integration tests.
+Implementation commit: `f58adca` (`feat(M2-013): normalize due timestamps to UTC`). The backlog now records M2-013 complete; existing issue [#47](https://github.com/bjo163/moonships/issues/47) will synchronize on the documentation push. GitHub CI is pending. Exact next task after issue sync and CI: M2-031 — isolated Project/Task repository integration tests.
 
 ## M2-011 Task archive/restore — 2026-10-26
 
