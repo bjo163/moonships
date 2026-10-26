@@ -135,6 +135,11 @@ Risk class is separate from task priority, vulnerability severity and business i
 - Canonicalization accepts only validated HTTPS URLs without credentials and preserves the exact original item URL. It removes fragments and only the documented analytics parameter allowlist; it does not rewrite other query fields, path semantics or source attribution.
 - Content fingerprints are deterministic SHA-256 values over a versioned, length-delimited title/optional-summary representation. Whitespace is collapsed within each field; case and punctuation are unchanged. Fingerprints identify matching content only and do not establish truth, authorship or independent verification.
 
+### Intelligence deduplication (M5-006)
+
+- Deduplication validates each bounded item before grouping and caps a batch at 2,000 records. It groups by exact canonical URL or a fingerprint recomputed from the bounded title/summary, not by an externally supplied hash. All original records and unique source IDs remain in the result; grouping does not delete or merge saved data.
+- A group is a navigation/aggregation aid, not evidence that its sources independently verify one another or that matching content is true. Source provenance stays available on every member record.
+
 ### Read-only system inventory (M4-007)
 
 - Inventory reads only OS family/process architecture, available logical processors, physical memory counters and capacity/free bytes on the volume containing the Windows directory.

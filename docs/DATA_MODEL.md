@@ -118,6 +118,8 @@ M5-004 tracks per-connector failure count and retry eligibility in memory. After
 
 M5-005 stores each item's exact `original_url` alongside its `canonical_url`; validation checks that canonical URL is the conservative normalization of the original. Canonicalization lowercases/normalizes URL syntax and removes fragments plus known analytics parameters (`utm_*`, `fbclid`, `gclid`, `dclid`, `msclkid`, `mc_cid`, `mc_eid`) while retaining path and all other query pairs. A version-tagged SHA-256 fingerprint is computed from title and optional summary after Unicode whitespace is collapsed; letter case and punctuation are retained. Deduplication and source relationship grouping remain separate work.
 
+M5-006 groups at most 2,000 validated item records by shared canonical URL or recomputed content fingerprint. The output keeps all original item records (including source ID, feed URL, original item URL and timestamps) and lists each distinct source ID once. It does not overwrite, delete or persist any source item; the first record in each group is only the display representative.
+
 ### Connection profile contract (M4-011)
 Profiles have a UUID ID, bounded display name and one tagged allowlisted transport: a known local terminal enum, SSH or RDP. Remote transports use a strict single host, nonzero port, optional username and optional opaque UUID secret reference. No password, private key, command line or arbitrary executable path field exists. The dedicated export DTO omits secret references; the safe log projection omits user content and target details. M4-011 defines the contract only: saved profile persistence, OS secret-store integration and transport execution remain future reviewed work.
 

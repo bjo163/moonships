@@ -10,6 +10,7 @@ pub mod domain;
 pub mod event_log_adapter;
 pub mod hash_tools;
 pub mod home_dashboard;
+pub mod intelligence_dedupe;
 pub mod intelligence_identity;
 pub mod intelligence_items;
 pub mod jobs;
