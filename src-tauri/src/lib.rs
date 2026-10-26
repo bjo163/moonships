@@ -6,6 +6,9 @@ pub mod projects;
 pub mod task_status;
 pub mod tasks;
 
+#[cfg(test)]
+mod repository_integration_tests;
+
 use std::{
     fs,
     path::{Path, PathBuf},
