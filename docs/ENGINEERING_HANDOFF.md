@@ -1,5 +1,11 @@
 # Moonships — Engineering Continuity & Foundation Evidence
 
+## M2-004 workspace-scoped Labels — 2026-10-26
+
+Schema migration v6 adds workspace-scoped Labels and a Task-label join table with composite foreign keys that reject cross-workspace relationships. The native service creates/lists labels and adds, removes and lists Task-label associations. Duplicate identity is a trimmed name with whitespace collapsed and Unicode lowercase applied; the first normalized display spelling is preserved. Duplicate names conflict within one workspace and are allowed in another. Repeated association writes/removals are deterministic.
+
+**Verification passed:** targeted relationship/duplicate/migration upgrade/rollback tests; `cargo test --manifest-path src-tauri/Cargo.toml --all-targets` (76 passed); `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`; `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`; and `git diff --check`. Implementation commit `967b747` passed Repository regression checks CI [40271494784](https://github.com/bjo163/moonships/actions/runs/40271494784), 5/5 jobs including Windows installer packaging. Existing issue #38 awaits backlog sync from this documentation commit. Label UI/IPC and deletion are outside M2-004. **Next backlog task:** M2-005 — TaskDependency model; existing issue #39. M2 exit gates remain open.
+
 ## M2-032 Project-to-Task persistence smoke — 2026-10-26
 
 `project_to_task_status_flow_persists_after_database_reopen` uses a disposable file-backed database, real schema migrations, and the validated Project/Task services. It creates a Project and linked Task, updates Task description/status/priority, closes the connection, reopens the same database, and verifies both persisted records and their association. The temporary database is removed afterward. This verifies native persistence across a database reopen; manual Windows UI restart/accessibility evidence remains open.
