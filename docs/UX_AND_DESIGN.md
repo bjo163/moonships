@@ -137,6 +137,8 @@ M6-009 adds the finding data contract and a reusable presentation fragment. Seve
 
 M6-010 defines the future finding-to-Task action: a valid, unexpired scope and in-scope finding are required; the resulting Task carries remediation, observation time, scope snapshot and a sanitized evidence link. No evidence is opened or fetched. A full findings screen remains a later milestone.
 
+M6-011 adds **Evidence Manifest** under Security. The user chooses up to 50 local files (2 GiB total), reviews leaf names, sizes and SHA-256 digests, then explicitly saves a versioned JSON manifest through the native Save dialog. Cancellation and hashing/save failures are distinct. The screen states that hashes provide integrity metadata only, not chain-of-custody or forensic proof.
+
 M6-003 adds **OpenAPI Viewer** under Toolbox. A user selects a local JSON/YAML file through the native picker. Loading, cancellation, parse/validation failure and a valid summary are distinct. The screen displays spec version, title, API version and path count, then offers the source text in a collapsed, escaped-text viewer. It states the 1 MiB limit and that validation is structural/local, does not resolve references and never contacts API servers.
 
 ## 4. Project & task UX

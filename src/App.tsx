@@ -7,6 +7,7 @@ import { CleanerPreviewPage } from "./CleanerPreviewPage";
 import { CommandPalette, type PaletteCommand } from "./CommandPalette";
 import { getPaletteCommands, getRegisteredCommand } from "./command-registry";
 import { DevToolsPage } from "./DevToolsPage";
+import { EvidenceManifestPage } from "./EvidenceManifestPage";
 import { type GlobalSearchResult, loadGlobalSearch } from "./global-search";
 import { HomeDashboardPage } from "./HomeDashboardPage";
 import { HttpInspectorPage } from "./HttpInspectorPage";
@@ -157,6 +158,13 @@ export function AppShell({
             aria-current={activeRoute === "metrics" ? "page" : undefined}
           >
             <span>Local Metrics</span>
+          </a>
+          <a
+            className={`nav-item${activeRoute === "evidence-manifest" ? " nav-item-active" : ""}`}
+            href="#/evidence-manifest"
+            aria-current={activeRoute === "evidence-manifest" ? "page" : undefined}
+          >
+            <span>Evidence Manifest</span>
           </a>
           <a
             className={`nav-item${activeRoute === "activity" ? " nav-item-active" : ""}`}
@@ -991,6 +999,8 @@ export default function App() {
         <ServicesPage />
       ) : route.kind === "page" && route.id === "metrics" ? (
         <LocalMetricsPage />
+      ) : route.kind === "page" && route.id === "evidence-manifest" ? (
+        <EvidenceManifestPage />
       ) : route.kind === "page" && route.id === "activity" ? (
         <ActivityCenterPage />
       ) : route.kind === "page" && route.id === "netops" ? (

@@ -129,6 +129,13 @@ A capability describes authority; it does not by itself authorize every target o
 - Evidence is an explicit HTTP(S) URL only; embedded credentials, fragments and unsafe schemes are rejected, common sensitive query values are redacted before storage, and the URL is never fetched or opened.
 - The Task snapshots scope authorization note, targets, exclusions and expiry with the finding timestamp, severity, likelihood, remediation and evidence link. Task priority remains its ordinary independent default and is not derived from severity or likelihood.
 
+### Evidence manifest and file hashing (M6-011)
+
+- Read only files chosen through the native picker. Enforce at most 50 entries and 2 GiB aggregate while streaming SHA-256; return leaf names only, never renderer-visible paths or file bytes.
+- The strict v1 manifest validates every digest, entry/aggregate size, leaf-only filename, fixed integrity-only assurance, and its own canonical payload hash. Saving is user-triggered, uses a native Save dialog and create-new semantics, and refuses overwrite.
+- Save IPC accepts only the opaque ID of a native-generated snapshot from a ten-entry process-local cache; the renderer cannot supply or alter saved filenames, sizes or digests. An evicted handle requires a new explicit file selection.
+- A digest supports later byte-integrity comparison only. Selection and hashing do not establish file origin, acquisition procedure, custody, authenticity, or forensic validity. The manifest must retain this limitation and must not be called a forensic chain-of-custody record.
+
 ### OpenAPI document viewer (M6-003)
 
 - A user action opens the native Windows file picker; renderer code cannot supply a path. Native code reads at most 1 MiB, rejects non-UTF-8 and oversized files, and returns only the filename plus bounded text. No database persistence or network access is performed.

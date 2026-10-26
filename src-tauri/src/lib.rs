@@ -11,6 +11,7 @@ pub mod diagnostic_task;
 pub mod dns_adapter;
 pub mod domain;
 pub mod event_log_adapter;
+pub mod evidence_manifest;
 pub mod hash_tools;
 pub mod home_dashboard;
 pub mod http_inspection;
@@ -48,9 +49,11 @@ pub mod trend_calculation;
 mod repository_integration_tests;
 
 use std::{
+    collections::VecDeque,
     fs,
     io::Read,
     path::{Path, PathBuf},
+    sync::{Mutex, OnceLock},
     time::Duration,
 };
 
@@ -59,6 +62,49 @@ use tauri::{AppHandle, Manager};
 
 const DATABASE_FILE_NAME: &str = "moonships.sqlite3";
 const DATABASE_BUSY_TIMEOUT_MS: u64 = 5_000;
+const MAX_CACHED_EVIDENCE_MANIFESTS: usize = 10;
+static EVIDENCE_MANIFEST_CACHE: OnceLock<Mutex<VecDeque<evidence_manifest::EvidenceManifest>>> =
+    OnceLock::new();
+
+fn cache_evidence_manifest(manifest: evidence_manifest::EvidenceManifest) -> Result<(), String> {
+    let mut cache = EVIDENCE_MANIFEST_CACHE
+        .get_or_init(|| Mutex::new(VecDeque::new()))
+        .lock()
+        .map_err(|_| "UNAVAILABLE: evidence manifest cache is unavailable".to_owned())?;
+    cache.push_back(manifest);
+    while cache.len() > MAX_CACHED_EVIDENCE_MANIFESTS {
+        cache.pop_front();
+    }
+    Ok(())
+}
+
+fn cached_evidence_manifest(
+    manifest_id: &str,
+) -> Result<evidence_manifest::EvidenceManifest, String> {
+    let id = uuid::Uuid::parse_str(manifest_id)
+        .map(|id| id.to_string())
+        .map_err(|_| "VALIDATION_FAILED: evidence manifest handle is invalid".to_owned())?;
+    EVIDENCE_MANIFEST_CACHE
+        .get_or_init(|| Mutex::new(VecDeque::new()))
+        .lock()
+        .map_err(|_| "UNAVAILABLE: evidence manifest cache is unavailable".to_owned())?
+        .iter()
+        .find(|manifest| manifest.manifest_id == id)
+        .cloned()
+        .ok_or_else(|| "NOT_FOUND: evidence manifest expired; select the files again".to_owned())
+}
+
+fn remove_cached_evidence_manifest(manifest_id: &str) -> Result<(), String> {
+    let id = uuid::Uuid::parse_str(manifest_id)
+        .map(|id| id.to_string())
+        .map_err(|_| "VALIDATION_FAILED: evidence manifest handle is invalid".to_owned())?;
+    let mut cache = EVIDENCE_MANIFEST_CACHE
+        .get_or_init(|| Mutex::new(VecDeque::new()))
+        .lock()
+        .map_err(|_| "UNAVAILABLE: evidence manifest cache is unavailable".to_owned())?;
+    cache.retain(|manifest| manifest.manifest_id != id);
+    Ok(())
+}
 
 fn database_path(app_data_dir: &Path) -> PathBuf {
     app_data_dir.join(DATABASE_FILE_NAME)
@@ -537,6 +583,12 @@ struct OpenApiDocumentDto {
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct SaveEvidenceManifestRequestDto {
+    manifest_id: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct FetchIntelligenceResultDto {
     source_id: String,
     fetched_count: usize,
@@ -793,6 +845,152 @@ async fn select_openapi_document(app: AppHandle) -> Result<Option<OpenApiDocumen
         })
         .await
         .map_err(|_| "IO_ERROR: OpenAPI selection worker did not complete".to_owned())?
+    }
+}
+
+#[tauri::command]
+async fn select_evidence_files(
+    app: AppHandle,
+) -> Result<Option<evidence_manifest::EvidenceManifest>, String> {
+    #[cfg(not(windows))]
+    {
+        let _ = app;
+        Err("UNSUPPORTED: evidence file selection is currently available on Windows".to_owned())
+    }
+    #[cfg(windows)]
+    {
+        tauri::async_runtime::spawn_blocking(move || {
+            let window = app
+                .get_webview_window("main")
+                .ok_or_else(|| "IO_ERROR: main window is unavailable".to_owned())?;
+            let Some(paths) = rfd::FileDialog::new()
+                .set_parent(&window)
+                .set_title("Select evidence files for a SHA-256 manifest")
+                .pick_files()
+            else {
+                return Ok(None);
+            };
+            if paths.is_empty() || paths.len() > evidence_manifest::MAX_EVIDENCE_ENTRIES {
+                return Err("LIMIT_REACHED: select between 1 and 50 evidence files".to_owned());
+            }
+            let mut entries = Vec::with_capacity(paths.len());
+            let mut total_bytes = 0_u64;
+            for path in paths {
+                let file = std::fs::File::open(&path)
+                    .map_err(|_| "IO_ERROR: selected evidence file could not be read".to_owned())?;
+                let metadata = file.metadata().map_err(|_| {
+                    "IO_ERROR: selected evidence file could not be inspected".to_owned()
+                })?;
+                if !metadata.is_file() {
+                    return Err(
+                        "VALIDATION_FAILED: selected evidence target is not a regular file"
+                            .to_owned(),
+                    );
+                }
+                let remaining =
+                    evidence_manifest::MAX_EVIDENCE_TOTAL_BYTES.saturating_sub(total_bytes);
+                if metadata.len() > remaining {
+                    return Err(
+                        "LIMIT_REACHED: evidence selection exceeds the 2 GiB aggregate limit"
+                            .to_owned(),
+                    );
+                }
+                let (sha256, bytes_hashed) =
+                    evidence_manifest::hash_selected_reader(file, remaining)?;
+                total_bytes = total_bytes
+                    .checked_add(bytes_hashed)
+                    .filter(|value| *value <= evidence_manifest::MAX_EVIDENCE_TOTAL_BYTES)
+                    .ok_or_else(|| {
+                        "LIMIT_REACHED: evidence selection exceeds the 2 GiB aggregate limit"
+                            .to_owned()
+                    })?;
+                let file_name = path
+                    .file_name()
+                    .map(|name| {
+                        name.to_string_lossy()
+                            .chars()
+                            .filter(|ch| !ch.is_control())
+                            .take(255)
+                            .collect::<String>()
+                    })
+                    .filter(|name| !name.trim().is_empty() && !name.contains(['/', '\\']))
+                    .ok_or_else(|| "VALIDATION_FAILED: selected file name is invalid".to_owned())?;
+                entries.push(evidence_manifest::EvidenceManifestEntry {
+                    id: uuid::Uuid::new_v4().to_string(),
+                    file_name,
+                    size_bytes: bytes_hashed,
+                    sha256,
+                });
+            }
+            let created_at = chrono::DateTime::<chrono::Utc>::from(std::time::SystemTime::now())
+                .to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
+            let manifest = evidence_manifest::EvidenceManifest::create(created_at, entries)
+                .map_err(|_| {
+                    "DATA_ERROR: generated evidence manifest did not validate".to_owned()
+                })?;
+            cache_evidence_manifest(manifest.clone())?;
+            Ok(Some(manifest))
+        })
+        .await
+        .map_err(|_| "IO_ERROR: evidence hashing worker did not complete".to_owned())?
+    }
+}
+
+#[tauri::command]
+async fn save_evidence_manifest(
+    app: AppHandle,
+    request: SaveEvidenceManifestRequestDto,
+) -> Result<Option<String>, String> {
+    let manifest = cached_evidence_manifest(&request.manifest_id)?;
+    manifest.validate().map_err(|_| {
+        "VALIDATION_FAILED: evidence manifest is invalid or has been changed".to_owned()
+    })?;
+    let json = manifest
+        .to_pretty_json()
+        .map_err(|_| "LIMIT_REACHED: evidence manifest exceeds its size limit".to_owned())?;
+    #[cfg(not(windows))]
+    {
+        let _ = (app, json);
+        Err("UNSUPPORTED: evidence manifest saving is currently available on Windows".to_owned())
+    }
+    #[cfg(windows)]
+    {
+        tauri::async_runtime::spawn_blocking(move || {
+            use std::io::Write;
+            let window = app
+                .get_webview_window("main")
+                .ok_or_else(|| "IO_ERROR: main window is unavailable".to_owned())?;
+            let Some(path) = rfd::FileDialog::new()
+                .set_parent(&window)
+                .set_title("Save evidence manifest")
+                .set_file_name("evidence-manifest.json")
+                .add_filter("JSON manifest", &["json"])
+                .save_file()
+            else {
+                return Ok(None);
+            };
+            let mut file = std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&path)
+                .map_err(|error| {
+                    if error.kind() == std::io::ErrorKind::AlreadyExists {
+                        "CONFLICT: evidence manifest would overwrite an existing file".to_owned()
+                    } else {
+                        "IO_ERROR: evidence manifest could not be created".to_owned()
+                    }
+                })?;
+            file.write_all(json.as_bytes())
+                .map_err(|_| "IO_ERROR: evidence manifest could not be written".to_owned())?;
+            file.sync_all()
+                .map_err(|_| "IO_ERROR: evidence manifest could not be finalized".to_owned())?;
+            remove_cached_evidence_manifest(&request.manifest_id)?;
+            Ok(path
+                .file_name()
+                .map(|name| name.to_string_lossy().chars().take(255).collect()))
+        })
+        .await
+        .map_err(|_| "IO_ERROR: evidence manifest save worker did not complete".to_owned())?
     }
 }
 
@@ -1978,6 +2176,8 @@ pub fn run() {
             create_task_from_http_inspection,
             create_task_from_security_finding,
             select_openapi_document,
+            select_evidence_files,
+            save_evidence_manifest,
             set_intelligence_source_enabled,
             list_intelligence_watchlists,
             save_intelligence_watchlist,
@@ -2073,8 +2273,8 @@ mod tests {
         FetchIntelligenceSourceDto, GetIntelligenceItemDto, ListMilestonesRequestDto,
         ListProjectsRequestDto, ListTasksRequestDto, MilestoneDto, MilestoneListResponseDto,
         ProjectActivityDto, ProjectDto, ProjectListResponseDto, ProjectOverviewRequestDto,
-        ProjectOverviewResponseDto, SaveConnectorSettingsDto, SaveTopicWatchlistDto,
-        SetConnectorEnabledDto, SetTopicWatchlistPausedDto, TaskActivityDto,
+        ProjectOverviewResponseDto, SaveConnectorSettingsDto, SaveEvidenceManifestRequestDto,
+        SaveTopicWatchlistDto, SetConnectorEnabledDto, SetTopicWatchlistPausedDto, TaskActivityDto,
         TaskActivityListResponseDto, TaskDto, TaskListResponseDto, TaskRequestDto,
         TopicWatchlistIdDto, UpdateTaskRequestDto, CURRENT_SCHEMA_VERSION,
         DATABASE_BUSY_TIMEOUT_MS, DATABASE_FILE_NAME, PERSONAL_WORKSPACE_ID,
@@ -2126,6 +2326,22 @@ mod tests {
         assert_eq!(json["projects"][0]["workspaceId"], PERSONAL_WORKSPACE_ID);
         assert_eq!(json["projects"][0]["createdAt"], "2026-10-26T00:00:00Z");
         assert!(json["projects"][0].get("workspace_id").is_none());
+    }
+
+    #[test]
+    fn evidence_manifest_save_ipc_accepts_only_an_opaque_native_handle() {
+        let request: SaveEvidenceManifestRequestDto = serde_json::from_value(serde_json::json!({
+            "manifestId": "f10b468a-5b3b-4a4d-9205-899427870681"
+        }))
+        .unwrap();
+        assert_eq!(request.manifest_id, "f10b468a-5b3b-4a4d-9205-899427870681");
+        assert!(
+            serde_json::from_value::<SaveEvidenceManifestRequestDto>(serde_json::json!({
+                "manifestId": "f10b468a-5b3b-4a4d-9205-899427870681",
+                "manifest": {"entries": []}
+            }))
+            .is_err()
+        );
     }
 
     #[test]

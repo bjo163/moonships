@@ -35,6 +35,8 @@ M6-009 `SecurityFinding` carries a UUID, bounded title/summary, `severity`, `lik
 
 M6-010 converts a validated `SecurityFinding` plus active `AssessmentScope`, remediation and validated HTTP(S) evidence URL into an ordinary Personal inbox Task. The Task description contains a bounded snapshot of finding dimensions, target, summary, timestamp, remediation, redacted evidence URL, authorized/excluded targets, authorization note and scope expiry. It creates no separate finding/evidence table; future persistence and app-managed artifact references remain separate work.
 
+M6-011 evidence manifest schema v1 contains `manifestId`, `format`, `schemaVersion`, `createdAt`, fixed `hash_integrity_only` assurance, an explicit custody limitation, up to 50 entries (opaque UUID, leaf filename, size and lowercase SHA-256), and `manifestSha256` over the canonical typed payload excluding its own hash field. Total selected file bytes are capped at 2 GiB and JSON at 512 KiB. The native process retains at most 10 hash snapshots addressed by manifest ID; save accepts only that ID. The manifest stores no source file content or path.
+
 ### Workspace
 Purpose: local grouping of projects, settings and views.
 Fields: id, name, description?, profile_type?, created_at, updated_at, archived_at?.
