@@ -8,6 +8,16 @@ pub const MAX_CONNECTOR_SOURCES: usize = 256;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct DeletedSourceSummary {
+    pub source_id: String,
+    pub display_name: String,
+    pub source_url: String,
+    pub deleted_at: String,
+    pub deleted_item_count: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SaveConnectorSettings {
     pub id: Option<String>,
     pub display_name: String,
@@ -134,6 +144,57 @@ pub fn save_source(
         .commit()
         .map_err(|error| format!("DB_ERROR: could not save source settings: {error}"))?;
     Ok(source)
+}
+
+pub fn delete_source(
+    connection: &mut Connection,
+    id: &str,
+) -> Result<DeletedSourceSummary, String> {
+    if !crate::connectors::valid_id(id) {
+        return Err("VALIDATION_ERROR: source ID is invalid".to_owned());
+    }
+    let transaction = connection
+        .transaction()
+        .map_err(|error| format!("DB_ERROR: could not begin source deletion: {error}"))?;
+    let source = load_source(&transaction, id)?
+        .ok_or_else(|| "NOT_FOUND: source does not exist".to_owned())?;
+    let item_count: i64 = transaction
+        .query_row(
+            "SELECT COUNT(*) FROM intelligence_items WHERE source_id = ?1",
+            [id],
+            |row| row.get(0),
+        )
+        .map_err(|error| format!("DB_ERROR: could not count source items: {error}"))?;
+    let deleted_at = chrono::DateTime::<chrono::Utc>::from(std::time::SystemTime::now())
+        .to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
+    transaction
+        .execute(
+            "INSERT INTO intelligence_source_deletions (source_id, display_name, source_url, deleted_at, deleted_item_count) VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![id, source.display_name, source.source_url, deleted_at, item_count],
+        )
+        .map_err(|error| format!("DB_ERROR: could not retain deletion metadata: {error}"))?;
+    transaction
+        .execute(
+            "DELETE FROM intelligence_source_deletions WHERE id NOT IN (SELECT id FROM intelligence_source_deletions ORDER BY id DESC LIMIT 1000)",
+            [],
+        )
+        .map_err(|error| format!("DB_ERROR: could not bound deletion metadata: {error}"))?;
+    transaction
+        .execute("DELETE FROM intelligence_items WHERE source_id = ?1", [id])
+        .map_err(|error| format!("DB_ERROR: could not delete source items: {error}"))?;
+    transaction
+        .execute("DELETE FROM intelligence_connectors WHERE id = ?1", [id])
+        .map_err(|error| format!("DB_ERROR: could not delete source settings: {error}"))?;
+    transaction
+        .commit()
+        .map_err(|error| format!("DB_ERROR: could not complete source deletion: {error}"))?;
+    Ok(DeletedSourceSummary {
+        source_id: id.to_owned(),
+        display_name: source.display_name,
+        source_url: source.source_url,
+        deleted_at,
+        deleted_item_count: item_count as usize,
+    })
 }
 
 fn is_nws_active_alert_feed(source_url: &str) -> bool {
@@ -280,6 +341,49 @@ mod tests {
         assert_eq!(other.request_timeout_ms, 5_000);
         assert_eq!(other.maximum_response_bytes, 512_000);
         assert_eq!(other.maximum_items_per_run, 100);
+    }
+
+    #[test]
+    fn deletion_removes_source_items_but_retains_bounded_provenance_audit() {
+        let mut connection = database();
+        let source = save_source(&mut connection, settings()).unwrap();
+        let item_id = "00000000-0000-4000-8000-000000000042";
+        let item = serde_json::json!({
+            "id": item_id, "sourceId": source.id, "sourceUrl": source.source_url,
+            "externalId": null, "originalUrl": "https://example.test/item",
+            "canonicalUrl": "https://example.test/item", "title": "Saved item",
+            "summary": null, "publishedAt": null, "observedAt": "2026-10-26T12:00:00Z",
+            "eventTime": null, "category": "general", "contentHash": null,
+            "freshnessState": "fresh", "verificationState": "source_attributed"
+        })
+        .to_string();
+        connection.execute("INSERT INTO intelligence_items(id,source_id,category,observed_at,item_json) VALUES(?1,?2,'general','2026-10-26T12:00:00Z',?3)", params![item_id, source.id, item]).unwrap();
+        connection.execute("INSERT INTO research_notes(id,title,body,item_id,created_at,updated_at) VALUES('00000000-0000-4000-8000-000000000043','Saved item','',?1,'2026-10-26T12:00:00Z','2026-10-26T12:00:00Z')", [item_id]).unwrap();
+        connection.execute("INSERT INTO research_note_references(note_id,item_id,source_id,source_url,original_url,published_at,observed_at,verification_state) VALUES('00000000-0000-4000-8000-000000000043',?1,?2,?3,'https://example.test/item',NULL,'2026-10-26T12:00:00Z','source_attributed')", params![item_id, source.id, source.source_url]).unwrap();
+
+        let deleted = delete_source(&mut connection, &source.id).unwrap();
+        assert_eq!(deleted.deleted_item_count, 1);
+        assert_eq!(deleted.display_name, source.display_name);
+        assert!(list_sources(&connection).unwrap().is_empty());
+        let items: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM intelligence_items WHERE source_id=?1",
+                [&source.id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(items, 0);
+        let audit: (String, i64) = connection.query_row("SELECT source_url, deleted_item_count FROM intelligence_source_deletions WHERE source_id=?1", [&source.id], |row| Ok((row.get(0)?, row.get(1)?))).unwrap();
+        assert_eq!(audit, (source.source_url.clone(), 1));
+        let snapshot: String = connection
+            .query_row(
+                "SELECT source_url FROM research_note_references WHERE item_id=?1",
+                [item_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(snapshot, source.source_url);
+        assert!(delete_source(&mut connection, &source.id).is_err());
     }
 
     #[test]

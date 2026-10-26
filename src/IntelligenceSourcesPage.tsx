@@ -123,6 +123,7 @@ export function IntelligenceSourcesPage() {
   const [sourcesUnavailable, setSourcesUnavailable] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [nwsArea, setNwsArea] = useState("");
+  const [deleteCandidate, setDeleteCandidate] = useState<Source["connector"] | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -228,6 +229,45 @@ export function IntelligenceSourcesPage() {
       minimumPollIntervalSeconds: source.connector.minimumPollIntervalSeconds,
     });
     setNotice("Editing source settings. Saving a changed URL will disable this source.");
+  };
+
+  const exportSource = async (source: Source["connector"]) => {
+    setBusySource(source.id);
+    setError(null);
+    setNotice(null);
+    try {
+      const name = await invoke<string | null>("export_intelligence_source", {
+        request: { id: source.id },
+      });
+      setNotice(name ? `Source and saved items exported as ${name}.` : "Export cancelled.");
+    } catch (reason) {
+      setError(typeof reason === "string" ? reason : "Source export could not be completed.");
+    } finally {
+      setBusySource(null);
+    }
+  };
+
+  const deleteSource = async () => {
+    if (!deleteCandidate) return;
+    const candidate = deleteCandidate;
+    setBusySource(candidate.id);
+    setError(null);
+    setNotice(null);
+    try {
+      const deleted = await invoke<{ deletedItemCount: number }>("delete_intelligence_source", {
+        request: { id: candidate.id },
+      });
+      setNotice(
+        `Deleted ${candidate.displayName} and ${deleted.deletedItemCount} saved items. Its source identity and deletion time remain in bounded audit metadata; Research Desk attribution is retained.`,
+      );
+      setDeleteCandidate(null);
+      if (draft.id === candidate.id) setDraft(emptyDraft);
+      await reload();
+    } catch (reason) {
+      setError(typeof reason === "string" ? reason : "Source could not be deleted.");
+    } finally {
+      setBusySource(null);
+    }
   };
 
   return (
@@ -346,12 +386,52 @@ export function IntelligenceSourcesPage() {
                         ? "Disable"
                         : "Enable"}
                   </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={busySource === connector.id}
+                    onClick={() => void exportSource(connector)}
+                  >
+                    {busySource === connector.id ? "Working…" : "Export source data"}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={busySource === connector.id}
+                    onClick={() => setDeleteCandidate(connector)}
+                  >
+                    Delete source data
+                  </Button>
                 </div>
               </article>
             ))}
           </div>
         )}
       </section>
+
+      {deleteCandidate ? (
+        <section className="watchlist-delete-confirmation" aria-labelledby="delete-source-title">
+          <h3 id="delete-source-title">Delete {deleteCandidate.displayName}?</h3>
+          <p>
+            This removes the saved source settings and all stored Intelligence items from this feed.
+            Research Desk notes keep their source-attribution snapshot. The deletion record keeps
+            the source ID, name, feed URL, time and number of removed items. Export first if you
+            want a copy of the stored source data.
+          </p>
+          <div className="source-actions">
+            <Button
+              variant="secondary"
+              onClick={() => setDeleteCandidate(null)}
+              disabled={Boolean(busySource)}
+            >
+              Keep source
+            </Button>
+            <Button onClick={() => void deleteSource()} disabled={Boolean(busySource)}>
+              {busySource ? "Deleting…" : "Confirm deletion"}
+            </Button>
+          </div>
+        </section>
+      ) : null}
 
       <section className="source-form-section" aria-labelledby="nws-preset-title">
         <div className="section-heading">

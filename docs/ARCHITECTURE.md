@@ -331,6 +331,8 @@ M5-015 adds an official U.S. National Weather Service active-alert Atom preset f
 
 M5-017 adds adversarial Atom fixture content that asks the system to ignore rules, invoke shell and export secrets. The existing parser keeps that bounded payload as untrusted title/summary text and the Intelligence detail displays it as text. Ingestion/display invokes no model or tool, and retrieved source content cannot select tool IDs, permissions, network targets or native policy.
 
+M5-018 adds a user-confirmed source export and deletion path. Export uses a native Windows Save dialog, writes a versioned JSON snapshot of source settings and all retained source items (up to the existing 10,000-item storage bound), and refuses to overwrite an existing path. Deletion transactionally removes the declaration and that source's stored Intelligence items; it preserves Research Desk notes and their provenance snapshots plus only a bounded deletion audit summary (source ID/name/feed URL/time/item count). Watchlists remain because they are independent filters. No deletion occurs until the user confirms in the source UI.
+
 ## 11. AI adapter boundary
 
 AI consumes a limited context assembled by Moonships and can request only registered tools. Keep provider request/response types behind an internal interface. Persist prompt/output only when configured and necessary; redact secrets and minimize sensitive data.

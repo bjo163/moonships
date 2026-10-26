@@ -33,6 +33,25 @@ pub fn fetch_and_store(
     let transaction = connection
         .transaction()
         .map_err(|_| RssFetchError::InvalidItem)?;
+    let stored_source: Option<String> = transaction
+        .query_row(
+            "SELECT connector_json FROM intelligence_connectors WHERE id = ?1",
+            [&source.id],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|_| RssFetchError::InvalidItem)?;
+    let Some(stored_source) = stored_source else {
+        return Err(RssFetchError::Disabled);
+    };
+    let stored_source: ConnectorDefinition =
+        serde_json::from_str(&stored_source).map_err(|_| RssFetchError::InvalidItem)?;
+    if !stored_source.is_enabled()
+        || stored_source.source_url != source.source_url
+        || stored_source.display_name != source.display_name
+    {
+        return Err(RssFetchError::Disabled);
+    }
     for item in &items {
         persist(&transaction, item).map_err(|_| RssFetchError::InvalidItem)?;
     }
@@ -95,6 +114,33 @@ pub fn list(
             })
         })
         .collect()
+}
+
+pub fn list_all_for_source_export(
+    connection: &Connection,
+    source_id: &str,
+) -> Result<Vec<IntelligenceItem>, ItemStoreError> {
+    validate_filter(Some(source_id), None, None)?;
+    let mut statement = connection
+        .prepare("SELECT item_json FROM intelligence_items WHERE source_id = ?1 ORDER BY observed_at DESC, id DESC LIMIT ?2")
+        .map_err(|_| ItemStoreError::InvalidFilter)?;
+    let records = statement
+        .query_map(params![source_id, MAX_STORED_ITEMS as i64 + 1], |row| {
+            row.get::<_, String>(0)
+        })
+        .map_err(|_| ItemStoreError::InvalidFilter)?;
+    let mut items = Vec::new();
+    for record in records {
+        let mut item: IntelligenceItem =
+            serde_json::from_str(&record.map_err(|_| ItemStoreError::InvalidFilter)?)
+                .map_err(|_| ItemStoreError::InvalidFilter)?;
+        item.validate().map_err(|_| ItemStoreError::InvalidFilter)?;
+        items.push(item);
+    }
+    if items.len() > MAX_STORED_ITEMS {
+        return Err(ItemStoreError::InvalidFilter);
+    }
+    Ok(items)
 }
 
 pub fn get(connection: &Connection, id: &str) -> Result<Option<IntelligenceItem>, ItemStoreError> {
@@ -229,6 +275,9 @@ mod tests {
             get(&connection, &results[0].id).unwrap(),
             Some(results[0].clone())
         );
+        let exported = list_all_for_source_export(&connection, "rss-test").unwrap();
+        assert_eq!(exported.len(), 2);
+        assert!(exported.iter().all(|row| row.source_id == "rss-test"));
         assert_eq!(
             list(
                 &connection,
@@ -274,6 +323,13 @@ mod tests {
         assert_eq!(disabled, Err(RssFetchError::Disabled));
 
         source.enable().unwrap();
+        let source_json = serde_json::to_string(&source).unwrap();
+        connection
+            .execute(
+                "INSERT INTO intelligence_connectors(id,connector_json) VALUES(?1,?2)",
+                params![source.id, source_json],
+            )
+            .unwrap();
         assert_eq!(
             fetch_and_store(&mut connection, &mut source),
             Err(RssFetchError::ResolutionFailed)

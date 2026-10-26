@@ -188,6 +188,13 @@ Risk class is separate from task priority, vulnerability severity and business i
 - OS permission is requested only from the Settings enable action. The renderer receives only permission-check/request APIs, not notification-send authority; native code owns sending and reads the strict persisted preference. Disabling the preference suppresses future notifications even if OS permission remains granted.
 - Enabling notifications does not enable connectors, start network access, or schedule work. No startup, timer, background, or notification-triggered fetch is implemented.
 
+### Intelligence source export/deletion (M5-018)
+
+- Source export takes only a validated source ID, reads the source declaration and all retained validated items (bounded by the 10,000 item retention ceiling), then opens a native Windows Save dialog. The renderer supplies no output path or item contents. JSON writes use create-new semantics and fail on an existing destination; cancellation writes nothing.
+- Source deletion requires an explicit UI confirmation and a native transaction. It removes the source declaration and all stored Intelligence items attributed to that source. Research note text and its source-attribution snapshot remain intact; saved watchlists remain because they are independent filters. A bounded audit retains only source ID, display name, feed URL, deletion timestamp and removed-item count, capped at the newest 1,000 records. Audit rows contain no titles, summaries, secrets or fetched content.
+- Export and deletion failures are surfaced; deletion rollback leaves the source and items available. No request is performed by opening the source screen or export dialog.
+- A manual fetch rechecks the saved connector's existence, enablement and identity inside the item-write transaction after network I/O. If the source was deleted, disabled or materially changed while a request was running, its response is discarded rather than restoring deleted source content.
+
 ### Read-only system inventory (M4-007)
 
 - Inventory reads only OS family/process architecture, available logical processors, physical memory counters and capacity/free bytes on the volume containing the Windows directory.

@@ -82,7 +82,7 @@ fn open_database_in(app_data_dir: &Path) -> Result<Connection, String> {
     Ok(connection)
 }
 
-const CURRENT_SCHEMA_VERSION: i64 = 14;
+const CURRENT_SCHEMA_VERSION: i64 = 15;
 const PERSONAL_WORKSPACE_ID: &str = "00000000-0000-4000-8000-000000000001";
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
@@ -687,6 +687,65 @@ fn save_intelligence_source(
 }
 
 #[tauri::command]
+fn delete_intelligence_source(
+    app: AppHandle,
+    request: GetIntelligenceItemDto,
+) -> Result<intelligence_sources::DeletedSourceSummary, String> {
+    let mut connection = open_personal_workspace_database(&app)?;
+    intelligence_sources::delete_source(&mut connection, &request.id)
+}
+
+#[tauri::command]
+async fn export_intelligence_source(
+    app: AppHandle,
+    request: GetIntelligenceItemDto,
+) -> Result<Option<String>, String> {
+    #[cfg(not(windows))]
+    {
+        let _ = (app, request);
+        Err("UNSUPPORTED: Intelligence export is currently available on Windows".to_owned())
+    }
+    #[cfg(windows)]
+    {
+        tauri::async_runtime::spawn_blocking(move || {
+            let connection = open_personal_workspace_database(&app)?;
+            let sources = intelligence_sources::list_sources(&connection)?;
+            let source = sources
+                .into_iter()
+                .find(|source| source.id == request.id)
+                .ok_or_else(|| "NOT_FOUND: source does not exist".to_owned())?;
+            let items = intelligence_item_store::list_all_for_source_export(&connection, &request.id)
+                .map_err(|_| "DATA_ERROR: source items could not be read".to_owned())?;
+            let document = serde_json::json!({
+                "schemaVersion": 1,
+                "exportedAt": chrono::DateTime::<chrono::Utc>::from(std::time::SystemTime::now()).to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
+                "source": source,
+                "items": items,
+            });
+            let json = serde_json::to_string_pretty(&document)
+                .map_err(|_| "DATA_ERROR: could not encode source export".to_owned())?;
+            let window = app.get_webview_window("main")
+                .ok_or_else(|| "IO_ERROR: main window is unavailable".to_owned())?;
+            let Some(path) = rfd::FileDialog::new()
+                .set_parent(&window)
+                .set_title("Export Intelligence Source")
+                .set_file_name("moonships-intelligence-source.json")
+                .add_filter("JSON", &["json"])
+                .save_file()
+            else { return Ok(None); };
+            use std::io::Write;
+            let mut file = std::fs::OpenOptions::new().write(true).create_new(true).open(&path)
+                .map_err(|error| if error.kind() == std::io::ErrorKind::AlreadyExists {
+                    "CONFLICT: selected export file already exists".to_owned()
+                } else { "IO_ERROR: could not save the selected source export".to_owned() })?;
+            file.write_all(json.as_bytes())
+                .map_err(|_| "IO_ERROR: could not save the selected source export".to_owned())?;
+            Ok(path.file_name().map(|name| name.to_string_lossy().into_owned()))
+        }).await.map_err(|_| "IO_ERROR: source export did not complete".to_owned())?
+    }
+}
+
+#[tauri::command]
 fn set_intelligence_source_enabled(
     app: AppHandle,
     request: SetConnectorEnabledDto,
@@ -1172,6 +1231,24 @@ pub(crate) fn run_migrations(connection: &mut Connection) -> Result<(), String> 
             );
             INSERT OR IGNORE INTO schema_migrations (version) VALUES (14);"
         ).map_err(|error| format!("Could not apply research notes migration: {error}"))?;
+    }
+
+    if current_version < 15 {
+        transaction
+            .execute_batch(
+                "CREATE TABLE IF NOT EXISTS intelligence_source_deletions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                source_id TEXT NOT NULL CHECK (length(source_id) BETWEEN 1 AND 64),
+                display_name TEXT NOT NULL CHECK (length(display_name) BETWEEN 1 AND 120),
+                source_url TEXT NOT NULL CHECK (length(source_url) <= 2048),
+                deleted_at TEXT NOT NULL,
+                deleted_item_count INTEGER NOT NULL CHECK (deleted_item_count >= 0)
+            );
+            INSERT OR IGNORE INTO schema_migrations (version) VALUES (15);",
+            )
+            .map_err(|error| {
+                format!("Could not apply intelligence source deletion migration: {error}")
+            })?;
     }
 
     transaction
@@ -1737,6 +1814,8 @@ pub fn run() {
             get_research_note,
             export_research_note,
             save_intelligence_source,
+            delete_intelligence_source,
+            export_intelligence_source,
             set_intelligence_source_enabled,
             list_intelligence_watchlists,
             save_intelligence_watchlist,

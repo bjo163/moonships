@@ -173,4 +173,55 @@ describe("M5-008 Intelligence Sources", () => {
       false,
     );
   });
+
+  it("exports source data on request and deletes only after explicit confirmation", async () => {
+    let savedSources = [
+      {
+        connector: {
+          id: "rss-example",
+          displayName: "Example Source",
+          sourceUrl: "https://example.test/feed.xml",
+          termsUrl: null,
+          termsNotes: "Fixture source",
+          termsReview: "reviewed" as const,
+          minimumPollIntervalSeconds: 900,
+          enabled: false,
+          health: "disabled",
+        },
+        freshness: { status: "disabled" as const, lastSuccessAt: null, isLive: false },
+      },
+    ];
+    invokeMock.mockImplementation(async (command: string, args?: { request?: { id?: string } }) => {
+      if (command === "list_intelligence_sources") return savedSources;
+      if (command === "export_intelligence_source") return "intelligence-export.json";
+      if (command === "delete_intelligence_source") {
+        savedSources = [];
+        return { deletedItemCount: 3 };
+      }
+      if (command === undefined) return savedSources;
+      throw new Error(`Unexpected command: ${command} ${args?.request?.id ?? ""}`);
+    });
+
+    render(<IntelligenceSourcesPage />);
+    await screen.findByText("Example Source");
+    fireEvent.click(screen.getByRole("button", { name: "Export source data" }));
+    expect((await screen.findByRole("status")).textContent).toMatch(
+      /exported as intelligence-export\.json/,
+    );
+    expect(invokeMock).toHaveBeenCalledWith("export_intelligence_source", {
+      request: { id: "rss-example" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete source data" }));
+    expect(await screen.findByText(/all stored Intelligence items/)).toBeTruthy();
+    expect(invokeMock).not.toHaveBeenCalledWith("delete_intelligence_source", expect.anything());
+    fireEvent.click(screen.getByRole("button", { name: "Confirm deletion" }));
+    expect((await screen.findByRole("status")).textContent).toMatch(
+      /Deleted Example Source and 3 saved items/,
+    );
+    expect(invokeMock).toHaveBeenCalledWith("delete_intelligence_source", {
+      request: { id: "rss-example" },
+    });
+    expect(await screen.findByText("No sources configured")).toBeTruthy();
+  });
 });
