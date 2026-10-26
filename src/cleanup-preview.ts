@@ -21,6 +21,13 @@ export type CleanupPreviewItem = {
 };
 
 export type CleanupPreviewDto = {
+  previewId: string;
   generatedAt: string;
   items: CleanupPreviewItem[];
+};
+
+export type CleanupApprovalRequest = {
+  previewId: string;
+  candidateIds: string[];
+  estimatedBytes: number;
 };

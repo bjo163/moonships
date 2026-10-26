@@ -137,7 +137,7 @@
 - [x] **M3-005 — Define cleanup candidate identity** [S] [depends: M3-002] — ID plus metadata needed for revalidation. **AC:** candidate is not identified only by display path text.
 - [x] **M3-006 — Add scan progress and cancellation contract** [S] [depends: M1-026,M3-002] — Honest cancellation semantics. **AC:** UI receives progress and terminal state.
 - [x] **M3-007 — Add preview DTO and UI** [S] [depends: M3-005] — Category/count/size/skips. **AC:** preview performs no mutation.
-- [ ] **M3-008 — Add explicit clean approval flow** [S] [depends: M3-007,M1-028] — Summary before action. **AC:** no execution begins before approval.
+- [x] **M3-008 — Add explicit clean approval flow** [S] [depends: M3-007,M1-028] — Summary before action. **AC:** no execution begins before approval.
 - [ ] **M3-009 — Revalidate each candidate before deletion** [S] [depends: M3-005,M3-008] — Re-check target, type, identity and policy. **AC:** changed or out-of-policy candidate is skipped.
 - [ ] **M3-010 — Add bounded deletion executor** [S] [depends: M3-009] — Handle locked/denied files individually. **AC:** one failed file does not crash whole job.
 - [ ] **M3-011 — Report estimated versus actual freed bytes** [S] [depends: M3-010] — Separate measurements. **AC:** report does not claim all estimated bytes were freed.

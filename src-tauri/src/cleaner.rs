@@ -223,7 +223,7 @@ pub enum CleanupPreviewDisposition {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CleanupPreviewItemDto {
-    pub candidate_id: String,
+    pub candidate_id: uuid::Uuid,
     pub category: CleanupCategory,
     pub display_name: String,
     pub size_bytes: u64,
@@ -246,7 +246,7 @@ impl CleanupPreviewItemDto {
             .filter(|name| !name.is_empty())
             .ok_or(CandidateIdentityError::InvalidRelativePath)?;
         Ok(Self {
-            candidate_id: candidate.id.to_string(),
+            candidate_id: candidate.id,
             category,
             display_name: display_name.to_string(),
             size_bytes: candidate.metadata.size_bytes,
@@ -261,8 +261,60 @@ impl CleanupPreviewItemDto {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CleanupPreviewDto {
+    pub preview_id: uuid::Uuid,
     pub generated_at: String,
     pub items: Vec<CleanupPreviewItemDto>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CleanupApprovalRequestDto {
+    pub preview_id: uuid::Uuid,
+    pub candidate_ids: Vec<uuid::Uuid>,
+    pub estimated_bytes: u64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CleanupApprovalValidationError {
+    EmptySelection,
+    DuplicateCandidate,
+    CandidateNotEligible,
+    SizeOverflow,
+}
+
+impl CleanupApprovalRequestDto {
+    /// Builds a request only for unique eligible rows in the supplied immutable preview.
+    /// This records approval scope; it does not execute or authorize deletion by itself.
+    pub fn from_selection(
+        preview: &CleanupPreviewDto,
+        selected_ids: &[uuid::Uuid],
+    ) -> Result<Self, CleanupApprovalValidationError> {
+        if selected_ids.is_empty() {
+            return Err(CleanupApprovalValidationError::EmptySelection);
+        }
+        let mut candidate_ids = Vec::with_capacity(selected_ids.len());
+        let mut estimated_bytes = 0_u64;
+        for id in selected_ids {
+            if candidate_ids.contains(id) {
+                return Err(CleanupApprovalValidationError::DuplicateCandidate);
+            }
+            let item = preview
+                .items
+                .iter()
+                .find(|item| item.candidate_id == *id)
+                .filter(|item| item.disposition == CleanupPreviewDisposition::Eligible)
+                .ok_or(CleanupApprovalValidationError::CandidateNotEligible)?;
+            estimated_bytes = estimated_bytes
+                .checked_add(item.size_bytes)
+                .ok_or(CleanupApprovalValidationError::SizeOverflow)?;
+            candidate_ids.push(*id);
+        }
+        Ok(Self {
+            preview_id: preview.preview_id,
+            candidate_ids,
+            estimated_bytes,
+        })
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -808,6 +860,7 @@ mod tests {
         )
         .expect("create preview row");
         let preview = super::CleanupPreviewDto {
+            preview_id: uuid::Uuid::new_v4(),
             generated_at: "2026-10-26T00:00:00Z".to_string(),
             items: vec![item],
         };
@@ -822,6 +875,71 @@ mod tests {
             .unwrap()
             .contains("cache.bin"));
         assert!(!serialized.to_string().contains("nested/cache.bin"));
+    }
+
+    #[test]
+    fn clean_approval_request_binds_only_unique_eligible_preview_candidates() {
+        let eligible_identity = super::CleanupCandidateIdentity::new(
+            "cache/eligible.bin",
+            candidate(
+                CleanupRoot::AppTemporary,
+                CleanupFileKind::RegularFile,
+                300,
+                1_024,
+            ),
+        )
+        .unwrap();
+        let skipped_identity = super::CleanupCandidateIdentity::new(
+            "cache/recent.bin",
+            candidate(
+                CleanupRoot::AppTemporary,
+                CleanupFileKind::RegularFile,
+                1,
+                512,
+            ),
+        )
+        .unwrap();
+        let eligible = super::CleanupPreviewItemDto::from_candidate(
+            &eligible_identity,
+            CleanupCategory::TemporaryFiles,
+            super::CleanupPreviewDisposition::Eligible,
+            None,
+        )
+        .unwrap();
+        let skipped = super::CleanupPreviewItemDto::from_candidate(
+            &skipped_identity,
+            CleanupCategory::TemporaryFiles,
+            super::CleanupPreviewDisposition::Skipped,
+            Some(EligibilityExclusion::TooRecent),
+        )
+        .unwrap();
+        let preview = super::CleanupPreviewDto {
+            preview_id: uuid::Uuid::new_v4(),
+            generated_at: "2026-10-26T00:00:00Z".to_string(),
+            items: vec![eligible, skipped],
+        };
+
+        let request =
+            super::CleanupApprovalRequestDto::from_selection(&preview, &[eligible_identity.id])
+                .unwrap();
+        assert_eq!(request.preview_id, preview.preview_id);
+        assert_eq!(request.candidate_ids, vec![eligible_identity.id]);
+        assert_eq!(request.estimated_bytes, 1_024);
+        assert_eq!(
+            super::CleanupApprovalRequestDto::from_selection(&preview, &[]),
+            Err(super::CleanupApprovalValidationError::EmptySelection),
+        );
+        assert_eq!(
+            super::CleanupApprovalRequestDto::from_selection(&preview, &[skipped_identity.id]),
+            Err(super::CleanupApprovalValidationError::CandidateNotEligible),
+        );
+        assert_eq!(
+            super::CleanupApprovalRequestDto::from_selection(
+                &preview,
+                &[eligible_identity.id, eligible_identity.id],
+            ),
+            Err(super::CleanupApprovalValidationError::DuplicateCandidate),
+        );
     }
 
     #[cfg(windows)]

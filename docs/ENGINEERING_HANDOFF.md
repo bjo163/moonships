@@ -321,3 +321,7 @@ Added serializable cleaner scan progress and terminal event DTOs keyed by the sh
 ## M3-007 Cleanup preview DTO and UI — 2026-10-26
 
 Added a serializable native preview row with candidate ID, category, leaf display name, byte size, modified time, eligible/skipped status and a closed skip reason. The frontend has a Clean & Storage route with an explicit no-scan state and a read-only preview table with counts, estimated bytes, status and skip reasons. It contains no delete/clean action; no data is fabricated when a preview is unavailable. Rust tests passed 109/109, focused frontend tests passed 34/34, and `npm run check` passed (repository 8/8, frontend 110/110, typecheck and production build). Rust format, full tests and Clippy also passed. **Next task:** M3-008 explicit clean approval flow.
+
+## M3-008 Explicit cleanup approval — 2026-10-26
+
+Added eligible-only selection and a separate confirmation dialog. Confirmed approval requests bind the preview UUID, unique candidate UUIDs and selected estimated-byte total; native validation rejects empty, duplicate and skipped-row requests. Cancel and pre-confirm states do not emit an approval request. Confirmation records approval intent only, clearly says cleanup has not started, and has no deletion callback. `npm run check` passed (repository 8/8, frontend 111/111, typecheck and production build); full Rust tests passed 110/110, Clippy with warnings denied, Rust formatting and `git diff --check` passed. **Next task:** M3-009 per-candidate revalidation.

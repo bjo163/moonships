@@ -172,6 +172,8 @@ M3-006 defines cleaner scan updates as serialized progress and terminal events k
 
 M3-007 defines a preview DTO with candidate ID, category, leaf display name, size, modification time, eligible/skipped disposition and a closed skip reason. It excludes absolute paths. The Clean & Storage route renders only the supplied preview, derives counts and estimated bytes from its rows, and has no mutation action. When no scan result exists it explains that scanning is unavailable; it does not fabricate candidates.
 
+M3-008 adds an explicit review dialog for selected eligible rows. Its approval request is bound to the exact preview UUID, unique candidate UUIDs and their estimated byte total. Native request construction rejects empty, duplicate or skipped candidate selections. Approval only records the user's exact selection; it does not start deletion. Revalidation and the bounded executor are separate required gates.
+
 ## 7. Error model
 
 Use stable error codes/categories:

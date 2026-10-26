@@ -99,6 +99,7 @@ Risk class is separate from task priority, vulnerability severity and business i
 - M3-005 represents each scan candidate with a per-scan UUID, a validated relative locator, and immutable root/type/mtime/size metadata. It excludes absolute paths and display labels as identity inputs. Future mutation must revalidate this snapshot against fresh filesystem and platform identity.
 - M3-006 progress and terminal event DTOs carry only a job UUID, stage, bounded counters, cancellation support and a closed error code. They do not contain paths or file contents. Cancellation is best-effort or unsupported; a request is not reported as cancelled until work stops.
 - M3-007 preview DTOs expose only a candidate UUID, leaf display name, category, size, timestamp and eligibility/skip reason. The UI preview performs no mutation and offers no deletion control.
+- M3-008 requires a separate confirmation dialog for the selected eligible candidate IDs. The native approval request binds the exact preview UUID, unique IDs and estimated bytes; empty, duplicate or skipped candidates are rejected. Confirmation records intent only and cannot start deletion before later revalidation/executor gates.
 - Scan is read-only.
 - Candidate set comes from registered cleanup rules, never arbitrary UI-provided paths.
 - Default targets are narrow and documented; no broad recursive deletion of a user profile.

@@ -1,5 +1,12 @@
+import { useState } from "react";
 import { Badge, EmptyState } from "./ui-primitives";
-import type { CleanupCategory, CleanupPreviewDto, CleanupSkipReason } from "./cleanup-preview";
+import { Button, Dialog } from "./ui-primitives";
+import type {
+  CleanupApprovalRequest,
+  CleanupCategory,
+  CleanupPreviewDto,
+  CleanupSkipReason,
+} from "./cleanup-preview";
 
 const categoryLabels: Record<CleanupCategory, string> = {
   temporary_files: "Temporary files",
@@ -35,11 +42,51 @@ function formatModifiedAt(value: string): string {
     : new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date);
 }
 
-export function CleanerPreviewPage({ preview }: { preview: CleanupPreviewDto | null }) {
+export function CleanerPreviewPage({
+  preview,
+  onApprove,
+}: {
+  preview: CleanupPreviewDto | null;
+  onApprove?: (request: CleanupApprovalRequest) => void;
+}) {
+  return (
+    <CleanerPreviewContent
+      key={preview?.previewId ?? "no-preview"}
+      preview={preview}
+      onApprove={onApprove}
+    />
+  );
+}
+
+function CleanerPreviewContent({
+  preview,
+  onApprove,
+}: {
+  preview: CleanupPreviewDto | null;
+  onApprove?: (request: CleanupApprovalRequest) => void;
+}) {
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [approvalOpen, setApprovalOpen] = useState(false);
+  const [approvalRecorded, setApprovalRecorded] = useState<CleanupApprovalRequest | null>(null);
+
   const items = preview?.items ?? [];
   const eligibleItems = items.filter((item) => item.disposition === "eligible");
   const skippedItems = items.filter((item) => item.disposition === "skipped");
   const estimatedBytes = eligibleItems.reduce((total, item) => total + item.sizeBytes, 0);
+  const selectedItems = eligibleItems.filter((item) => selectedIds.has(item.candidateId));
+  const selectedBytes = selectedItems.reduce((total, item) => total + item.sizeBytes, 0);
+
+  const recordApproval = () => {
+    if (!preview || selectedItems.length === 0) return;
+    const request: CleanupApprovalRequest = {
+      previewId: preview.previewId,
+      candidateIds: selectedItems.map((item) => item.candidateId),
+      estimatedBytes: selectedBytes,
+    };
+    onApprove?.(request);
+    setApprovalRecorded(request);
+    setApprovalOpen(false);
+  };
 
   return (
     <section className="cleaner-preview" aria-labelledby="cleaner-preview-title">
@@ -98,6 +145,7 @@ export function CleanerPreviewPage({ preview }: { preview: CleanupPreviewDto | n
                 <caption>Cleanup candidates; this view does not change files.</caption>
                 <thead>
                   <tr>
+                    <th scope="col">Select</th>
                     <th scope="col">Item</th>
                     <th scope="col">Category</th>
                     <th scope="col">Size</th>
@@ -108,6 +156,23 @@ export function CleanerPreviewPage({ preview }: { preview: CleanupPreviewDto | n
                 <tbody>
                   {items.map((item) => (
                     <tr key={item.candidateId}>
+                      <td>
+                        <input
+                          type="checkbox"
+                          aria-label={`Select ${item.displayName}`}
+                          checked={selectedIds.has(item.candidateId)}
+                          disabled={item.disposition !== "eligible"}
+                          onChange={(event) => {
+                            setSelectedIds((current) => {
+                              const next = new Set(current);
+                              if (event.target.checked) next.add(item.candidateId);
+                              else next.delete(item.candidateId);
+                              return next;
+                            });
+                            setApprovalRecorded(null);
+                          }}
+                        />
+                      </td>
                       <th scope="row" title={item.displayName}>
                         {item.displayName}
                       </th>
@@ -129,12 +194,58 @@ export function CleanerPreviewPage({ preview }: { preview: CleanupPreviewDto | n
                 </tbody>
               </table>
             </div>
+            <div className="cleaner-preview__approval-actions">
+              <span aria-live="polite">
+                {selectedItems.length} eligible item{selectedItems.length === 1 ? "" : "s"} selected
+              </span>
+              <Button
+                variant="secondary"
+                disabled={selectedItems.length === 0}
+                onClick={() => setApprovalOpen(true)}
+              >
+                Review selected actions
+              </Button>
+            </div>
+            {approvalRecorded ? (
+              <p className="cleaner-preview__approval-note" role="status">
+                Approval recorded for {approvalRecorded.candidateIds.length} item(s) in this
+                preview. Cleanup has not started; no files have been changed.
+              </p>
+            ) : null}
             <p className="cleaner-preview__estimate-note">
-              Estimated space is not a promise of space recovered. This preview has no clean action.
+              Estimated space is not a promise of space recovered. Approval alone does not change
+              files.
             </p>
           </div>
         </>
       )}
+      <Dialog
+        open={approvalOpen}
+        title="Approve selected cleanup items"
+        description="Confirm the exact files and estimated space covered by this approval."
+        onClose={() => setApprovalOpen(false)}
+      >
+        <div className="cleaner-preview__approval-dialog">
+          <p>
+            {selectedItems.length} eligible item(s) · {formatBytes(selectedBytes)} estimated
+          </p>
+          <ul>
+            {selectedItems.map((item) => (
+              <li key={item.candidateId}>{item.displayName}</li>
+            ))}
+          </ul>
+          <p>
+            This approval is limited to the selected IDs in this preview. The cleanup executor is
+            not available yet; approving will not delete files.
+          </p>
+          <div className="cleaner-preview__approval-dialog-actions">
+            <Button variant="secondary" onClick={() => setApprovalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={recordApproval}>Approve selected items</Button>
+          </div>
+        </div>
+      </Dialog>
     </section>
   );
 }
