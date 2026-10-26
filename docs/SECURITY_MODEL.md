@@ -158,6 +158,12 @@ Risk class is separate from task priority, vulnerability severity and business i
 - Keywords and categories are filter data only. They are never interpreted as instructions, executable expressions, regular expressions or source URLs. Retrieved item content remains untrusted and is not stored by this task.
 - Pause disables matching without deleting the filter. Delete is an explicit confirmation and removes only the selected watchlist. No scheduler, automatic fetch or notification is introduced.
 
+### Trend calculation (M5-010)
+
+- The calculation accepts at most 2,000 items, validates each item before using it, and relies on the bounded deduplication helper. Windows must be explicit, adjacent, equal length, non-overlapping, no more than 90 days each, and must not extend into the declared calculation time.
+- Window membership uses normalized observation time, not provider publication/event dates. Zero baseline leaves the relative change undefined. No matching categories produce no observation rows; later consumers must add M5-011 coverage/uncertainty labels before implying absence or confidence.
+- Trend calculation is pure in-memory processing. It makes no network requests, starts no scheduler, stores no item content and interprets no source text as instructions.
+
 ### Read-only system inventory (M4-007)
 
 - Inventory reads only OS family/process architecture, available logical processors, physical memory counters and capacity/free bytes on the volume containing the Windows directory.

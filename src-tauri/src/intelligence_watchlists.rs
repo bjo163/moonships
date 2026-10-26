@@ -231,7 +231,7 @@ fn normalize_categories(values: Vec<String>) -> Result<Vec<String>, String> {
     Ok(categories)
 }
 
-fn validate(watchlist: &TopicWatchlist) -> Result<(), ()> {
+pub(crate) fn validate(watchlist: &TopicWatchlist) -> Result<(), ()> {
     if !valid_id(&watchlist.id)
         || watchlist.name.trim().is_empty()
         || watchlist.name.trim() != watchlist.name

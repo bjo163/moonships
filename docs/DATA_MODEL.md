@@ -138,8 +138,10 @@ Preserve source attribution and collection time. Keep the raw payload only when 
 Deduplication must not erase source relationships.
 
 ### Signal / TrendObservation
-Fields: id, subject_key, category, observed_window_start, observed_window_end, count, baseline_count?, delta_ratio?, method_version, source_count, confidence_label, created_at.
-A trend requires a named time window and baseline. Avoid calling an item “trending” based only on a global total.
+Fields: id, subject_key, category, observed_window_start/end, comparison_window_start/end, count, baseline_count?, delta_ratio?, method_version, source_count, confidence_label, created_at.
+A trend requires declared observation and comparison windows. Avoid calling an item “trending” based only on a global total.
+
+M5-010's pure `WindowTrend` result compares adjacent equal-length half-open windows (maximum 90 days each) per watchlist/category, using validated `observed_at` timestamps. It counts deduplicated attributed items, preserves current-window source count, and records both window boundaries and the method version. A zero baseline yields `delta_ratio = null`; a category with no item in either supplied window produces no row. Confidence and coverage labels are added separately in M5-011.
 
 ### WorkflowDefinition
 Fields: id, workspace_id, name, version, definition_json, enabled, permissions_json, created_at, updated_at.

@@ -319,6 +319,8 @@ M5-008 adds a versioned SQLite table for bounded, user-configured RSS declaratio
 
 M5-009 adds a v12 SQLite table for bounded topic watchlists, with native list/save/pause/delete commands. Keyword and category filters are normalized and bounded; a paused list cannot match an item. Keyword matching uses case-insensitive literal substrings in title/summary, categories are exact IDs, and populated groups combine with AND while alternatives within each group combine with OR. The Topic Watchlists page is explicitly a saved-filter manager: it stores no items and starts no fetch, polling or notification behavior.
 
+M5-010 adds a pure in-memory trend calculation over a bounded batch of validated items and a saved watchlist. The caller declares adjacent equal-length comparison and observation windows; event placement uses normalized `observed_at`, per-category counts use existing source-preserving deduplication, and zero-baseline ratios remain absent. Empty category sets produce no synthetic zero rows. The calculation does not persist trend observations or assign confidence/coverage until M5-011.
+
 ## 11. AI adapter boundary
 
 AI consumes a limited context assembled by Moonships and can request only registered tools. Keep provider request/response types behind an internal interface. Persist prompt/output only when configured and necessary; redact secrets and minimize sensitive data.
