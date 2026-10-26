@@ -16,6 +16,7 @@ const savedTask: TaskRecord = {
   id: "task-1",
   workspaceId,
   projectId: null,
+  parentTaskId: null,
   title: "Write release notes",
   description: "Summarize the changes",
   dueAt: "2026-10-27T12:30:00Z",
@@ -32,6 +33,7 @@ describe("M2-017 persisted Task detail", () => {
     invokeMock.mockImplementation(async (command: string) => {
       if (command === "get_task") return savedTask;
       if (command === "list_projects") return { projects: [] };
+      if (command === "list_tasks") return { tasks: [savedTask] };
       if (command === "update_task")
         return {
           ...savedTask,
@@ -82,6 +84,7 @@ describe("M2-017 persisted Task detail", () => {
     invokeMock.mockImplementation(async (command: string) => {
       if (command === "get_task") return { ...savedTask, projectId: "project-1" };
       if (command === "list_projects") throw new Error("offline");
+      if (command === "list_tasks") return { tasks: [] };
       if (command === undefined) return undefined;
       throw new Error(`Unexpected command: ${command}`);
     });
@@ -96,6 +99,7 @@ describe("M2-017 persisted Task detail", () => {
     invokeMock.mockImplementation(async (command: string) => {
       if (command === "get_task") throw "NOT_FOUND: task is archived";
       if (command === "list_projects") return { projects: [] };
+      if (command === "list_tasks") return { tasks: [] };
       if (command === undefined) return undefined;
       throw new Error(`Unexpected command: ${command}`);
     });
@@ -105,5 +109,48 @@ describe("M2-017 persisted Task detail", () => {
     await waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith("get_task", { request: { id: "task-1" } }),
     );
+  });
+
+  it("creates and navigates one-level subtasks using the saved relationship", async () => {
+    const user = userEvent.setup();
+    const child = { ...savedTask, id: "task-child", parentTaskId: savedTask.id, title: "Review" };
+    invokeMock.mockImplementation(async (command: string) => {
+      if (command === "get_task") return savedTask;
+      if (command === "list_projects") return { projects: [] };
+      if (command === "list_tasks") return { tasks: [savedTask] };
+      if (command === "create_task") return child;
+      if (command === undefined) return undefined;
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    render(<TaskDetailPage taskId="task-1" />);
+    await user.type(await screen.findByRole("textbox", { name: "New subtask title" }), "Review");
+    await user.click(screen.getByRole("button", { name: "Add subtask" }));
+    const childLink = await screen.findByRole("link", { name: "Review" });
+    expect(childLink.getAttribute("href")).toBe("#/tasks/task-child");
+    expect(invokeMock).toHaveBeenCalledWith("create_task", {
+      request: {
+        title: "Review",
+        projectId: null,
+        parentTaskId: "task-1",
+        status: "todo",
+        priority: "p2",
+      },
+    });
+  });
+
+  it("shows parent navigation and does not offer nested subtasks", async () => {
+    const child = { ...savedTask, id: "task-child", parentTaskId: "task-1" };
+    invokeMock.mockImplementation(async (command: string) => {
+      if (command === "get_task") return child;
+      if (command === "list_projects") return { projects: [] };
+      if (command === "list_tasks") return { tasks: [savedTask, child] };
+      if (command === undefined) return undefined;
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    render(<TaskDetailPage taskId="task-child" />);
+    expect((await screen.findByRole("link", { name: savedTask.title })).getAttribute("href")).toBe(
+      "#/tasks/task-1",
+    );
+    expect(screen.queryByRole("button", { name: "Add subtask" })).toBeNull();
   });
 });

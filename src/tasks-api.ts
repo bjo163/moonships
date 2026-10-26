@@ -15,6 +15,7 @@ export type TaskRecord = {
   id: string;
   workspaceId: string;
   projectId: string | null;
+  parentTaskId: string | null;
   title: string;
   description: string | null;
   dueAt: string | null;
@@ -28,6 +29,7 @@ export type TaskRecord = {
 export type CreateTaskInput = {
   title: string;
   projectId: string | null;
+  parentTaskId?: string | null;
   status: TaskStatus;
   priority: TaskPriority;
 };

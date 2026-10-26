@@ -1,13 +1,15 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { listProjects, type ProjectRecord } from "./projects-api";
 import { formatTaskDate, TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from "./task-presentation";
 import {
+  createTask,
   getTask,
-  toTaskErrorMessage,
-  updateTask,
+  listTasks,
   type TaskPriority,
   type TaskRecord,
   type TaskStatus,
+  toTaskErrorMessage,
+  updateTask,
 } from "./tasks-api";
 import { Button, ErrorState, Input, LoadingState } from "./ui-primitives";
 
@@ -31,6 +33,11 @@ function localInputToUtc(value: string): string | null {
 export function TaskDetailPage({ taskId }: { taskId: string }) {
   const [task, setTask] = useState<TaskRecord | null>(null);
   const [projects, setProjects] = useState<ProjectRecord[]>([]);
+  const [relatedTasks, setRelatedTasks] = useState<TaskRecord[]>([]);
+  const [relationshipLoadError, setRelationshipLoadError] = useState(false);
+  const [subtaskTitle, setSubtaskTitle] = useState("");
+  const [subtaskSaving, setSubtaskSaving] = useState(false);
+  const [subtaskError, setSubtaskError] = useState<string | null>(null);
   const [projectLoadError, setProjectLoadError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -47,7 +54,11 @@ export function TaskDetailPage({ taskId }: { taskId: string }) {
   const reload = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
-    const [taskResult, projectResult] = await Promise.allSettled([getTask(taskId), listProjects()]);
+    const [taskResult, projectResult, relatedResult] = await Promise.allSettled([
+      getTask(taskId),
+      listProjects(),
+      listTasks(),
+    ]);
     if (taskResult.status === "rejected") {
       setTask(null);
       setLoadError(toTaskErrorMessage(taskResult.reason, "load"));
@@ -61,6 +72,8 @@ export function TaskDetailPage({ taskId }: { taskId: string }) {
       setPriority(savedTask.priority);
       setProjectLoadError(projectResult.status === "rejected");
       setProjects(projectResult.status === "fulfilled" ? projectResult.value : []);
+      setRelationshipLoadError(relatedResult.status === "rejected");
+      setRelatedTasks(relatedResult.status === "fulfilled" ? relatedResult.value : []);
     }
     setLoading(false);
   }, [taskId]);
@@ -106,6 +119,29 @@ export function TaskDetailPage({ taskId }: { taskId: string }) {
       setSaveError(toTaskErrorMessage(error, "update"));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const addSubtask = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const trimmedTitle = subtaskTitle.trim();
+    if (!task || task.parentTaskId || !trimmedTitle) return;
+    setSubtaskSaving(true);
+    setSubtaskError(null);
+    try {
+      const created = await createTask({
+        title: trimmedTitle,
+        projectId: task.projectId,
+        parentTaskId: task.id,
+        status: "todo",
+        priority: "p2",
+      });
+      setRelatedTasks((current) => [...current.filter((item) => item.id !== created.id), created]);
+      setSubtaskTitle("");
+    } catch (error) {
+      setSubtaskError(toTaskErrorMessage(error, "save"));
+    } finally {
+      setSubtaskSaving(false);
     }
   };
 
@@ -224,6 +260,73 @@ export function TaskDetailPage({ taskId }: { taskId: string }) {
               </Button>
             </div>
           </form>
+          <section className="task-detail-relationships" aria-labelledby="task-relationships-title">
+            <h3 id="task-relationships-title">Task relationships</h3>
+            {relationshipLoadError ? (
+              <ErrorState
+                title="Related tasks could not be loaded"
+                description="This task remains available. Try loading its parent and subtasks again."
+                onRetry={() => void reload()}
+              />
+            ) : (
+              <>
+                {task.parentTaskId ? (
+                  <p>
+                    Parent:{" "}
+                    <a href={`#/tasks/${encodeURIComponent(task.parentTaskId)}`}>
+                      {relatedTasks.find((item) => item.id === task.parentTaskId)?.title ??
+                        "Open parent task"}
+                    </a>
+                  </p>
+                ) : null}
+                {!task.parentTaskId ? (
+                  <>
+                    <h4>Subtasks</h4>
+                    {relatedTasks.filter((item) => item.parentTaskId === task.id).length > 0 ? (
+                      <ul>
+                        {relatedTasks
+                          .filter((item) => item.parentTaskId === task.id)
+                          .map((item) => (
+                            <li key={item.id}>
+                              <a href={`#/tasks/${encodeURIComponent(item.id)}`}>{item.title}</a>
+                            </li>
+                          ))}
+                      </ul>
+                    ) : (
+                      <p className="muted">No subtasks yet.</p>
+                    )}
+                    <form
+                      className="task-subtask-form"
+                      onSubmit={(event) => void addSubtask(event)}
+                    >
+                      <Input
+                        label="New subtask title"
+                        value={subtaskTitle}
+                        onChange={(event) => setSubtaskTitle(event.target.value)}
+                        maxLength={200}
+                        autoComplete="off"
+                        disabled={subtaskSaving}
+                      />
+                      <p className="muted">
+                        Subtasks stay in the same project and can be one level deep.
+                      </p>
+                      <span className="task-detail-form__error" role="status">
+                        {subtaskError}
+                      </span>
+                      <Button
+                        type="submit"
+                        loading={subtaskSaving}
+                        loadingLabel="Creating…"
+                        disabled={!subtaskTitle.trim()}
+                      >
+                        Add subtask
+                      </Button>
+                    </form>
+                  </>
+                ) : null}
+              </>
+            )}
+          </section>
         </>
       ) : null}
     </section>

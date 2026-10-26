@@ -119,6 +119,7 @@ struct ProjectListResponseDto {
 struct CreateTaskRequestDto {
     title: String,
     project_id: Option<String>,
+    parent_task_id: Option<String>,
     status: String,
     priority: String,
 }
@@ -151,6 +152,7 @@ struct TaskDto {
     id: String,
     workspace_id: String,
     project_id: Option<String>,
+    parent_task_id: Option<String>,
     title: String,
     description: Option<String>,
     due_at: Option<String>,
@@ -209,6 +211,7 @@ impl From<tasks::Task> for TaskDto {
             id: task.id,
             workspace_id: task.workspace_id,
             project_id: task.project_id,
+            parent_task_id: task.parent_task_id,
             title: task.title,
             description: task.description,
             due_at: task.due_at,
@@ -523,6 +526,7 @@ fn create_task(app: AppHandle, request: CreateTaskRequestDto) -> Result<TaskDto,
         tasks::CreateTask {
             workspace_id: PERSONAL_WORKSPACE_ID.to_string(),
             project_id: request.project_id,
+            parent_task_id: request.parent_task_id,
             title: request.title,
             description: None,
             due_at: None,
@@ -837,10 +841,11 @@ mod tests {
     #[test]
     fn task_create_ipc_is_scoped_and_serializes_canonical_fields() {
         let request: CreateTaskRequestDto = serde_json::from_str(
-            r#"{"title":"Write acceptance criteria","projectId":null,"status":"todo","priority":"p2"}"#,
+            r#"{"title":"Write acceptance criteria","projectId":null,"parentTaskId":"parent-id","status":"todo","priority":"p2"}"#,
         )
         .expect("valid task create DTO");
         assert_eq!(request.project_id, None);
+        assert_eq!(request.parent_task_id.as_deref(), Some("parent-id"));
         assert_eq!(request.status, "todo");
         assert!(serde_json::from_str::<CreateTaskRequestDto>(
             r#"{"title":"Task","projectId":null,"status":"todo","priority":"p2","workspaceId":"other"}"#
@@ -851,6 +856,7 @@ mod tests {
             id: "task-id".to_string(),
             workspace_id: PERSONAL_WORKSPACE_ID.to_string(),
             project_id: None,
+            parent_task_id: None,
             title: request.title,
             description: None,
             due_at: None,
@@ -877,6 +883,7 @@ mod tests {
                 id: "task-id".to_string(),
                 workspace_id: PERSONAL_WORKSPACE_ID.to_string(),
                 project_id: Some("project-id".to_string()),
+                parent_task_id: None,
                 title: "Persisted task".to_string(),
                 description: None,
                 due_at: None,

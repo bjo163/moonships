@@ -31,6 +31,7 @@ function makeTask(overrides: Partial<TaskRecord> & Pick<TaskRecord, "id" | "titl
     id,
     workspaceId,
     projectId: null,
+    parentTaskId: null,
     title,
     description: null,
     dueAt: null,

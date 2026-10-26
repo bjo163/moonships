@@ -45,6 +45,7 @@ fn create_task(
         tasks::CreateTask {
             workspace_id: workspace_id.to_string(),
             project_id,
+            parent_task_id: None,
             title: title.to_string(),
             description: None,
             due_at: None,
@@ -247,6 +248,7 @@ fn project_task_services_reject_cross_workspace_links_without_partial_writes() {
         tasks::CreateTask {
             workspace_id: PERSONAL.to_string(),
             project_id: Some(foreign_project.id.clone()),
+            parent_task_id: None,
             title: "Must not be linked cross-workspace".to_string(),
             description: None,
             due_at: None,

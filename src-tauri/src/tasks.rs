@@ -42,6 +42,7 @@ fn normalize_due_at(value: Option<String>) -> Result<Option<String>, String> {
 pub struct CreateTask {
     pub workspace_id: String,
     pub project_id: Option<String>,
+    pub parent_task_id: Option<String>,
     pub title: String,
     pub description: Option<String>,
     pub due_at: Option<String>,
@@ -55,6 +56,7 @@ pub struct Task {
     pub id: String,
     pub workspace_id: String,
     pub project_id: Option<String>,
+    pub parent_task_id: Option<String>,
     pub title: String,
     pub description: Option<String>,
     pub due_at: Option<String>,
@@ -70,14 +72,15 @@ fn task_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Task> {
         id: row.get(0)?,
         workspace_id: row.get(1)?,
         project_id: row.get(2)?,
-        title: row.get(3)?,
-        description: row.get(4)?,
-        status: row.get(5)?,
-        priority: row.get(6)?,
-        created_at: row.get(7)?,
-        updated_at: row.get(8)?,
-        due_at: row.get(9)?,
-        archived_at: row.get(10)?,
+        parent_task_id: row.get(3)?,
+        title: row.get(4)?,
+        description: row.get(5)?,
+        status: row.get(6)?,
+        priority: row.get(7)?,
+        created_at: row.get(8)?,
+        updated_at: row.get(9)?,
+        due_at: row.get(10)?,
+        archived_at: row.get(11)?,
     })
 }
 
@@ -95,7 +98,7 @@ pub fn list_tasks(
         TaskArchiveFilter::Archived => "AND archived_at IS NOT NULL",
         TaskArchiveFilter::All => "",
     };
-    let sql = format!("SELECT id, workspace_id, project_id, title, description, status, priority, created_at, updated_at, due_at, archived_at FROM tasks WHERE workspace_id = ?1 {archive_clause} ORDER BY created_at, id");
+    let sql = format!("SELECT id, workspace_id, project_id, parent_task_id, title, description, status, priority, created_at, updated_at, due_at, archived_at FROM tasks WHERE workspace_id = ?1 {archive_clause} ORDER BY created_at, id");
     let mut statement = connection
         .prepare(&sql)
         .map_err(|_| "IO_ERROR: could not prepare task list".to_string())?;
@@ -157,7 +160,28 @@ fn mutate_archive(
     if workspace_active.is_none() {
         return Err("NOT_FOUND: workspace is archived or unavailable".to_string());
     }
+    if archive && existing.parent_task_id.is_none() {
+        let has_active_children: bool = transaction
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM tasks
+                 WHERE workspace_id = ?1 AND parent_task_id = ?2 AND archived_at IS NULL)",
+                params![workspace_id, id],
+                |row| row.get(0),
+            )
+            .map_err(|_| "IO_ERROR: could not check task subtasks".to_string())?;
+        if has_active_children {
+            return Err("CONFLICT: archive active subtasks before archiving this task".to_string());
+        }
+    }
     if !archive {
+        if let Some(parent_id) = existing.parent_task_id.as_deref() {
+            let (_, parent_archived_at) = read_task(&transaction, workspace_id, parent_id)?;
+            if parent_archived_at.is_some() {
+                return Err(
+                    "CONFLICT: restore the parent task before restoring this subtask".to_string(),
+                );
+            }
+        }
         if let Some(project_id) = existing.project_id.as_deref() {
             let project_active: Option<i64> = transaction.query_row("SELECT 1 FROM projects WHERE id = ?1 AND workspace_id = ?2 AND archived_at IS NULL AND status != 'archived'", params![project_id, workspace_id], |row| row.get(0)).optional().map_err(|_| "IO_ERROR: could not read task project".to_string())?;
             if project_active.is_none() {
@@ -179,7 +203,7 @@ fn mutate_archive(
             crate::activity::ActivityAction::Restored
         },
     )?;
-    let task = transaction.query_row("SELECT id, workspace_id, project_id, title, description, status, priority, created_at, updated_at, due_at, archived_at FROM tasks WHERE id = ?1 AND workspace_id = ?2", params![id, workspace_id], task_from_row).map_err(|_| "IO_ERROR: could not read changed task".to_string())?;
+    let task = transaction.query_row("SELECT id, workspace_id, project_id, parent_task_id, title, description, status, priority, created_at, updated_at, due_at, archived_at FROM tasks WHERE id = ?1 AND workspace_id = ?2", params![id, workspace_id], task_from_row).map_err(|_| "IO_ERROR: could not read changed task".to_string())?;
     transaction
         .commit()
         .map_err(|_| "IO_ERROR: could not commit task archive state".to_string())?;
@@ -216,6 +240,10 @@ pub fn create_task(connection: &mut Connection, request: CreateTask) -> Result<T
     let project_id = request.project_id.map(|id| id.trim().to_string());
     if project_id.as_deref() == Some("") {
         return Err("VALIDATION_FAILED: empty project ID".to_string());
+    }
+    let parent_task_id = request.parent_task_id.map(|id| id.trim().to_string());
+    if parent_task_id.as_deref() == Some("") {
+        return Err("VALIDATION_FAILED: empty parent task ID".to_string());
     }
     let description = request
         .description
@@ -259,17 +287,30 @@ pub fn create_task(connection: &mut Connection, request: CreateTask) -> Result<T
             return Err("NOT_FOUND: project is unavailable in this workspace".to_string());
         }
     }
+    if let Some(ref parent_task_id) = parent_task_id {
+        let (parent, parent_archived_at) = read_task(&transaction, workspace_id, parent_task_id)?;
+        if parent_archived_at.is_some() {
+            return Err("CONFLICT: a subtask must have an active parent task".to_string());
+        }
+        if parent.parent_task_id.is_some() {
+            return Err("VALIDATION_FAILED: subtasks can only be one level deep".to_string());
+        }
+        if parent.project_id != project_id {
+            return Err("CONFLICT: a subtask must use its parent task's project".to_string());
+        }
+    }
 
     let id = Uuid::new_v4().to_string();
     transaction
         .execute(
             "INSERT INTO tasks
-                (id, workspace_id, project_id, title, description, status, priority, due_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                (id, workspace_id, project_id, parent_task_id, title, description, status, priority, due_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
             params![
                 id,
                 workspace_id,
                 project_id,
+                parent_task_id,
                 title,
                 description,
                 status,
@@ -287,7 +328,7 @@ pub fn create_task(connection: &mut Connection, request: CreateTask) -> Result<T
 
     let created = transaction
         .query_row(
-            "SELECT id, workspace_id, project_id, title, description,
+            "SELECT id, workspace_id, project_id, parent_task_id, title, description,
                     status, priority, created_at, updated_at, due_at, archived_at
              FROM tasks WHERE id = ?1 AND workspace_id = ?2",
             params![id, workspace_id],
@@ -320,7 +361,7 @@ fn read_task(
 ) -> Result<(Task, Option<String>), String> {
     connection
         .query_row(
-            "SELECT id, workspace_id, project_id, title, description,
+            "SELECT id, workspace_id, project_id, parent_task_id, title, description,
                     status, priority, created_at, updated_at, due_at, archived_at
              FROM tasks WHERE workspace_id = ?1 AND id = ?2",
             params![workspace_id, id],
@@ -330,16 +371,17 @@ fn read_task(
                         id: row.get(0)?,
                         workspace_id: row.get(1)?,
                         project_id: row.get(2)?,
-                        title: row.get(3)?,
-                        description: row.get(4)?,
-                        status: row.get(5)?,
-                        priority: row.get(6)?,
-                        created_at: row.get(7)?,
-                        updated_at: row.get(8)?,
-                        due_at: row.get(9)?,
-                        archived_at: row.get(10)?,
+                        parent_task_id: row.get(3)?,
+                        title: row.get(4)?,
+                        description: row.get(5)?,
+                        status: row.get(6)?,
+                        priority: row.get(7)?,
+                        created_at: row.get(8)?,
+                        updated_at: row.get(9)?,
+                        due_at: row.get(10)?,
+                        archived_at: row.get(11)?,
                     },
-                    row.get(10)?,
+                    row.get(11)?,
                 ))
             },
         )
@@ -420,6 +462,27 @@ pub fn update_task(connection: &mut Connection, request: UpdateTask) -> Result<T
             return Err("NOT_FOUND: project is unavailable in this workspace".to_string());
         }
     }
+    if let Some(parent_id) = existing.parent_task_id.as_deref() {
+        let (parent, parent_archived_at) = read_task(&transaction, workspace_id, parent_id)?;
+        if parent_archived_at.is_some() {
+            return Err("CONFLICT: a subtask's parent must remain active".to_string());
+        }
+        if parent.project_id != project_id {
+            return Err("CONFLICT: a subtask must use its parent task's project".to_string());
+        }
+    } else if existing.project_id != project_id {
+        let has_children: bool = transaction
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM tasks
+                 WHERE workspace_id = ?1 AND parent_task_id = ?2)",
+                params![workspace_id, id],
+                |row| row.get(0),
+            )
+            .map_err(|_| "IO_ERROR: could not check task subtasks".to_string())?;
+        if has_children {
+            return Err("CONFLICT: a task with subtasks cannot change projects".to_string());
+        }
+    }
     crate::task_status::validate_transition(&existing.status, &request.status)?;
     if existing.project_id == project_id
         && existing.title == title
@@ -486,6 +549,7 @@ mod tests {
         CreateTask {
             workspace_id: PERSONAL.to_string(),
             project_id: None,
+            parent_task_id: None,
             title: "  Write tests  ".to_string(),
             description: None,
             due_at: None,
@@ -856,6 +920,112 @@ mod tests {
             .query_row("SELECT COUNT(*) FROM tasks", [], |row| row.get(0))
             .unwrap();
         assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn subtasks_are_workspace_scoped_one_level_and_project_consistent() {
+        let mut connection = fixture();
+        connection.execute("INSERT INTO projects (id, workspace_id, name) VALUES ('p1', ?1, 'Project one'), ('p2', ?1, 'Project two')", params![PERSONAL]).unwrap();
+        let mut root_request = request();
+        root_request.project_id = Some("p1".into());
+        let root = create_task(&mut connection, root_request).unwrap();
+
+        let mut child_request = request();
+        child_request.project_id = Some("p1".into());
+        child_request.parent_task_id = Some(root.id.clone());
+        let child = create_task(&mut connection, child_request.clone()).unwrap();
+        assert_eq!(child.parent_task_id.as_deref(), Some(root.id.as_str()));
+        assert_eq!(get_task(&connection, PERSONAL, &child.id).unwrap(), child);
+        let listed_child = list_tasks(&connection, PERSONAL, TaskArchiveFilter::Active)
+            .unwrap()
+            .into_iter()
+            .find(|task| task.id == child.id)
+            .unwrap();
+        assert_eq!(listed_child.parent_task_id, Some(root.id.clone()));
+
+        child_request.parent_task_id = Some(child.id.clone());
+        assert!(create_task(&mut connection, child_request)
+            .unwrap_err()
+            .starts_with("VALIDATION_FAILED:"));
+        let mut mismatch = request();
+        mismatch.parent_task_id = Some(root.id.clone());
+        mismatch.project_id = Some("p2".into());
+        assert!(create_task(&mut connection, mismatch)
+            .unwrap_err()
+            .starts_with("CONFLICT:"));
+        let mut no_project = request();
+        no_project.parent_task_id = Some(root.id.clone());
+        assert!(create_task(&mut connection, no_project)
+            .unwrap_err()
+            .starts_with("CONFLICT:"));
+        let mut wrong_scope = request();
+        wrong_scope.workspace_id = "another-workspace".into();
+        wrong_scope.parent_task_id = Some(root.id);
+        assert!(create_task(&mut connection, wrong_scope)
+            .unwrap_err()
+            .starts_with("NOT_FOUND:"));
+    }
+
+    #[test]
+    fn parent_archive_and_child_restore_preserve_active_relationships() {
+        let mut connection = fixture();
+        let root = create_task(&mut connection, request()).unwrap();
+        let mut child_request = request();
+        child_request.parent_task_id = Some(root.id.clone());
+        let child = create_task(&mut connection, child_request).unwrap();
+        assert!(archive_task(&mut connection, PERSONAL, &root.id)
+            .unwrap_err()
+            .starts_with("CONFLICT:"));
+        archive_task(&mut connection, PERSONAL, &child.id).unwrap();
+        archive_task(&mut connection, PERSONAL, &root.id).unwrap();
+        assert!(restore_task(&mut connection, PERSONAL, &child.id)
+            .unwrap_err()
+            .starts_with("CONFLICT:"));
+        restore_task(&mut connection, PERSONAL, &root.id).unwrap();
+        let restored_child = restore_task(&mut connection, PERSONAL, &child.id).unwrap();
+        assert_eq!(
+            restored_child.parent_task_id.as_deref(),
+            Some(root.id.as_str())
+        );
+    }
+
+    #[test]
+    fn task_project_changes_cannot_break_parent_relationship() {
+        let mut connection = fixture();
+        connection.execute("INSERT INTO projects (id, workspace_id, name) VALUES ('p1', ?1, 'Project one'), ('p2', ?1, 'Project two')", params![PERSONAL]).unwrap();
+        let mut root_request = request();
+        root_request.project_id = Some("p1".into());
+        let root = create_task(&mut connection, root_request).unwrap();
+        let mut child_request = request();
+        child_request.project_id = Some("p1".into());
+        child_request.parent_task_id = Some(root.id.clone());
+        let child = create_task(&mut connection, child_request).unwrap();
+        let changed = UpdateTask {
+            workspace_id: PERSONAL.into(),
+            id: child.id.clone(),
+            project_id: Some("p2".into()),
+            title: child.title.clone(),
+            description: child.description.clone(),
+            due_at: child.due_at.clone(),
+            status: child.status.clone(),
+            priority: child.priority.clone(),
+        };
+        assert!(update_task(&mut connection, changed)
+            .unwrap_err()
+            .starts_with("CONFLICT:"));
+        let changed_root = UpdateTask {
+            workspace_id: PERSONAL.into(),
+            id: root.id.clone(),
+            project_id: Some("p2".into()),
+            title: root.title.clone(),
+            description: root.description.clone(),
+            due_at: root.due_at.clone(),
+            status: root.status.clone(),
+            priority: root.priority.clone(),
+        };
+        assert!(update_task(&mut connection, changed_root)
+            .unwrap_err()
+            .starts_with("CONFLICT:"));
     }
 
     #[test]

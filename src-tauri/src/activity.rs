@@ -190,6 +190,7 @@ mod tests {
             tasks::CreateTask {
                 workspace_id: PERSONAL.to_string(),
                 project_id: Some(project.id.clone()),
+                parent_task_id: None,
                 title: "Sensitive task title".to_string(),
                 description: Some("secret-task-description".to_string()),
                 due_at: None,
@@ -277,6 +278,7 @@ mod tests {
             tasks::CreateTask {
                 workspace_id: PERSONAL.to_string(),
                 project_id: Some(project.id.clone()),
+                parent_task_id: None,
                 title: "Private task title".to_string(),
                 description: Some("Private task description".to_string()),
                 due_at: None,
@@ -290,6 +292,7 @@ mod tests {
             tasks::CreateTask {
                 workspace_id: PERSONAL.to_string(),
                 project_id: Some(other_project.id),
+                parent_task_id: None,
                 title: "Unrelated task title".to_string(),
                 description: None,
                 due_at: None,
@@ -353,6 +356,7 @@ mod tests {
                 tasks::CreateTask {
                     workspace_id: PERSONAL.to_string(),
                     project_id: Some(project.id.clone()),
+                    parent_task_id: None,
                     title: format!("Task {index}"),
                     description: None,
                     due_at: None,
@@ -484,6 +488,7 @@ mod tests {
             tasks::CreateTask {
                 workspace_id: PERSONAL.to_string(),
                 project_id: Some(project.id),
+                parent_task_id: None,
                 title: "Rollback task".to_string(),
                 description: None,
                 due_at: None,
