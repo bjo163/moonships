@@ -397,3 +397,7 @@ Added an internal read-only system-resolver adapter with a single bounded worker
 ## M4-003 TCP connectivity test — 2026-10-26
 
 Added one-host/one-port TCP checks to the same bounded worker used for DNS, sharing its queue, timeout and ten-per-minute limit. The adapter tries resolved addresses only until the original deadline and distinguishes success, timeout, connection refusal, resolver errors and permission failures. Tests exercise a successful loopback listener and the error-code mappings without contacting external hosts. No IPC command is registered. Verification passed: Rust suite 133/133; Clippy with warnings denied; Rust formatting; backlog validation; and `git diff --check`.
+
+## M4-004 Ping capability detection — 2026-10-26
+
+Added typed ping capability detection. On Windows it probes whether the native IP Helper ICMP handle can be opened, closes it immediately, sends no echo packet, and does not assume a `ping.exe` installation. Unsupported platforms and unavailable APIs carry explicit reasons. Verification passed: Rust suite 135/135; Clippy with warnings denied; Rust formatting; backlog validation; and `git diff --check`.

@@ -10,6 +10,7 @@ pub mod labels;
 pub mod local_logging;
 pub mod milestones;
 pub mod network_diagnostics;
+pub mod ping_adapter;
 pub mod project_task_export;
 pub mod projects;
 pub mod task_dependencies;

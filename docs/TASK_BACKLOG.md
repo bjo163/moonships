@@ -161,7 +161,7 @@
 - [x] **M4-001 — Define bounded network diagnostic contract** [S] — Target, timeout, limits, result provenance. **AC:** required target validation exists.
 - [x] **M4-002 — Implement DNS lookup adapter** [S] [depends: M4-001] — Read-only resolution. **AC:** invalid host and resolver error are distinct.
 - [x] **M4-003 — Implement TCP connectivity test** [S] [depends: M4-001] — One host/port only. **AC:** timeout/refused/success have distinct results.
-- [ ] **M4-004 — Implement ping adapter or capability detection** [S] — Do not assume external executable availability. **AC:** unsupported is explicit and tested.
+- [x] **M4-004 — Implement ping adapter or capability detection** [S] — Do not assume external executable availability. **AC:** unsupported is explicit and tested.
 - [ ] **M4-005 — Implement traceroute adapter or deferred status** [S] — Bounded duration/hops. **AC:** no unbounded process or silent fallback.
 - [ ] **M4-006 — Add subnet calculator** [S] — Offline arithmetic utility. **AC:** IPv4 cases and invalid CIDR are tested.
 - [ ] **M4-007 — Add system inventory read-only adapter** [S] — OS, CPU/RAM/storage metadata available via vetted API. **AC:** unsupported fields are null/status, not fabricated.
