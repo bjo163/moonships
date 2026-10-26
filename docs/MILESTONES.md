@@ -90,6 +90,8 @@ Exit criteria:
 
 > 2026-10-26 follow-up: M2-021 adds combined Project, status and priority filters that compose with Task search using AND semantics and share results across List and Board. Personal inbox and all represented Project IDs remain selectable. Clearing filters restores the full active collection. Targeted behavior tests passed 8/8; `npm run check` passed repository tests 8/8, frontend tests 91/91, typecheck and production build. CI [40277420116](https://github.com/bjo163/moonships/actions/runs/40277420116) passed 5/5 jobs including Windows packaging. Existing issue #55 closes through backlog sync from this documentation update. M2-022 is next; manual Windows runtime/accessibility and restart evidence remain outstanding.
 
+> 2026-10-26 follow-up: M2-022 adds labelled overdue and priority indicators to Task List and Board. Overdue compares the stored UTC due instant to the current instant; local date formatting remains timezone-aware, and Done/Cancelled tasks are excluded. Targeted behavior tests passed 12/12; `npm run check` passed repository tests 8/8, frontend tests 95/95, typecheck and production build. Rust formatting, 79 Rust tests, Clippy and local MSI/NSIS packaging passed. CI [40279779952](https://github.com/bjo163/moonships/actions/runs/40279779952) passed 5/5 jobs. Existing issue #56 closes through backlog sync from this documentation update. M2-023 is next; manual Windows runtime/accessibility and restart evidence remain open.
+
 Deliverables:
 - Workspace and personal work inbox
 - Home dashboard based only on real local project/task/activity records

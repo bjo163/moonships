@@ -1,5 +1,11 @@
 # Moonships — Engineering Continuity & Foundation Evidence
 
+## M2-022 due-date and priority indicators — 2026-10-26
+
+Task List rows and Board cards now show labelled priority badges and local due dates, with an Overdue badge only when an unfinished Task's UTC due instant precedes the current instant. Done/Cancelled, missing and invalid due values do not appear overdue. Date formatting uses the user's local timezone while persistence remains an RFC 3339 UTC instant.
+
+**Verification passed:** `npx vitest run src/task-presentation.test.ts src/TaskListPage.behavior.test.tsx` (12/12); `npm run check` (repository tests 8/8, frontend tests 95/95, typecheck and production build); `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`; Rust tests 79/79; Clippy with warnings denied; local `npm run tauri -- build` produced MSI and NSIS installers; `git diff --check`. CI [40279779952](https://github.com/bjo163/moonships/actions/runs/40279779952) passed 5/5 jobs including Windows packaging. Existing Biome schema/deprecation notices remain. Issue #56 is pending backlog sync from this documentation update. **Next task:** M2-022 accepted; M2-023 subtask relationship/UI is the next dependency-ready backlog task. Manual Windows runtime/accessibility and M2 exit gates remain open.
+
 ## M2-021 combined Task filters — 2026-10-26
 
 The Tasks toolbar now combines Project, canonical status and canonical priority filters with M2-020's local search. Project options include Personal inbox and IDs found on Tasks when a Project name cannot be loaded, keeping those records filterable. One local filtered set drives List and Board; clearing filters restores the active task set without modifying persistence. No-match remains distinct from an empty collection or failed read.
