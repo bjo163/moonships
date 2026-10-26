@@ -3,6 +3,7 @@ import { listProjects, type ProjectRecord } from "./projects-api";
 import { type SortDirection, sortTasks, type TaskSortKey } from "./task-list-sort";
 import {
   formatTaskDate,
+  isTaskOverdue,
   TASK_PRIORITY_LABELS,
   TASK_STATUS_LABELS,
   TASK_STATUS_ORDER,
@@ -425,6 +426,7 @@ export function TaskListPage({
                     const projectName = task.projectId
                       ? (projectNames.get(task.projectId) ?? "Archived or unavailable project")
                       : "Personal inbox";
+                    const overdue = isTaskOverdue(task.dueAt, task.status);
                     return (
                       <tr key={task.id}>
                         <th scope="row">
@@ -458,7 +460,10 @@ export function TaskListPage({
                             {TASK_PRIORITY_LABELS[task.priority]}
                           </Badge>
                         </td>
-                        <td>{formatTaskDate(task.dueAt)}</td>
+                        <td>
+                          <span>{formatTaskDate(task.dueAt)}</span>
+                          {overdue ? <Badge variant="danger">Overdue</Badge> : null}
+                        </td>
                         <td>{formatUpdatedAt(task.updatedAt)}</td>
                       </tr>
                     );
@@ -504,6 +509,7 @@ export function TaskListPage({
                                 "Archived or unavailable project")
                               : "Personal inbox";
                             const updating = updatingTaskIds.has(task.id);
+                            const overdue = isTaskOverdue(task.dueAt, task.status);
                             return (
                               <article
                                 className={`task-board-card${updating ? " task-board-card--updating" : ""}`}
@@ -531,11 +537,20 @@ export function TaskListPage({
                                   </div>
                                   <div>
                                     <dt>Priority</dt>
-                                    <dd>{TASK_PRIORITY_LABELS[task.priority]}</dd>
+                                    <dd>
+                                      <Badge
+                                        variant={task.priority === "p0" ? "danger" : "neutral"}
+                                      >
+                                        {TASK_PRIORITY_LABELS[task.priority]}
+                                      </Badge>
+                                    </dd>
                                   </div>
                                   <div>
                                     <dt>Due</dt>
-                                    <dd>{formatTaskDate(task.dueAt)}</dd>
+                                    <dd>
+                                      {formatTaskDate(task.dueAt)}
+                                      {overdue ? <Badge variant="danger">Overdue</Badge> : null}
+                                    </dd>
                                   </div>
                                 </dl>
                                 <div className="task-board-card__move">

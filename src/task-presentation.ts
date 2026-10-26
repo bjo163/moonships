@@ -40,3 +40,13 @@ export function formatTaskDate(value: string | null): string {
   if (Number.isNaN(date.getTime())) return "Date unavailable";
   return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
 }
+
+export function isTaskOverdue(
+  dueAt: string | null,
+  status: TaskStatus,
+  now: Date = new Date(),
+): boolean {
+  if (!dueAt || status === "done" || status === "cancelled") return false;
+  const dueDate = new Date(dueAt);
+  return !Number.isNaN(dueDate.getTime()) && dueDate.getTime() < now.getTime();
+}

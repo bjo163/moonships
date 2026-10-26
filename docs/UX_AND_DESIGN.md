@@ -173,6 +173,9 @@ The Tasks toolbar searches active Task titles and descriptions locally, without 
 ### M2-021 combined Task filters
 Project, canonical status and canonical priority filters combine with each other and Task search using AND semantics. The Project selector includes Personal inbox and every Project represented by the loaded Projects or Task records. Filtering is local, uses the same result set in List and Board, and never edits persisted records. Clear filters restores all active tasks; no-match and data-read error states remain distinct.
 
+### M2-022 due-date and priority indicators
+Task List rows and Board cards show readable due dates and labelled canonical priorities. Due timestamps remain UTC instants in storage and display in the user's local date. An unfinished task is labelled Overdue only after its due instant has passed; Done and Cancelled tasks are not marked overdue. Invalid or absent due dates never create an overdue signal.
+
 ## 5. Command Palette (Ctrl+K)
 
 Search categories:

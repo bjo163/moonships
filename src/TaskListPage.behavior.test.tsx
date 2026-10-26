@@ -334,6 +334,45 @@ describe("M2-018 persisted Task List", () => {
     expect(within(screen.getByRole("table")).getAllByRole("rowheader")).toHaveLength(5);
   });
 
+  it("labels overdue active tasks and keeps priority visible without relying on color", async () => {
+    const user = userEvent.setup();
+    mockResponses([
+      makeTask({
+        id: "task-overdue",
+        title: "Late task",
+        dueAt: "2000-01-01T00:00:00Z",
+        priority: "p1",
+      }),
+      makeTask({
+        id: "task-complete",
+        title: "Completed task",
+        dueAt: "2000-01-01T00:00:00Z",
+        status: "done",
+        priority: "p3",
+      }),
+    ]);
+    render(<TaskListPage onCreateTask={() => undefined} onOpenTask={() => undefined} />);
+
+    const table = await screen.findByRole("table", {
+      name: "Active tasks in the Personal workspace",
+    });
+    const overdueRow = within(table).getByRole("rowheader", { name: "Late task" }).closest("tr");
+    const completedRow = within(table)
+      .getByRole("rowheader", { name: "Completed task" })
+      .closest("tr");
+    if (!overdueRow || !completedRow) throw new Error("Expected both task rows to render");
+    expect(within(overdueRow).getByText("Overdue")).toBeTruthy();
+    expect(within(overdueRow).getByText("P1 · High")).toBeTruthy();
+    expect(within(completedRow).queryByText("Overdue")).toBeNull();
+    expect(within(completedRow).getByText("P3 · Low")).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "Board" }));
+    const todoColumn = screen.getByRole("region", { name: "Todo" });
+    expect(within(todoColumn).getByText("Overdue")).toBeTruthy();
+    expect(within(todoColumn).getByText("P1 · High")).toBeTruthy();
+    expect(within(screen.getByRole("region", { name: "Done" })).queryByText("Overdue")).toBeNull();
+  });
+
   it("distinguishes an empty persisted list from an unavailable list and retries", async () => {
     const user = userEvent.setup();
     let taskAttempt = 0;
