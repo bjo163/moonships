@@ -386,6 +386,7 @@ Before executing an assessment:
 - Provide local-only/no-AI mode.
 - If a model is unavailable or returns invalid output, fail closed for that AI-dependent operation while preserving ordinary non-AI tools.
 - M7-001 workflow documents are bounded to 1 MiB, reject unknown fields and value tags, and require explicit tool ID/version plus typed input values. The schema parser does not grant tool authority or perform registry lookup/execution; later workflow validation and the independent policy gate remain mandatory.
+- M7-002 rejects workflow graphs above 128 steps, duplicate IDs, missing/duplicate dependency references and dependency cycles before a future runner can consider execution. DAG validity does not authorize a tool; registry version matching, capability checks, target scope and approval are still required at execution time.
 
 ## 8. Secrets and privacy
 

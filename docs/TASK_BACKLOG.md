@@ -215,7 +215,7 @@
 ## M7 — Automation, AI and MCP
 
 - [x] **M7-001 — Define versioned workflow schema** [S] — Steps reference tool ID/version and typed inputs. **AC:** malformed/unknown tool schema is rejected. Added strict workflow schema v1 with bounded IDs, non-empty steps, explicit three-part tool versions and closed typed JSON inputs. Parsing rejects malformed/unknown fields and types, unsupported schema versions, invalid IDs/versions and oversized/deep values. Registry matching, DAG/step bounds and execution remain later tasks.
-- [ ] **M7-002 — Add workflow validator** [S] — Validate DAG/sequence and bounded step count. **AC:** cyclic/oversized workflow is rejected.
+- [x] **M7-002 — Add workflow validator** [S] — Validate DAG/sequence and bounded step count. **AC:** cyclic/oversized workflow is rejected. Added explicit step dependencies and a validator that rejects dependency cycles, unknown/duplicate dependencies, duplicate step IDs and more than 128 steps. Tests cover valid DAGs and each rejection. It does not execute tools or grant permissions.
 - [ ] **M7-003 — Add deterministic sequential workflow runner** [S] — No AI dependency. **AC:** fixture workflow produces expected step order/results.
 - [ ] **M7-004 — Add per-step timeout and error policy** [S] — Stop/continue choices explicit. **AC:** failed step follows declared policy.
 - [ ] **M7-005 — Add idempotency/retry declaration per tool** [S] — No blanket retries. **AC:** destructive tools default to no automatic retry.

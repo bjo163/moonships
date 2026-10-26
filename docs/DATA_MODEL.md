@@ -170,7 +170,7 @@ M5-012 stores validated `IntelligenceItem` JSON with source ID, category and nor
 
 ### WorkflowDefinition
 Fields: id, workspace_id, name, version, definition_json, enabled, permissions_json, created_at, updated_at.
-Definitions must be schema-validated and versioned. M7-001 defines strict schema version 1 with workflow ID/name/version and steps; each step records a stable step ID, registered tool ID/version and a map of explicitly typed JSON values (string, integer, number, boolean, null, array or object). Unknown fields and value types are rejected, identifiers and nested inputs are bounded, and documents are limited to 1 MiB. Registry matching, DAG checks and execution are separate tasks.
+Definitions must be schema-validated and versioned. M7-001 defines strict schema version 1 with workflow ID/name/version and steps; each step records a stable step ID, registered tool ID/version, dependencies and a map of explicitly typed JSON values (string, integer, number, boolean, null, array or object). Unknown fields and value types are rejected, identifiers and nested inputs are bounded, and documents are limited to 1 MiB. M7-002 caps definitions at 128 steps, requires unique step IDs, validates dependency references and rejects cycles. Registry matching and execution remain separate tasks.
 
 ### WorkflowRun
 Fields: id, workflow_id, workflow_version, status, started_at?, finished_at?, trigger_type, result_summary?, error_code?, correlation_id, created_at.

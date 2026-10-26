@@ -363,6 +363,8 @@ M6-003 adds a local OpenAPI document viewer. A native file chooser reads at most
 
 M7-001 defines the strict version-1 workflow document contract. Steps refer to tools by stable ID and explicit three-part numeric version and carry typed inputs. Unknown schema fields/value types, unsupported workflow schema versions, malformed tool versions and documents above 1 MiB fail parsing. Nested input structure is bounded. This is schema infrastructure only: it does not resolve registry entries, validate tool-specific arguments, schedule, execute or persist workflows; DAG/sequence and bounded step-count validation are M7-002.
 
+M7-002 validates that a parsed workflow has no more than 128 uniquely identified steps, each dependency points to one declared step and the dependency graph is acyclic. Missing/duplicate dependencies and cycles fail closed. This validator does not order or execute tools, resolve tool versions against a registry or apply runtime policy.
+
 AI consumes a limited context assembled by Moonships and can request only registered tools. Keep provider request/response types behind an internal interface. Persist prompt/output only when configured and necessary; redact secrets and minimize sensitive data.
 
 Model output is untrusted input:

@@ -2,10 +2,11 @@
 //! are deliberately owned by later workflow tasks.
 
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 pub const WORKFLOW_SCHEMA_VERSION: u32 = 1;
 pub const MAX_WORKFLOW_DOCUMENT_BYTES: usize = 1024 * 1024;
+pub const MAX_WORKFLOW_STEPS: usize = 128;
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -23,6 +24,8 @@ pub struct WorkflowStep {
     pub id: String,
     pub tool_id: String,
     pub tool_version: String,
+    #[serde(default)]
+    pub depends_on: Vec<String>,
     pub inputs: BTreeMap<String, WorkflowValue>,
 }
 
@@ -44,6 +47,16 @@ pub enum WorkflowSchemaError {
     InvalidJson,
     UnsupportedSchemaVersion,
     InvalidDefinition,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorkflowValidationError {
+    InvalidSchema,
+    TooManySteps,
+    DuplicateStepId,
+    UnknownDependency,
+    DuplicateDependency,
+    DependencyCycle,
 }
 
 impl WorkflowDefinition {
@@ -87,6 +100,60 @@ impl WorkflowDefinition {
         }
         Ok(())
     }
+}
+
+/// Validate step identities and dependency DAG structure without resolving tools
+/// or executing any step.
+pub fn validate_workflow(workflow: &WorkflowDefinition) -> Result<(), WorkflowValidationError> {
+    workflow
+        .validate_shape()
+        .map_err(|_| WorkflowValidationError::InvalidSchema)?;
+    if workflow.steps.len() > MAX_WORKFLOW_STEPS {
+        return Err(WorkflowValidationError::TooManySteps);
+    }
+
+    let mut indices = BTreeMap::new();
+    for (index, step) in workflow.steps.iter().enumerate() {
+        if indices.insert(step.id.as_str(), index).is_some() {
+            return Err(WorkflowValidationError::DuplicateStepId);
+        }
+    }
+
+    let mut indegree = vec![0_usize; workflow.steps.len()];
+    let mut dependents = vec![Vec::new(); workflow.steps.len()];
+    for (index, step) in workflow.steps.iter().enumerate() {
+        let mut seen = BTreeSet::new();
+        for dependency in &step.depends_on {
+            if !seen.insert(dependency.as_str()) {
+                return Err(WorkflowValidationError::DuplicateDependency);
+            }
+            let Some(&dependency_index) = indices.get(dependency.as_str()) else {
+                return Err(WorkflowValidationError::UnknownDependency);
+            };
+            indegree[index] += 1;
+            dependents[dependency_index].push(index);
+        }
+    }
+
+    let mut ready: VecDeque<usize> = indegree
+        .iter()
+        .enumerate()
+        .filter_map(|(index, count)| (*count == 0).then_some(index))
+        .collect();
+    let mut visited = 0;
+    while let Some(index) = ready.pop_front() {
+        visited += 1;
+        for dependent in &dependents[index] {
+            indegree[*dependent] -= 1;
+            if indegree[*dependent] == 0 {
+                ready.push_back(*dependent);
+            }
+        }
+    }
+    if visited != workflow.steps.len() {
+        return Err(WorkflowValidationError::DependencyCycle);
+    }
+    Ok(())
 }
 
 fn valid_identifier(value: &str, max_bytes: usize) -> bool {
@@ -137,7 +204,10 @@ fn valid_value(value: &WorkflowValue, depth: usize) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{WorkflowDefinition, WorkflowSchemaError, WorkflowValue};
+    use super::{
+        validate_workflow, WorkflowDefinition, WorkflowSchemaError, WorkflowValidationError,
+        WorkflowValue, MAX_WORKFLOW_STEPS,
+    };
 
     const VALID: &str = r#"{
       "schemaVersion": 1,
@@ -218,6 +288,56 @@ mod tests {
         assert_eq!(
             WorkflowDefinition::parse_json(&oversized),
             Err(WorkflowSchemaError::DocumentTooLarge)
+        );
+    }
+
+    #[test]
+    fn validator_accepts_dag_and_rejects_cycles_invalid_or_duplicate_dependencies() {
+        let mut workflow: WorkflowDefinition = serde_json::from_str(VALID).unwrap();
+        let mut second = workflow.steps[0].clone();
+        second.id = "summarize".to_owned();
+        second.depends_on = vec!["inspect".to_owned()];
+        workflow.steps.push(second);
+        assert_eq!(validate_workflow(&workflow), Ok(()));
+
+        workflow.steps[0].depends_on = vec!["summarize".to_owned()];
+        assert_eq!(
+            validate_workflow(&workflow),
+            Err(WorkflowValidationError::DependencyCycle)
+        );
+        workflow.steps[0].depends_on = vec!["missing".to_owned()];
+        assert_eq!(
+            validate_workflow(&workflow),
+            Err(WorkflowValidationError::UnknownDependency)
+        );
+        workflow.steps[0].depends_on = vec!["summarize".to_owned(), "summarize".to_owned()];
+        assert_eq!(
+            validate_workflow(&workflow),
+            Err(WorkflowValidationError::DuplicateDependency)
+        );
+    }
+
+    #[test]
+    fn validator_rejects_oversized_and_duplicate_step_sets() {
+        let mut workflow: WorkflowDefinition = serde_json::from_str(VALID).unwrap();
+        let template = workflow.steps[0].clone();
+        workflow.steps = (0..=MAX_WORKFLOW_STEPS)
+            .map(|index| {
+                let mut step = template.clone();
+                step.id = format!("step-{index}");
+                step
+            })
+            .collect();
+        assert_eq!(
+            validate_workflow(&workflow),
+            Err(WorkflowValidationError::TooManySteps)
+        );
+
+        workflow.steps.truncate(2);
+        workflow.steps[1].id = workflow.steps[0].id.clone();
+        assert_eq!(
+            validate_workflow(&workflow),
+            Err(WorkflowValidationError::DuplicateStepId)
         );
     }
 }

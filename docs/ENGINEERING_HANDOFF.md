@@ -585,3 +585,9 @@ Verification passed: focused integrity tests 3/3; full Rust library suite 270/27
 Added a strict native workflow definition schema version 1 with bounded workflow ID/name/version and non-empty step lists. Each step references a tool by stable ID and explicit three-part numeric version and holds named values using a closed typed JSON union (string, integer, number, boolean, null, array or object). The parser rejects malformed JSON, unknown fields/type tags, unsupported schema versions, invalid IDs/versions, empty workflows, oversized documents and over-deep/large nested values. This defines the contract only; registry resolution, tool-specific input validation, DAG/step-count validation and execution remain subsequent tasks.
 
 Verification passed: workflow schema tests 3/3; full Rust library suite 273/273; `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`; `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`; backlog validation (148/238 checked); and `git diff --check`.
+
+## M7-002 Workflow DAG and step-bound validator — 2026-10-26
+
+Extended the versioned workflow schema with optional explicit step dependencies and added a pre-execution DAG validator. It accepts acyclic dependencies, rejects missing/duplicate references, duplicate step IDs and cycles, and caps workflow size at 128 steps. The validator runs no tools and does not resolve registered tool versions or grant capabilities/approval; those checks remain execution-boundary requirements.
+
+Verification passed: focused workflow schema/validator tests 5/5; full Rust library suite 275/275; `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`; `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`; backlog validation (149/238 checked); and `git diff --check`.
