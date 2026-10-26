@@ -1,6 +1,6 @@
 # M2-035 — Projects & Tasks usability check
 
-**Status:** Session protocol prepared; representative-user observations pending. This is not a completion report.
+**Status:** Blocked pending a representative-user session. The task and its acceptance remain open; this is not a completion report.
 
 ## Purpose
 
@@ -15,7 +15,7 @@ Observe whether people can complete the five Projects & Tasks workflows in the b
 - Input method:
 - Session ID (anonymous, such as S1):
 
-The preparation machine reports Windows 11 Pro, build 26200. No Moonships desktop interaction or participant session has yet been observed on this checkpoint.
+The preparation machine reports Windows 11 Pro, build 26200. No Moonships desktop interaction or participant session has yet been observed on this checkpoint. The current app inventory contained no Moonships desktop window.
 
 ## Session steps
 
@@ -38,4 +38,4 @@ Do not record the sample names, descriptions, personal work content or identifyi
 
 ## Findings
 
-No representative-user sessions have been observed yet. No friction findings or follow-up IDs are claimed. Keep M2-035 and GitHub issue #223 open until the session evidence is recorded and reviewed.
+No representative-user sessions have been observed yet. No friction findings or follow-up IDs are claimed. On 2026-10-26 the user explicitly chose to leave M2-035 open as blocked pending a participant session. Keep the backlog item unchecked, GitHub issue #223 open, and the M2 milestone exit gate open until real session evidence is recorded and reviewed.
