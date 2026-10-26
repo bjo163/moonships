@@ -1,5 +1,11 @@
 # Moonships — Engineering Continuity & Foundation Evidence
 
+## M2-005 TaskDependency model — 2026-10-26
+
+Migration v7 adds a workspace-scoped directed Task dependency table. A row means `task_id` is `blocked_by` the prerequisite `depends_on_task_id`; the inverse “blocks” relation is derived. The service and database reject self-dependencies and cross-workspace references. Repeating the same edge is idempotent, and dependency edges are not yet used for scheduling. Longer cycle detection remains required before scheduling depends on this graph.
+
+**Verification passed:** targeted self/cross-workspace test; `cargo test --manifest-path src-tauri/Cargo.toml --all-targets` (79 passed); `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`; Rust format check; and `git diff --check`. Implementation commit `33b28e0` passed Repository regression checks CI [40272847358](https://github.com/bjo163/moonships/actions/runs/40272847358), 5/5 jobs including Windows installer packaging. Existing issue #39 awaits backlog sync from this documentation commit. **Next task:** M2-019 — Task Kanban view; existing issue #53. Manual M2 UI/runtime and milestone exit gates remain open.
+
 ## M2-004 workspace-scoped Labels — 2026-10-26
 
 Schema migration v6 adds workspace-scoped Labels and a Task-label join table with composite foreign keys that reject cross-workspace relationships. The native service creates/lists labels and adds, removes and lists Task-label associations. Duplicate identity is a trimmed name with whitespace collapsed and Unicode lowercase applied; the first normalized display spelling is preserved. Duplicate names conflict within one workspace and are allowed in another. Repeated association writes/removals are deterministic.
