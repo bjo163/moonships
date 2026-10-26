@@ -7,6 +7,7 @@ pub mod config;
 pub mod connection_profiles;
 pub mod connector_freshness;
 pub mod connectors;
+pub mod credential_store;
 pub mod diagnostic_task;
 pub mod dns_adapter;
 pub mod domain;

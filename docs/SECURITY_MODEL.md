@@ -81,6 +81,12 @@ A capability describes authority; it does not by itself authorize every target o
 - Capability labels are documentation only and never grant a Tauri command, filesystem/network/process permission or approval. Health (`available`, `degraded`, `unavailable`, `disabled`, `unsupported`) and bounded optional diagnostic/time are reported separately from manifest identity.
 - This contract does not enumerate installed files, trust a manifest as executable authority, download/update code, load a dynamic library, start a process or create an adapter runtime. Future execution requires a separately scoped task for signature/provenance, isolation, permission mediation, lifecycle and failure handling.
 
+### Credential reference interface (M6-013)
+
+- Domain code depends on the `CredentialStore` interface and opaque UUID references; no plaintext secret field is added to profile/config DTOs, SQLite, exports or logs. Providers return closed error codes without echoing values or provider diagnostics.
+- Only the narrow native operation that needs a secret may retrieve it. A future OS-backed implementation must keep bytes within native code, use the OS secure store, and document user consent, replacement/deletion behavior and platform availability. No secret value is returned to the renderer.
+- The current interface and mock provider are contract/test infrastructure only. No OS secure-store backend, IPC command, persistence, UI or credential read/write is registered.
+
 ### HTTP Inspector (M6-002)
 
 - The only method is an explicit user-submitted HTTPS GET to one URL on port 443. Other ports, embedded credentials and fragments are rejected; the user sends no custom headers, authorization or cookies. Each request resolves one host once, rejects any private/local/reserved address and pins the HTTP connection to the accepted public addresses. HTTPS is required; proxies and redirects are disabled.
