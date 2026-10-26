@@ -1695,6 +1695,39 @@ mod tests {
         fs::remove_dir_all(fixture).expect("remove disposable execution fixture");
     }
 
+    #[test]
+    fn cleanup_executor_reports_changed_candidate_as_skipped() {
+        let fixture =
+            std::env::temp_dir().join(format!("moonships-executor-{}", uuid::Uuid::new_v4()));
+        let root = fixture.join("root");
+        fs::create_dir_all(&root).expect("create disposable execution root");
+        let candidate = make_old_candidate(&root, "changed.bin");
+        let preview = make_execution_preview(std::slice::from_ref(&candidate));
+        let approval = super::CleanupApprovalRequestDto::from_selection(&preview, &[candidate.id])
+            .expect("approve disposable candidate");
+        fs::write(root.join("changed.bin"), b"changed after preview")
+            .expect("change disposable candidate after preview");
+
+        let report = super::execute_approved_cleanup(
+            &approval,
+            &preview,
+            std::slice::from_ref(&candidate),
+            &temporary_rule(),
+            &root,
+            &[],
+            SystemTime::now(),
+        )
+        .expect("changed file is an item status, not a failed batch");
+
+        assert_eq!(
+            report.items[0].outcome,
+            super::CleanupItemOutcome::Skipped(super::CleanupRevalidationError::Changed),
+        );
+        assert_eq!(report.actual_deleted_bytes, 0);
+        assert!(root.join("changed.bin").exists());
+        fs::remove_dir_all(fixture).expect("remove disposable execution fixture");
+    }
+
     #[cfg(windows)]
     #[test]
     fn cleanup_executor_reports_locked_file_and_continues_to_next_candidate() {
@@ -1752,6 +1785,64 @@ mod tests {
         assert!(root.join("locked.bin").exists());
         assert!(!root.join("removable.bin").exists());
         drop(_lock);
+        fs::remove_dir_all(fixture).expect("remove disposable execution fixture");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn cleanup_executor_reports_read_only_file_permission_denial() {
+        use std::os::windows::ffi::OsStrExt;
+        use windows_sys::Win32::Storage::FileSystem::{
+            GetFileAttributesW, SetFileAttributesW, FILE_ATTRIBUTE_READONLY,
+            INVALID_FILE_ATTRIBUTES,
+        };
+
+        let fixture =
+            std::env::temp_dir().join(format!("moonships-executor-{}", uuid::Uuid::new_v4()));
+        let root = fixture.join("root");
+        fs::create_dir_all(&root).expect("create disposable execution root");
+        let candidate = make_old_candidate(&root, "denied.bin");
+        let preview = make_execution_preview(std::slice::from_ref(&candidate));
+        let approval = super::CleanupApprovalRequestDto::from_selection(&preview, &[candidate.id])
+            .expect("approve disposable candidate");
+        let target = root.join("denied.bin");
+        let mut permissions = fs::metadata(&target)
+            .expect("read disposable candidate permissions")
+            .permissions();
+        permissions.set_readonly(true);
+        fs::set_permissions(&target, permissions).expect("mark disposable candidate read-only");
+
+        let report = super::execute_approved_cleanup(
+            &approval,
+            &preview,
+            std::slice::from_ref(&candidate),
+            &temporary_rule(),
+            &root,
+            &[],
+            SystemTime::now(),
+        )
+        .expect("permission denial is reported per item");
+
+        assert_eq!(
+            report.items[0].outcome,
+            super::CleanupItemOutcome::Failed(super::CleanupDeletionError::PermissionDenied),
+        );
+        assert_eq!(report.actual_deleted_bytes, 0);
+        assert!(target.exists());
+        let wide_target = target
+            .as_os_str()
+            .encode_wide()
+            .chain(std::iter::once(0))
+            .collect::<Vec<_>>();
+        let attributes = unsafe { GetFileAttributesW(wide_target.as_ptr()) };
+        assert_ne!(attributes, INVALID_FILE_ATTRIBUTES);
+        assert_ne!(
+            unsafe {
+                SetFileAttributesW(wide_target.as_ptr(), attributes & !FILE_ATTRIBUTE_READONLY)
+            },
+            0,
+            "restore disposable fixture attributes",
+        );
         fs::remove_dir_all(fixture).expect("remove disposable execution fixture");
     }
 
