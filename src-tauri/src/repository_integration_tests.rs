@@ -2,7 +2,7 @@
 
 use rusqlite::{params, Connection};
 
-use crate::{projects, run_migrations, tasks};
+use crate::{labels, projects, run_migrations, tasks};
 
 const PERSONAL: &str = "00000000-0000-4000-8000-000000000001";
 
@@ -108,6 +108,70 @@ fn project_and_task_services_persist_a_scoped_workflow_in_an_isolated_database()
     assert_eq!(projects_count, 1);
     assert_eq!(linked_tasks, 1);
     assert_eq!(activity_count, 3);
+}
+
+#[test]
+fn labels_are_workspace_unique_and_task_relationships_are_scoped_and_idempotent() {
+    let mut connection = disposable_database();
+    connection
+        .execute(
+            "INSERT INTO workspaces (id, name) VALUES ('other-workspace', 'Other')",
+            [],
+        )
+        .expect("other workspace");
+    let task = create_task(&mut connection, PERSONAL, None, "Label me");
+    let other_task = create_task(&mut connection, "other-workspace", None, "Other task");
+
+    let label =
+        labels::create_label(&mut connection, PERSONAL, "  Needs   Review ").expect("create label");
+    assert_eq!(label.name, "Needs Review");
+    assert_eq!(label.normalized_name, "needs review");
+    assert_eq!(
+        labels::create_label(&mut connection, PERSONAL, "needs review")
+            .expect_err("case/whitespace duplicate is rejected"),
+        "CONFLICT: label name already exists in this workspace"
+    );
+    let unicode_label =
+        labels::create_label(&mut connection, PERSONAL, "CAFÉ").expect("create Unicode label");
+    assert_eq!(unicode_label.normalized_name, "café");
+    assert!(labels::create_label(&mut connection, PERSONAL, "café")
+        .expect_err("Unicode lowercase duplicate is rejected")
+        .starts_with("CONFLICT:"));
+    let same_name_other_workspace =
+        labels::create_label(&mut connection, "other-workspace", "needs review")
+            .expect("same normalized name is allowed in another workspace");
+    assert_eq!(labels::list_labels(&connection, PERSONAL).unwrap().len(), 2);
+    assert_eq!(
+        labels::list_labels(&connection, "other-workspace")
+            .unwrap()
+            .len(),
+        1
+    );
+
+    labels::add_label_to_task(&connection, PERSONAL, &task.id, &label.id)
+        .expect("link label and task");
+    labels::add_label_to_task(&connection, PERSONAL, &task.id, &label.id)
+        .expect("repeated link is idempotent");
+    assert_eq!(
+        labels::list_task_labels(&connection, PERSONAL, &task.id).expect("read linked labels"),
+        vec![label.clone()]
+    );
+    assert!(labels::add_label_to_task(&connection, PERSONAL, &other_task.id, &label.id).is_err());
+    assert!(labels::add_label_to_task(
+        &connection,
+        PERSONAL,
+        &task.id,
+        &same_name_other_workspace.id
+    )
+    .is_err());
+
+    labels::remove_label_from_task(&connection, PERSONAL, &task.id, &label.id)
+        .expect("remove link");
+    labels::remove_label_from_task(&connection, PERSONAL, &task.id, &label.id)
+        .expect("repeated remove is idempotent");
+    assert!(labels::list_task_labels(&connection, PERSONAL, &task.id)
+        .expect("read after remove")
+        .is_empty());
 }
 
 #[test]

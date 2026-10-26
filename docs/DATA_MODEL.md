@@ -48,7 +48,9 @@ Fields: task_id, depends_on_task_id, dependency_type, created_at.
 MVP dependency type: blocks/blocked_by via one canonical directed relation. Enforce no self-dependency and prevent cycles if dependencies affect scheduling. Keep dependency semantics documented.
 
 ### TaskLabel / Label
-Use a join table for many-to-many task labels. Define normalized label identity within workspace. Avoid storing arrays in SQL if filtering and constraints are required.
+Labels have a workspace-scoped identity and many-to-many Task associations through `task_labels`; do not store label arrays in Task rows. M2-004 migration v6 uses a composite workspace foreign key for both sides of the relationship. A label's duplicate identity is its trimmed display name after internal whitespace is collapsed to one ASCII space and Unicode lowercase conversion is applied. Thus `Needs Review`, ` needs   review ` and `NEEDS REVIEW` conflict within the same workspace. The first label's trimmed, whitespace-collapsed spelling is retained for display. The same normalized name is allowed in another workspace. This rule does not perform Unicode canonical-equivalence normalization. Repeating the same Task-label association is idempotent.
+
+The native `labels` service validates nonblank names up to 64 characters, creates and lists workspace labels, and adds, removes and lists Task-label relationships. Cross-workspace associations are rejected by composite foreign keys. Label deletion and UI/IPC exposure are not part of M2-004.
 
 ### Comment
 Fields: id, target_type, target_id, body, created_at, updated_at.

@@ -1,6 +1,7 @@
 pub mod activity;
 pub mod config;
 pub mod domain;
+pub mod labels;
 pub mod local_logging;
 pub mod projects;
 pub mod task_status;
@@ -49,7 +50,7 @@ fn open_database_in(app_data_dir: &Path) -> Result<Connection, String> {
     Ok(connection)
 }
 
-const CURRENT_SCHEMA_VERSION: i64 = 5;
+const CURRENT_SCHEMA_VERSION: i64 = 6;
 const PERSONAL_WORKSPACE_ID: &str = "00000000-0000-4000-8000-000000000001";
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
@@ -389,6 +390,39 @@ pub(crate) fn run_migrations(connection: &mut Connection) -> Result<(), String> 
                 INSERT INTO schema_migrations (version) VALUES (5);",
             )
             .map_err(|error| format!("Could not apply activity schema migration: {error}"))?;
+    }
+
+    if current_version < 6 {
+        transaction
+            .execute_batch(
+                "CREATE TABLE labels (
+                    id TEXT PRIMARY KEY NOT NULL,
+                    workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE RESTRICT,
+                    name TEXT NOT NULL CHECK (length(trim(name)) BETWEEN 1 AND 64),
+                    normalized_name TEXT NOT NULL CHECK (length(trim(normalized_name)) > 0),
+                    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+                    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+                    UNIQUE (workspace_id, normalized_name),
+                    UNIQUE (workspace_id, id)
+                );
+                CREATE INDEX idx_labels_workspace_name
+                    ON labels (workspace_id, normalized_name, id);
+                CREATE TABLE task_labels (
+                    workspace_id TEXT NOT NULL,
+                    task_id TEXT NOT NULL,
+                    label_id TEXT NOT NULL,
+                    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+                    PRIMARY KEY (workspace_id, task_id, label_id),
+                    FOREIGN KEY (workspace_id, task_id)
+                        REFERENCES tasks (workspace_id, id) ON DELETE CASCADE,
+                    FOREIGN KEY (workspace_id, label_id)
+                        REFERENCES labels (workspace_id, id) ON DELETE CASCADE
+                );
+                CREATE INDEX idx_task_labels_workspace_label
+                    ON task_labels (workspace_id, label_id, task_id);
+                INSERT INTO schema_migrations (version) VALUES (6);",
+            )
+            .map_err(|error| format!("Could not apply label schema migration: {error}"))?;
     }
 
     transaction
@@ -1198,7 +1232,9 @@ mod tests {
         // index name so schema v3 fails *after* CREATE TABLE projects succeeds.
         connection
             .execute_batch(
-                "DROP TABLE activity_events;
+                "DROP TABLE task_labels;
+                 DROP TABLE labels;
+                 DROP TABLE activity_events;
                  DROP TABLE tasks;
                  DROP TABLE projects;
                  DELETE FROM schema_migrations WHERE version >= 3;
@@ -1407,7 +1443,9 @@ mod tests {
         run_migrations(&mut connection).expect("create schema fixture");
         connection
             .execute_batch(
-                "DROP TABLE activity_events;
+                "DROP TABLE task_labels;
+                 DROP TABLE labels;
+                 DROP TABLE activity_events;
                  DROP TABLE tasks;
                  DROP INDEX idx_projects_workspace_id;
                  DELETE FROM schema_migrations WHERE version >= 4;
@@ -1452,7 +1490,9 @@ mod tests {
         run_migrations(&mut connection).expect("create fixture");
         connection
             .execute_batch(
-                "DROP TABLE activity_events;
+                "DROP TABLE task_labels;
+                 DROP TABLE labels;
+                 DROP TABLE activity_events;
                  DROP TABLE tasks;
                  DROP INDEX idx_projects_workspace_id;
                  DELETE FROM schema_migrations WHERE version >= 4;
@@ -1507,8 +1547,10 @@ mod tests {
         run_migrations(&mut connection).expect("fresh baseline");
         connection
             .execute_batch(
-                "DROP TABLE activity_events;
-                 DELETE FROM schema_migrations WHERE version = 5;
+                "DROP TABLE task_labels;
+                 DROP TABLE labels;
+                 DROP TABLE activity_events;
+                 DELETE FROM schema_migrations WHERE version >= 5;
                  INSERT INTO projects (id, workspace_id, name)
                  VALUES ('saved-project', '00000000-0000-4000-8000-000000000001', 'Preserve');
                  INSERT INTO tasks (id, workspace_id, project_id, title)
@@ -1553,8 +1595,10 @@ mod tests {
         run_migrations(&mut connection).expect("baseline");
         connection
             .execute_batch(
-                "DROP TABLE activity_events;
-                 DELETE FROM schema_migrations WHERE version = 5;
+                "DROP TABLE task_labels;
+                 DROP TABLE labels;
+                 DROP TABLE activity_events;
+                 DELETE FROM schema_migrations WHERE version >= 5;
                  INSERT INTO app_metadata (key, value) VALUES ('keep', 'original');
                  CREATE TABLE unrelated_fixture (id TEXT);
                  CREATE INDEX idx_activity_events_entity ON unrelated_fixture(id);",
@@ -1584,6 +1628,100 @@ mod tests {
                 |row| row.get(0),
             )
             .expect("saved metadata");
+        assert_eq!(saved, "original");
+        drop(connection);
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn upgrading_v5_adds_workspace_scoped_labels_without_changing_existing_data() {
+        let dir = unique_temp_dir("labels-upgrade");
+        let mut connection = open_database_in(&dir).expect("disposable connection");
+        run_migrations(&mut connection).expect("create current baseline");
+        connection
+            .execute_batch(
+                "DROP TABLE task_labels;
+                 DROP TABLE labels;
+                 DELETE FROM schema_migrations WHERE version = 6;
+                 INSERT INTO projects (id, workspace_id, name)
+                 VALUES ('label-project', '00000000-0000-4000-8000-000000000001', 'Preserve');
+                 INSERT INTO tasks (id, workspace_id, project_id, title)
+                 VALUES ('label-task', '00000000-0000-4000-8000-000000000001',
+                         'label-project', 'Preserve task');
+                 INSERT INTO app_metadata (key, value) VALUES ('label-upgrade', 'keep-me');",
+            )
+            .expect("v5 fixture with existing records");
+
+        run_migrations(&mut connection).expect("v5 to v6");
+        run_migrations(&mut connection).expect("idempotent v6");
+        let version: i64 = connection
+            .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| {
+                row.get(0)
+            })
+            .expect("schema version");
+        assert_eq!(version, 6);
+        let preserved: (String, String, String) = connection
+            .query_row(
+                "SELECT p.name, t.title, m.value
+                 FROM projects p JOIN tasks t ON t.project_id = p.id
+                 JOIN app_metadata m ON m.key = 'label-upgrade'
+                 WHERE p.id = 'label-project'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .expect("existing records survive label migration");
+        assert_eq!(
+            preserved,
+            (
+                "Preserve".to_string(),
+                "Preserve task".to_string(),
+                "keep-me".to_string()
+            )
+        );
+        drop(connection);
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn failed_label_migration_rolls_back_schema_and_version() {
+        let dir = unique_temp_dir("labels-rollback");
+        let mut connection = open_database_in(&dir).expect("disposable connection");
+        run_migrations(&mut connection).expect("create current baseline");
+        connection
+            .execute_batch(
+                "DROP TABLE task_labels;
+                 DROP TABLE labels;
+                 DELETE FROM schema_migrations WHERE version = 6;
+                 INSERT INTO app_metadata (key, value) VALUES ('keep-label-data', 'original');
+                 CREATE TABLE unrelated_label_fixture (id TEXT);
+                 CREATE INDEX idx_labels_workspace_name
+                    ON unrelated_label_fixture (id);",
+            )
+            .expect("reserved index collision fixture");
+
+        assert!(run_migrations(&mut connection).is_err());
+        let label_tables: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master
+                 WHERE type = 'table' AND name IN ('labels', 'task_labels')",
+                [],
+                |row| row.get(0),
+            )
+            .expect("schema inspection");
+        assert_eq!(label_tables, 0, "failed migration tables must roll back");
+        let version: i64 = connection
+            .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| {
+                row.get(0)
+            })
+            .expect("schema version");
+        assert_eq!(version, 5, "failed migration must not record version 6");
+        let saved: String = connection
+            .query_row(
+                "SELECT value FROM app_metadata WHERE key = 'keep-label-data'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("existing metadata preserved");
         assert_eq!(saved, "original");
         drop(connection);
         let _ = fs::remove_dir_all(dir);
