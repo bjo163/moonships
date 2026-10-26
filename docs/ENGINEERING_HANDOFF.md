@@ -653,3 +653,9 @@ Verification passed: AI action-preview tests 3/3; full Rust library suite 301/30
 Added strict summary claims labeled `supported` or `unknown`. Supported claims require evidence IDs from the supplied validated intelligence items; source IDs and URLs are resolved locally from those items. Unknown claims cannot carry citations, and invented evidence IDs or unsupported claims labeled supported fail closed.
 
 Verification passed: AI summary-attribution tests 3/3; full Rust library suite 304/304; `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`; `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`; backlog validation (160/238 checked); and `git diff --check`. Backlog before this task: 159/238 checked (66.8%); after this task: 160/238 checked (67.2%). M2-035 remains open by direction.
+
+## M7-013 Prompt-injection and secret-exfiltration fixtures — 2026-10-26
+
+Added a synthetic untrusted-text attack asking the model to invent a secret-export tool. Exact registry matching rejects the invented tool, the synthetic credential is not sent in provider context, and the rejected output is not returned. These local fake-provider checks verify the current boundary only; there is no production AI model connected.
+
+Verification passed: focused adversarial fixture test 1/1; full Rust library suite 305/305; `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`; `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`; backlog validation (161/238 checked); and `git diff --check`. Backlog before this task: 160/238 checked (67.2%); after this task: 161/238 checked (67.6%). M2-035 remains open by direction.

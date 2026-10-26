@@ -397,6 +397,7 @@ Before executing an assessment:
 - M7-010 gives AI only the bounded catalog of enabled registered tools. A proposed ID must match an enabled registry entry exactly; invented and disabled IDs are rejected. Discovery returns an inert recommendation and does not dispatch tools or grant capability/approval. The production registry and approval path remain separate.
 - M7-011 preview approval binds the exact registered tool/API version, target, arguments and preview ID. Approval requires the displayed preview ID, and verification recomputes the SHA-256 binding before accepting it; changed arguments, target or version fail closed. Approval data is not deserializable from model/renderer data, is not persisted, and does not itself execute or authorize an action.
 - M7-012 summaries are parsed into claims with explicit `supported` or `unknown` status. Supported claims require known evidence item IDs, and display URLs/source IDs are resolved from validated local evidence records rather than model-supplied references. Unknown claims cannot carry citations; invented evidence IDs and uncited supported claims fail closed.
+- M7-013 uses only synthetic prompt-injection and credential fixtures. A request to invent a secret-export tool fails exact registry matching; the synthetic secret is not included in the provider request context and a rejected response is not returned. This tests local boundaries only; no production model/provider is connected.
 
 ## 8. Secrets and privacy
 
