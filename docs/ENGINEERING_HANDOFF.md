@@ -1,5 +1,11 @@
 # Moonships — Engineering Continuity & Foundation Evidence
 
+## M2-020 local Task search — 2026-10-26
+
+The Tasks toolbar now searches active Task titles and descriptions locally without case sensitivity. A 150 ms debounce keeps keystrokes responsive; Clear and no-match states work in List and Board. The match count is shown against the active-task total, and an empty result is distinct from no active tasks or a failed read. Search only filters in-memory persisted records and does not mutate them.
+
+**Verification passed:** targeted `npx vitest run src/TaskListPage.behavior.test.tsx` (7/7); `npm run check` (repository tests 8/8, frontend tests 90/90, typecheck and production build passed); `git diff --check`. Biome reports the existing CLI/schema mismatch/deprecated config notices and existing non-null assertion warnings. Issue #54 is pending backlog sync from this documentation update. **Next task:** M2-021 — combined Project/status/priority filters. The M2 milestone remains open, including manual Windows runtime/accessibility and restart evidence.
+
 ## M2-019 Task Board — 2026-10-26
 
 The Task page now offers List and Board views over the same persisted Task records. Board groups tasks by all seven canonical statuses. Drag-and-drop and a keyboard-accessible status selector both use the existing task update operation and only show the returned saved record; failures retain the prior status and report the save failure.

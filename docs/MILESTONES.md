@@ -86,6 +86,8 @@ Exit criteria:
 
 > 2026-10-26 follow-up: M2-019 adds a persisted Task Board grouped by canonical status. Drag-and-drop and keyboard status selection share the existing update operation and reflect only saved records; a failed update preserves the previous status. Local `npm run check` passed 89 tests, formatting/lint, typecheck and production build. CI [40274608802](https://github.com/bjo163/moonships/actions/runs/40274608802) passed 5/5 jobs including Windows packaging. Existing issue #53 closes through backlog sync from the documentation update. M2-020 is next; the milestone remains open with manual Windows runtime/accessibility and restart evidence outstanding.
 
+> 2026-10-26 follow-up: M2-020 adds debounced case-insensitive local search over active Task titles and descriptions in both List and Board. Clear restores all tasks, no matches has a distinct empty state, and loading/read failures remain separate. Targeted behavior tests passed 7/7; `npm run check` passed repository tests 8/8, frontend tests 90/90, typecheck and production build. Existing issue #54 closes through backlog sync from this documentation update. M2-021 is next; manual Windows runtime/accessibility and restart evidence remain outstanding.
+
 Deliverables:
 - Workspace and personal work inbox
 - Home dashboard based only on real local project/task/activity records
