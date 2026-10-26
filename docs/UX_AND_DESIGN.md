@@ -423,7 +423,7 @@ Results: removed / skipped / failed / actual bytes freed
 
 No candidate is actionable until it passes policy; an unsafe candidate should be omitted or visibly blocked, not merely unchecked by default.
 
-M3-007 exposes Clean & Storage as a workspace route and adds a read-only preview view for typed candidate data: eligible/skipped counts, estimated bytes, category, item label, size, modification time and skip reason. The route shows an explicit unavailable state when no scan preview exists; it does not invent candidates or start a scan. M3-008 lets the user select eligible items and opens a separate approval dialog bound to that preview and selection. Skipped items cannot be selected. Confirmation records intent only; the executor is not available yet and no files are changed.
+M3-007 exposes Clean & Storage as a workspace route and adds a read-only preview view for typed candidate data: eligible/skipped counts, estimated bytes, category, item label, size, modification time and skip reason. The route shows an explicit unavailable state when no scan preview exists; it does not invent candidates or start a scan. M3-008 lets the user select eligible items and opens a separate approval dialog bound to that preview and selection. Skipped items cannot be selected. Confirmation records intent only; cleanup is not wired to this screen and no files are changed. M3-014 adds recent persisted report summaries with estimate, successfully deleted logical file size, item outcomes and an optional Task link; the history never displays or stores candidate paths by default.
 
 ### Intelligence monitor
 

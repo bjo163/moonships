@@ -1,11 +1,21 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CleanerPreviewPage } from "./CleanerPreviewPage";
+import type { CleanupReportSummary } from "./cleanup-reports-api";
 import type { CleanupPreviewDto } from "./cleanup-preview";
 
+const { listCleanupReportsMock } = vi.hoisted(() => ({ listCleanupReportsMock: vi.fn() }));
+
+vi.mock("./cleanup-reports-api", () => ({
+  listCleanupReports: listCleanupReportsMock,
+  toCleanupReportErrorMessage: () =>
+    "Saved cleanup results could not be loaded from this device. Try again.",
+}));
+
 afterEach(cleanup);
+beforeEach(() => listCleanupReportsMock.mockResolvedValue([]));
 
 const preview: CleanupPreviewDto = {
   previewId: "preview-1",
@@ -70,7 +80,7 @@ describe("M3-007 cleanup preview", () => {
     expect(onApprove).not.toHaveBeenCalled();
     await user.click(review);
     expect(screen.getByRole("dialog", { name: "Approve selected cleanup items" })).toBeTruthy();
-    expect(screen.getByText(/cleanup executor is not available yet/i)).toBeTruthy();
+    expect(screen.getByText(/cleanup is not wired to this screen yet/i)).toBeTruthy();
     expect(onApprove).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole("button", { name: "Cancel" }));
@@ -85,5 +95,48 @@ describe("M3-007 cleanup preview", () => {
     });
     expect(screen.getByRole("status").textContent).toMatch(/cleanup has not started/i);
     expect(screen.queryByRole("button", { name: /^clean$/i })).toBeNull();
+  });
+});
+
+describe("M3-014 cleanup report history", () => {
+  const savedReport: CleanupReportSummary = {
+    id: "report-1",
+    previewId: "preview-1",
+    taskId: "00000000-0000-4000-8000-000000000099",
+    status: "partial",
+    completedAt: "2026-10-26T07:00:00Z",
+    selectedCount: 3,
+    deletedCount: 1,
+    skippedCount: 1,
+    failedCount: 1,
+    estimatedBytes: 20_480,
+    actualDeletedBytes: 7_168,
+  };
+
+  it("shows persisted estimates, actual deleted file size and an explicit task link", async () => {
+    listCleanupReportsMock.mockResolvedValueOnce([savedReport]);
+    render(<CleanerPreviewPage preview={null} />);
+
+    const row = await screen.findByRole("row", { name: /partial/i });
+    expect(within(row).getByText("20 KB")).toBeTruthy();
+    expect(within(row).getByText("7 KB")).toBeTruthy();
+    expect(within(row).getByText(/1 deleted · 1 skipped · 1 failed/i)).toBeTruthy();
+    expect(within(row).getByRole("link", { name: "Open linked task" }).getAttribute("href")).toBe(
+      "#/tasks/00000000-0000-4000-8000-000000000099",
+    );
+    expect(screen.queryByText(/candidate path|relative path/i)).toBeNull();
+  });
+
+  it("offers a retry when local report history cannot be read", async () => {
+    const user = userEvent.setup();
+    listCleanupReportsMock.mockRejectedValueOnce(new Error("db busy"));
+    render(<CleanerPreviewPage preview={null} />);
+
+    expect(
+      await screen.findByRole("heading", { name: "Cleanup history unavailable" }),
+    ).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByRole("heading", { name: "No saved cleanup results" })).toBeTruthy();
+    await waitFor(() => expect(listCleanupReportsMock).toHaveBeenCalledTimes(2));
   });
 });

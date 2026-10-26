@@ -1,6 +1,11 @@
-import { useState } from "react";
-import { Badge, EmptyState } from "./ui-primitives";
-import { Button, Dialog } from "./ui-primitives";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  listCleanupReports,
+  toCleanupReportErrorMessage,
+  type CleanupReportStatus,
+  type CleanupReportSummary,
+} from "./cleanup-reports-api";
+import { Badge, Button, Dialog, EmptyState, ErrorState, LoadingState } from "./ui-primitives";
 import type {
   CleanupApprovalRequest,
   CleanupCategory,
@@ -42,6 +47,18 @@ function formatModifiedAt(value: string): string {
     : new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date);
 }
 
+function reportStatusLabel(status: CleanupReportStatus): string {
+  if (status === "succeeded") return "Completed";
+  if (status === "partial") return "Partial";
+  return "Failed";
+}
+
+function reportStatusVariant(status: CleanupReportStatus): "success" | "warning" | "danger" {
+  if (status === "succeeded") return "success";
+  if (status === "partial") return "warning";
+  return "danger";
+}
+
 export function CleanerPreviewPage({
   preview,
   onApprove,
@@ -68,6 +85,35 @@ function CleanerPreviewContent({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [approvalOpen, setApprovalOpen] = useState(false);
   const [approvalRecorded, setApprovalRecorded] = useState<CleanupApprovalRequest | null>(null);
+  const [reports, setReports] = useState<CleanupReportSummary[]>([]);
+  const [reportsLoading, setReportsLoading] = useState(true);
+  const [reportsError, setReportsError] = useState<string | null>(null);
+  const reportsRequestId = useRef(0);
+
+  const loadReports = useCallback(() => {
+    const requestId = ++reportsRequestId.current;
+    setReportsLoading(true);
+    setReportsError(null);
+    listCleanupReports()
+      .then((nextReports) => {
+        if (reportsRequestId.current === requestId) setReports(nextReports);
+      })
+      .catch(() => {
+        if (reportsRequestId.current === requestId) {
+          setReportsError(toCleanupReportErrorMessage());
+        }
+      })
+      .finally(() => {
+        if (reportsRequestId.current === requestId) setReportsLoading(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    loadReports();
+    return () => {
+      reportsRequestId.current += 1;
+    };
+  }, [loadReports]);
 
   const items = preview?.items ?? [];
   const eligibleItems = items.filter((item) => item.disposition === "eligible");
@@ -219,6 +265,82 @@ function CleanerPreviewContent({
           </div>
         </>
       )}
+      <section
+        className="home-dashboard__panel cleaner-preview__reports"
+        aria-labelledby="cleanup-reports-title"
+      >
+        <div className="home-dashboard__panel-heading">
+          <div>
+            <p className="eyebrow">LOCAL HISTORY</p>
+            <h3 id="cleanup-reports-title">Recent cleanup results</h3>
+          </div>
+        </div>
+        {reportsLoading ? (
+          <LoadingState label="Loading saved cleanup results" />
+        ) : reportsError ? (
+          <ErrorState
+            title="Cleanup history unavailable"
+            description={reportsError}
+            onRetry={loadReports}
+          />
+        ) : reports.length === 0 ? (
+          <EmptyState
+            title="No saved cleanup results"
+            description="Completed cleanup summaries will appear here. This history does not store file paths."
+          />
+        ) : (
+          <div className="cleaner-preview__table-wrap">
+            <table className="cleaner-preview__table cleaner-preview__reports-table">
+              <caption>Saved summaries only; candidate file paths are not stored.</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Result</th>
+                  <th scope="col">Completed</th>
+                  <th scope="col">Items</th>
+                  <th scope="col">Estimated</th>
+                  <th scope="col">Deleted file size</th>
+                  <th scope="col">Task</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reports.map((report) => (
+                  <tr key={report.id}>
+                    <td>
+                      <Badge variant={reportStatusVariant(report.status)}>
+                        {reportStatusLabel(report.status)}
+                      </Badge>
+                    </td>
+                    <td>
+                      <time dateTime={report.completedAt}>
+                        {formatModifiedAt(report.completedAt)}
+                      </time>
+                    </td>
+                    <td>
+                      {report.deletedCount} deleted · {report.skippedCount} skipped ·{" "}
+                      {report.failedCount} failed
+                    </td>
+                    <td>{formatBytes(report.estimatedBytes)}</td>
+                    <td>{formatBytes(report.actualDeletedBytes)}</td>
+                    <td>
+                      {report.taskId ? (
+                        <a href={`#/tasks/${encodeURIComponent(report.taskId)}`}>
+                          Open linked task
+                        </a>
+                      ) : (
+                        <span className="muted">None</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="cleaner-preview__estimate-note">
+              “Deleted file size” totals logical sizes of removed files; physical disk space
+              reclaimed may differ.
+            </p>
+          </div>
+        )}
+      </section>
       <Dialog
         open={approvalOpen}
         title="Approve selected cleanup items"
@@ -235,8 +357,8 @@ function CleanerPreviewContent({
             ))}
           </ul>
           <p>
-            This approval is limited to the selected IDs in this preview. The cleanup executor is
-            not available yet; approving will not delete files.
+            This approval is limited to the selected IDs in this preview. Cleanup is not wired to
+            this screen yet; approving will not delete files.
           </p>
           <div className="cleaner-preview__approval-dialog-actions">
             <Button variant="secondary" onClick={() => setApprovalOpen(false)}>

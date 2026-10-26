@@ -262,6 +262,11 @@ h1 { font-size: var(--text-xl); letter-spacing: -.035em; margin: .45rem 0 0; }
 .cleaner-preview__table tbody th { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-sm); font-weight: 550; }
 .cleaner-preview__table td { color: var(--color-text-primary); font-size: var(--text-sm); }
 .cleaner-preview__estimate-note { margin: var(--space-3) 0 0; color: var(--color-text-muted); font-size: var(--text-xs); }
+.cleaner-preview__reports { display: grid; gap: var(--space-3); min-width: 0; }
+.cleaner-preview__reports-table { min-width: 860px; }
+.cleaner-preview__reports-table td { white-space: nowrap; }
+.cleaner-preview__reports-table td:nth-child(3) { white-space: normal; }
+.cleaner-preview__reports-table a { color: var(--color-link); }
 .cleaner-preview__table input[type="checkbox"] { width: 1rem; height: 1rem; accent-color: var(--color-accent); }
 .cleaner-preview__approval-actions, .cleaner-preview__approval-dialog-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-top: var(--space-4); }
 .cleaner-preview__approval-actions > span { color: var(--color-text-muted); font-size: var(--text-sm); }

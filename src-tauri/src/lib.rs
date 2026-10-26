@@ -1,5 +1,6 @@
 pub mod activity;
 pub mod cleaner;
+pub mod cleanup_reports;
 pub mod config;
 pub mod domain;
 pub mod home_dashboard;
@@ -56,7 +57,7 @@ fn open_database_in(app_data_dir: &Path) -> Result<Connection, String> {
     Ok(connection)
 }
 
-const CURRENT_SCHEMA_VERSION: i64 = 8;
+const CURRENT_SCHEMA_VERSION: i64 = 9;
 const PERSONAL_WORKSPACE_ID: &str = "00000000-0000-4000-8000-000000000001";
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
@@ -645,6 +646,36 @@ pub(crate) fn run_migrations(connection: &mut Connection) -> Result<(), String> 
             .map_err(|error| format!("Could not apply milestone schema migration: {error}"))?;
     }
 
+    if current_version < 9 {
+        transaction
+            .execute_batch(
+                "CREATE TABLE cleanup_reports (
+                    id TEXT PRIMARY KEY NOT NULL,
+                    workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE RESTRICT,
+                    task_id TEXT,
+                    preview_id TEXT NOT NULL,
+                    status TEXT NOT NULL CHECK (status IN ('succeeded', 'partial', 'failed')),
+                    completed_at TEXT NOT NULL,
+                    selected_count INTEGER NOT NULL CHECK (selected_count BETWEEN 1 AND 100),
+                    deleted_count INTEGER NOT NULL CHECK (deleted_count >= 0),
+                    skipped_count INTEGER NOT NULL CHECK (skipped_count >= 0),
+                    failed_count INTEGER NOT NULL CHECK (failed_count >= 0),
+                    estimated_bytes INTEGER NOT NULL CHECK (estimated_bytes >= 0),
+                    actual_deleted_bytes INTEGER NOT NULL
+                        CHECK (actual_deleted_bytes >= 0 AND actual_deleted_bytes <= estimated_bytes),
+                    CHECK (selected_count = deleted_count + skipped_count + failed_count),
+                    FOREIGN KEY (workspace_id, task_id)
+                        REFERENCES tasks (workspace_id, id) ON DELETE RESTRICT
+                );
+                CREATE INDEX idx_cleanup_reports_workspace_completed
+                    ON cleanup_reports (workspace_id, completed_at DESC, id);
+                CREATE INDEX idx_cleanup_reports_workspace_task
+                    ON cleanup_reports (workspace_id, task_id, completed_at DESC);
+                INSERT INTO schema_migrations (version) VALUES (9);",
+            )
+            .map_err(|error| format!("Could not apply cleanup report migration: {error}"))?;
+    }
+
     transaction
         .commit()
         .map_err(|error| format!("Could not commit schema migration: {error}"))
@@ -962,6 +993,14 @@ fn list_milestones(
 }
 
 #[tauri::command]
+fn list_cleanup_reports(
+    app: AppHandle,
+) -> Result<Vec<cleanup_reports::CleanupReportSummaryDto>, String> {
+    let connection = open_personal_workspace_database(&app)?;
+    cleanup_reports::list_recent_cleanup_reports(&connection, PERSONAL_WORKSPACE_ID)
+}
+
+#[tauri::command]
 fn create_milestone(
     app: AppHandle,
     request: CreateMilestoneRequestDto,
@@ -1127,7 +1166,8 @@ pub fn run() {
             list_milestones,
             create_milestone,
             associate_milestone_task,
-            update_milestone
+            update_milestone,
+            list_cleanup_reports
         ])
         .setup(|app| {
             let app_data_dir = app.path().app_data_dir()?;
@@ -1532,6 +1572,57 @@ mod tests {
     }
 
     #[test]
+    fn upgrading_v8_adds_cleanup_reports_without_changing_existing_tasks() {
+        let app_data_dir = unique_temp_dir("cleanup-reports-v8-upgrade");
+        let mut connection = open_database_in(&app_data_dir).expect("open disposable database");
+        run_migrations(&mut connection).expect("apply fresh migrations");
+        connection
+            .execute(
+                "INSERT INTO tasks (id, workspace_id, title) VALUES (?1, ?2, ?3)",
+                rusqlite::params![
+                    "00000000-0000-4000-8000-000000000199",
+                    PERSONAL_WORKSPACE_ID,
+                    "Preserved before v9"
+                ],
+            )
+            .expect("insert task before upgrade fixture");
+        connection
+            .execute_batch(
+                "DROP TABLE cleanup_reports;
+                 DELETE FROM schema_migrations WHERE version = 9;",
+            )
+            .expect("restore version 8 schema fixture");
+
+        run_migrations(&mut connection).expect("apply version 9 cleanup report migration");
+
+        let version: i64 = connection
+            .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| {
+                row.get(0)
+            })
+            .expect("read migrated schema version");
+        let task_count: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM tasks WHERE id = ?1",
+                ["00000000-0000-4000-8000-000000000199"],
+                |row| row.get(0),
+            )
+            .expect("verify pre-upgrade task remains");
+        let report_table_exists: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'cleanup_reports'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("check cleanup report table");
+        assert_eq!(version, 9);
+        assert_eq!(task_count, 1);
+        assert_eq!(report_table_exists, 1);
+
+        drop(connection);
+        let _ = fs::remove_dir_all(app_data_dir);
+    }
+
+    #[test]
     fn upgrading_v1_preserves_user_metadata_and_seeds_only_one_personal_workspace() {
         let app_data_dir = unique_temp_dir("migration-v1-upgrade");
         let mut connection = open_database_in(&app_data_dir).expect("database should open");
@@ -1727,7 +1818,7 @@ mod tests {
                  DROP TABLE IF EXISTS activity_events;
                  DROP TABLE tasks;
                  DROP TABLE projects;
-                 DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DELETE FROM schema_migrations WHERE version >= 3;
+                 DROP TABLE IF EXISTS cleanup_reports; DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DELETE FROM schema_migrations WHERE version >= 3;
                  INSERT INTO app_metadata (key, value)
                      VALUES ('rollback-marker', 'preserved');
                  CREATE TABLE unrelated_fixture (id TEXT PRIMARY KEY);
@@ -1939,7 +2030,7 @@ mod tests {
                  DROP TABLE IF EXISTS activity_events;
                  DROP TABLE tasks;
                  DROP INDEX idx_projects_workspace_id;
-                 DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DELETE FROM schema_migrations WHERE version >= 4;
+                 DROP TABLE IF EXISTS cleanup_reports; DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DELETE FROM schema_migrations WHERE version >= 4;
                  INSERT INTO app_metadata (key, value) VALUES ('saved', 'keep-me');
                  INSERT INTO projects (id, workspace_id, name)
                  VALUES ('existing-project', '00000000-0000-4000-8000-000000000001', 'Keep Project');",
@@ -1987,7 +2078,7 @@ mod tests {
                  DROP TABLE IF EXISTS activity_events;
                  DROP TABLE tasks;
                  DROP INDEX idx_projects_workspace_id;
-                 DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DELETE FROM schema_migrations WHERE version >= 4;
+                 DROP TABLE IF EXISTS cleanup_reports; DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DELETE FROM schema_migrations WHERE version >= 4;
                  INSERT INTO app_metadata (key, value) VALUES ('saved', 'preserve-me');
                  CREATE TABLE unrelated_fixture (id TEXT);
                  CREATE INDEX idx_tasks_workspace_status ON unrelated_fixture (id);",
@@ -2043,7 +2134,7 @@ mod tests {
                  DROP TABLE task_labels;
                  DROP TABLE labels;
                  DROP TABLE IF EXISTS activity_events;
-                 DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DELETE FROM schema_migrations WHERE version >= 5;
+                 DROP TABLE IF EXISTS cleanup_reports; DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DELETE FROM schema_migrations WHERE version >= 5;
                  INSERT INTO projects (id, workspace_id, name)
                  VALUES ('saved-project', '00000000-0000-4000-8000-000000000001', 'Preserve');
                  INSERT INTO tasks (id, workspace_id, project_id, title)
@@ -2092,7 +2183,7 @@ mod tests {
                  DROP TABLE task_labels;
                  DROP TABLE labels;
                  DROP TABLE IF EXISTS activity_events;
-                 DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DELETE FROM schema_migrations WHERE version >= 5;
+                 DROP TABLE IF EXISTS cleanup_reports; DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DELETE FROM schema_migrations WHERE version >= 5;
                  INSERT INTO app_metadata (key, value) VALUES ('keep', 'original');
                  CREATE TABLE unrelated_fixture (id TEXT);
                  CREATE INDEX idx_activity_events_entity ON unrelated_fixture(id);",
@@ -2137,7 +2228,7 @@ mod tests {
                 "DROP TABLE task_dependencies;
                  DROP TABLE task_labels;
                  DROP TABLE labels;
-                 DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DELETE FROM schema_migrations WHERE version >= 6;
+                 DROP TABLE IF EXISTS cleanup_reports; DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DELETE FROM schema_migrations WHERE version >= 6;
                  INSERT INTO projects (id, workspace_id, name)
                  VALUES ('label-project', '00000000-0000-4000-8000-000000000001', 'Preserve');
                  INSERT INTO tasks (id, workspace_id, project_id, title)
@@ -2187,7 +2278,7 @@ mod tests {
                 "DROP TABLE task_dependencies;
                  DROP TABLE task_labels;
                  DROP TABLE labels;
-                 DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DELETE FROM schema_migrations WHERE version >= 6;
+                 DROP TABLE IF EXISTS cleanup_reports; DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DELETE FROM schema_migrations WHERE version >= 6;
                  INSERT INTO app_metadata (key, value) VALUES ('keep-label-data', 'original');
                  CREATE TABLE unrelated_label_fixture (id TEXT);
                  CREATE INDEX idx_labels_workspace_name
@@ -2231,7 +2322,7 @@ mod tests {
         connection
             .execute_batch(
                 "DROP TABLE task_dependencies;
-                 DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DELETE FROM schema_migrations WHERE version >= 7;
+                 DROP TABLE IF EXISTS cleanup_reports; DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DELETE FROM schema_migrations WHERE version >= 7;
                  INSERT INTO tasks (id, workspace_id, title)
                  VALUES ('blocked-task', '00000000-0000-4000-8000-000000000001', 'Blocked');
                  INSERT INTO tasks (id, workspace_id, title)
@@ -2270,7 +2361,7 @@ mod tests {
         connection
             .execute_batch(
                 "DROP TABLE task_dependencies;
-                 DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DELETE FROM schema_migrations WHERE version >= 7;
+                 DROP TABLE IF EXISTS cleanup_reports; DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DELETE FROM schema_migrations WHERE version >= 7;
                  INSERT INTO app_metadata (key, value) VALUES ('keep-dependency-data', 'original');
                  CREATE TABLE unrelated_dependency_fixture (id TEXT);
                  CREATE INDEX idx_task_dependencies_workspace_prerequisite
@@ -2350,9 +2441,9 @@ mod tests {
         let mut connection = open_database_in(&dir).unwrap();
         run_migrations(&mut connection).unwrap();
         connection.execute_batch(
-            "DROP TABLE milestone_tasks; DROP TABLE milestones;
+            "DROP TABLE cleanup_reports; DROP TABLE milestone_tasks; DROP TABLE milestones;
              DROP INDEX idx_tasks_workspace_project_identity;
-             DELETE FROM schema_migrations WHERE version = 8;
+             DELETE FROM schema_migrations WHERE version >= 8;
              INSERT INTO projects (id, workspace_id, name) VALUES ('old-project', '00000000-0000-4000-8000-000000000001', 'Old project');
              INSERT INTO tasks (id, workspace_id, project_id, title) VALUES ('old-task', '00000000-0000-4000-8000-000000000001', 'old-project', 'Keep task');",
         ).unwrap();
@@ -2389,8 +2480,8 @@ mod tests {
         connection.execute_batch("PRAGMA foreign_keys=ON;").unwrap();
         run_migrations(&mut connection).unwrap();
         connection.execute_batch(
-            "DROP TABLE milestone_tasks; DROP TABLE milestones;
-             DROP INDEX idx_tasks_workspace_project_identity; DELETE FROM schema_migrations WHERE version=8;
+            "DROP TABLE cleanup_reports; DROP TABLE milestone_tasks; DROP TABLE milestones;
+             DROP INDEX idx_tasks_workspace_project_identity; DELETE FROM schema_migrations WHERE version>=8;
              CREATE TABLE unrelated_milestone_fixture (id TEXT);
              CREATE INDEX idx_milestones_project_order ON unrelated_milestone_fixture(id);",
         ).unwrap();
