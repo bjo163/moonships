@@ -1,18 +1,19 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
+import { type DragEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { listProjects, type ProjectRecord } from "./projects-api";
+import { type SortDirection, sortTasks, type TaskSortKey } from "./task-list-sort";
 import {
   formatTaskDate,
   TASK_PRIORITY_LABELS,
   TASK_STATUS_LABELS,
   TASK_STATUS_ORDER,
 } from "./task-presentation";
-import { sortTasks, type SortDirection, type TaskSortKey } from "./task-list-sort";
 import {
   listTasks,
-  toTaskErrorMessage,
-  updateTask,
+  type TaskPriority,
   type TaskRecord,
   type TaskStatus,
+  toTaskErrorMessage,
+  updateTask,
 } from "./tasks-api";
 import { Badge, Button, EmptyState, ErrorState, LoadingState } from "./ui-primitives";
 
@@ -26,6 +27,8 @@ const SORT_COLUMNS: Array<{ key: TaskSortKey; label: string }> = [
 ];
 
 const TASK_STATUSES = Object.keys(TASK_STATUS_ORDER) as TaskStatus[];
+const TASK_PRIORITIES: TaskPriority[] = ["p0", "p1", "p2", "p3"];
+const PERSONAL_INBOX_FILTER = "__personal_inbox__";
 
 function formatUpdatedAt(value: string): string {
   const date = new Date(value);
@@ -52,6 +55,9 @@ export function TaskListPage({
   const [view, setView] = useState<"list" | "board">("list");
   const [searchQuery, setSearchQuery] = useState("");
   const [normalizedQuery, setNormalizedQuery] = useState("");
+  const [projectFilter, setProjectFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState<TaskStatus | "">("");
+  const [priorityFilter, setPriorityFilter] = useState<TaskPriority | "">("");
   const [updatingTaskIds, setUpdatingTaskIds] = useState<Set<string>>(() => new Set());
   const updatingTaskIdsRef = useRef(new Set<string>());
   const [statusMessage, setStatusMessage] = useState("");
@@ -92,14 +98,40 @@ export function TaskListPage({
     () => new Map(projects.map((project) => [project.id, project.name])),
     [projects],
   );
+  const projectFilterOptions = useMemo(() => {
+    const options = new Map(projects.map((project) => [project.id, project.name]));
+    for (const task of tasks) {
+      if (task.projectId && !options.has(task.projectId)) {
+        options.set(
+          task.projectId,
+          `Archived or unavailable project · ${task.projectId.slice(0, 8)}`,
+        );
+      }
+    }
+    return [...options]
+      .map(([id, name]) => ({ id, name }))
+      .sort(
+        (left, right) =>
+          left.name.toLowerCase().localeCompare(right.name.toLowerCase()) ||
+          left.id.localeCompare(right.id),
+      );
+  }, [projects, tasks]);
+  const hasActiveFilters = Boolean(projectFilter || statusFilter || priorityFilter);
+  const hasSearchOrFilters = Boolean(normalizedQuery || hasActiveFilters);
   const matchingTasks = useMemo(() => {
-    if (!normalizedQuery) return tasks;
     return tasks.filter(
       (task) =>
-        task.title.toLowerCase().includes(normalizedQuery) ||
-        (task.description?.toLowerCase().includes(normalizedQuery) ?? false),
+        (!normalizedQuery ||
+          task.title.toLowerCase().includes(normalizedQuery) ||
+          (task.description?.toLowerCase().includes(normalizedQuery) ?? false)) &&
+        (!projectFilter ||
+          (projectFilter === PERSONAL_INBOX_FILTER
+            ? task.projectId === null
+            : task.projectId === projectFilter)) &&
+        (!statusFilter || task.status === statusFilter) &&
+        (!priorityFilter || task.priority === priorityFilter),
     );
-  }, [tasks, normalizedQuery]);
+  }, [tasks, normalizedQuery, projectFilter, statusFilter, priorityFilter]);
   const sortedTasks = useMemo(
     () => sortTasks(matchingTasks, sortKey, sortDirection, projectNames),
     [matchingTasks, sortKey, sortDirection, projectNames],
@@ -153,6 +185,27 @@ export function TaskListPage({
     if (taskId) void changeTaskStatus(taskId, status);
   };
 
+  const clearFilters = () => {
+    setProjectFilter("");
+    setStatusFilter("");
+    setPriorityFilter("");
+  };
+  const clearSearchAndFilters = () => {
+    setSearchQuery("");
+    clearFilters();
+  };
+  const noResultsTitle = normalizedQuery
+    ? hasActiveFilters
+      ? "No tasks match this search and filter combination"
+      : `No tasks match “${searchQuery.trim()}”`
+    : "No tasks match these filters";
+  const noResultsActionLabel = normalizedQuery
+    ? hasActiveFilters
+      ? "Clear search and filters"
+      : "Clear search"
+    : "Clear filters";
+  const clearNoResults = normalizedQuery ? clearSearchAndFilters : clearFilters;
+
   return (
     <section className="tasks-page" aria-labelledby="tasks-title">
       <header className="tasks-page__header">
@@ -168,7 +221,7 @@ export function TaskListPage({
         <span className="muted" aria-live="polite">
           {loading
             ? "Loading tasks…"
-            : normalizedQuery
+            : hasSearchOrFilters
               ? `${sortedTasks.length} of ${tasks.length} active ${tasks.length === 1 ? "task" : "tasks"}`
               : `${tasks.length} active ${tasks.length === 1 ? "task" : "tasks"}`}
         </span>
@@ -195,6 +248,71 @@ export function TaskListPage({
               Clear
             </Button>
           ) : null}
+          <fieldset className="tasks-filters">
+            <legend className="visually-hidden">Filter tasks</legend>
+            <label className="tasks-filter">
+              <span>Project</span>
+              <select
+                className="ms-input"
+                aria-label="Filter by project"
+                value={projectFilter}
+                onChange={(event) => setProjectFilter(event.target.value)}
+                disabled={loading || Boolean(loadError)}
+              >
+                <option value="">All projects</option>
+                <option value={PERSONAL_INBOX_FILTER}>Personal inbox</option>
+                {projectFilterOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="tasks-filter">
+              <span>Status</span>
+              <select
+                className="ms-input"
+                aria-label="Filter by status"
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value as TaskStatus | "")}
+                disabled={loading || Boolean(loadError)}
+              >
+                <option value="">All statuses</option>
+                {TASK_STATUSES.map((status) => (
+                  <option key={status} value={status}>
+                    {TASK_STATUS_LABELS[status]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="tasks-filter">
+              <span>Priority</span>
+              <select
+                className="ms-input"
+                aria-label="Filter by priority"
+                value={priorityFilter}
+                onChange={(event) => setPriorityFilter(event.target.value as TaskPriority | "")}
+                disabled={loading || Boolean(loadError)}
+              >
+                <option value="">All priorities</option>
+                {TASK_PRIORITIES.map((priority) => (
+                  <option key={priority} value={priority}>
+                    {TASK_PRIORITY_LABELS[priority]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {hasActiveFilters ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-label="Clear all task filters"
+                onClick={clearFilters}
+              >
+                Clear filters
+              </Button>
+            ) : null}
+          </fieldset>
         </div>
         <div className="tasks-page__toolbar-actions">
           <fieldset className="tasks-view-toggle">
@@ -243,20 +361,20 @@ export function TaskListPage({
           onRetry={() => void reload()}
         />
       ) : null}
-      {!loading && !loadError && tasks.length === 0 && !normalizedQuery ? (
+      {!loading && !loadError && tasks.length === 0 && !hasSearchOrFilters ? (
         <EmptyState
           title="No active tasks yet"
           description="Create a task in your Personal inbox or attach it to an active project."
           action={<Button onClick={onCreateTask}>Create your first task</Button>}
         />
       ) : null}
-      {!loading && !loadError && tasks.length === 0 && normalizedQuery ? (
+      {!loading && !loadError && sortedTasks.length === 0 && hasSearchOrFilters ? (
         <EmptyState
-          title={`No tasks match “${searchQuery.trim()}”`}
-          description="Try a different title or description, or clear the search to see all active tasks."
+          title={noResultsTitle}
+          description="Adjust the search or filters, or clear them to see all active tasks."
           action={
-            <Button variant="secondary" onClick={() => setSearchQuery("")}>
-              Clear search
+            <Button variant="secondary" onClick={clearNoResults}>
+              {noResultsActionLabel}
             </Button>
           }
         />
@@ -269,17 +387,7 @@ export function TaskListPage({
               names again.
             </p>
           ) : null}
-          {sortedTasks.length === 0 ? (
-            <EmptyState
-              title={`No tasks match “${searchQuery.trim()}”`}
-              description="Try a different title or description, or clear the search to see all active tasks."
-              action={
-                <Button variant="secondary" onClick={() => setSearchQuery("")}>
-                  Clear search
-                </Button>
-              }
-            />
-          ) : view === "list" ? (
+          {sortedTasks.length > 0 && view === "list" ? (
             <div className="tasks-table-wrap">
               <table className="tasks-table">
                 <caption className="visually-hidden">
@@ -358,7 +466,7 @@ export function TaskListPage({
                 </tbody>
               </table>
             </div>
-          ) : (
+          ) : sortedTasks.length > 0 ? (
             <>
               <p className="tasks-page__board-help">
                 Drag a task between status columns, or use its status menu to move it with the
@@ -467,7 +575,7 @@ export function TaskListPage({
                 </div>
               </section>
             </>
-          )}
+          ) : null}
         </>
       ) : null}
     </section>

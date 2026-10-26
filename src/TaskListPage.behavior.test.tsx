@@ -49,10 +49,10 @@ const sampleTasks = [
   makeTask({ id: "task-b", title: "alpha task", priority: "p0" }),
 ];
 
-function mockResponses(tasks: TaskRecord[] = sampleTasks) {
+function mockResponses(tasks: TaskRecord[] = sampleTasks, projects = [project]) {
   invokeMock.mockImplementation(async (command: string) => {
     if (command === "list_tasks") return { tasks };
-    if (command === "list_projects") return { projects: [project] };
+    if (command === "list_projects") return { projects };
     if (command === undefined) return { tasks };
     throw new Error(`Unexpected command: ${command}`);
   });
@@ -279,6 +279,59 @@ describe("M2-018 persisted Task List", () => {
       "Zeta task",
     ]);
     expect(screen.queryByText("No tasks match “not present”")).toBeNull();
+  });
+
+  it("combines project, status, and priority filters and restores the full task set", async () => {
+    const user = userEvent.setup();
+    const tasks = [
+      ...sampleTasks,
+      makeTask({
+        id: "project-todo-p1",
+        title: "Project review",
+        projectId: "project-1",
+        status: "todo",
+        priority: "p1",
+      }),
+      makeTask({
+        id: "project-blocked-p2",
+        title: "Project dependency",
+        projectId: "project-1",
+        status: "blocked",
+        priority: "p2",
+      }),
+    ];
+    mockResponses(tasks);
+    render(<TaskListPage onCreateTask={() => undefined} onOpenTask={() => undefined} />);
+
+    const table = await screen.findByRole("table", {
+      name: "Active tasks in the Personal workspace",
+    });
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Filter by project" }),
+      "project-1",
+    );
+    await user.selectOptions(screen.getByRole("combobox", { name: "Filter by status" }), "todo");
+    expect(
+      within(table)
+        .getAllByRole("rowheader")
+        .map((row) => row.textContent?.trim()),
+    ).toEqual(["Project review", "Zeta task"]);
+
+    await user.selectOptions(screen.getByRole("combobox", { name: "Filter by priority" }), "p2");
+    expect(
+      within(table)
+        .getAllByRole("rowheader")
+        .map((row) => row.textContent?.trim()),
+    ).toEqual(["Zeta task"]);
+    expect(screen.getByText("1 of 5 active tasks")).toBeTruthy();
+
+    await user.selectOptions(screen.getByRole("combobox", { name: "Filter by priority" }), "p3");
+    expect(
+      await screen.findByRole("heading", { name: "No tasks match these filters" }),
+    ).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Clear filters" }));
+    expect(await screen.findByText("5 active tasks")).toBeTruthy();
+    expect(within(screen.getByRole("table")).getAllByRole("rowheader")).toHaveLength(5);
   });
 
   it("distinguishes an empty persisted list from an unavailable list and retries", async () => {

@@ -170,6 +170,9 @@ The Tasks page switches between List and Board using one shared set of persisted
 ### M2-020 Task search
 The Tasks toolbar searches active Task titles and descriptions locally, without case sensitivity. Search is debounced, can be cleared, and filters both List and Board without changing persisted records. A no-match result is distinct from the initial no-active-tasks state and from a failed task read; the result count reports matches against the active-task total.
 
+### M2-021 combined Task filters
+Project, canonical status and canonical priority filters combine with each other and Task search using AND semantics. The Project selector includes Personal inbox and every Project represented by the loaded Projects or Task records. Filtering is local, uses the same result set in List and Board, and never edits persisted records. Clear filters restores all active tasks; no-match and data-read error states remain distinct.
+
 ## 5. Command Palette (Ctrl+K)
 
 Search categories:
