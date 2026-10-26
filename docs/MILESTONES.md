@@ -136,7 +136,7 @@ Exit criteria:
 
 ## M3 — Daily Tools
 
-> M3-001 defines a typed native cleanup rule: stable ID/version, category, closed allowed-root identifier, minimum age and per-item size limit. M3-002 adds a test-only metadata traversal helper under a disposable fixture and skips links. Its nested fixture test confirms file bytes are identical before and after scanning. M3-002 local targeted tests passed 7/7 and formatting passed. The helper is compiled only during tests; production traversal awaits M3-003/004 containment and platform link checks. M3 remains in progress.
+> M3-001 defines a typed native cleanup rule: stable ID/version, category, closed allowed-root identifier, minimum age and per-item size limit. M3-002 adds a test-only metadata traversal helper under a disposable fixture and skips links. Its nested fixture test confirms file bytes are identical before and after scanning. M3-003 adds canonical path containment and protected-path validation, with traversal, outside-root, protected-path, invalid-root and resolution-failure fixtures. Canonicalization is not race-resistant, so production mutation remains gated on later link and identity tasks. M3-002 targeted tests passed 7/7; M3-003 targeted tests passed 9/9.
 
 Deliverables:
 - Narrow safe temporary cleaner with read-only scan/preview/revalidation

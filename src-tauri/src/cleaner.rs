@@ -2,8 +2,7 @@
 use std::fs;
 #[cfg(test)]
 use std::io;
-#[cfg(test)]
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
 /// Stable, application-owned locations. These are identifiers, not renderer-provided paths.
@@ -104,6 +103,47 @@ pub enum EligibilityExclusion {
 pub enum EligibilityDecision {
     Eligible,
     Excluded(EligibilityExclusion),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CleanupPathError {
+    PathResolutionFailed,
+    InvalidRoot,
+    OutsideAllowedRoot,
+    ProtectedPath,
+}
+
+/// Resolves an existing candidate and verifies it is strictly beneath the
+/// resolved allowlisted root and outside native policy-protected paths. The
+/// protected path list must be constructed by native policy, never by UI input.
+/// This check does not mutate files and does not close the race with later use;
+/// callers must still revalidate identity immediately before any future action.
+pub fn validate_cleanup_path(
+    allowed_root: &Path,
+    candidate: &Path,
+    protected_paths: &[PathBuf],
+) -> Result<PathBuf, CleanupPathError> {
+    let root = allowed_root
+        .canonicalize()
+        .map_err(|_| CleanupPathError::PathResolutionFailed)?;
+    if !root.is_dir() {
+        return Err(CleanupPathError::InvalidRoot);
+    }
+    let resolved_candidate = candidate
+        .canonicalize()
+        .map_err(|_| CleanupPathError::PathResolutionFailed)?;
+    if resolved_candidate == root || !resolved_candidate.starts_with(&root) {
+        return Err(CleanupPathError::OutsideAllowedRoot);
+    }
+    for protected in protected_paths {
+        let resolved_protected = protected
+            .canonicalize()
+            .map_err(|_| CleanupPathError::PathResolutionFailed)?;
+        if resolved_candidate.starts_with(resolved_protected) {
+            return Err(CleanupPathError::ProtectedPath);
+        }
+    }
+    Ok(resolved_candidate)
 }
 
 /// Reads file metadata beneath a trusted, native-resolved root. This is not an IPC
@@ -425,5 +465,64 @@ mod tests {
         assert_eq!(fs::read(&first_path).unwrap(), before_first);
         assert_eq!(fs::read(&nested_path).unwrap(), before_nested);
         fs::remove_dir_all(fixture).expect("remove disposable scan fixture");
+    }
+
+    #[test]
+    fn cleanup_path_validation_rejects_traversal_and_protected_targets() {
+        let fixture = std::env::temp_dir().join(format!("moonships-path-{}", uuid::Uuid::new_v4()));
+        let root = fixture.join("root");
+        let protected = root.join("protected");
+        fs::create_dir_all(&protected).expect("create disposable path fixture");
+        let safe_file = root.join("safe.txt");
+        let protected_file = protected.join("secret.txt");
+        let outside = fixture.join("outside.txt");
+        fs::write(&safe_file, b"safe").expect("write safe fixture");
+        fs::write(&protected_file, b"protected").expect("write protected fixture");
+        fs::write(&outside, b"outside").expect("write outside fixture");
+
+        assert_eq!(
+            super::validate_cleanup_path(&root, &safe_file, std::slice::from_ref(&protected)),
+            Ok(safe_file.canonicalize().unwrap()),
+        );
+        assert_eq!(
+            super::validate_cleanup_path(&root, &root.join("..").join("outside.txt"), &[]),
+            Err(super::CleanupPathError::OutsideAllowedRoot),
+        );
+        assert_eq!(
+            super::validate_cleanup_path(&root, &protected_file, std::slice::from_ref(&protected)),
+            Err(super::CleanupPathError::ProtectedPath),
+        );
+        assert_eq!(
+            super::validate_cleanup_path(&root, &root, &[]),
+            Err(super::CleanupPathError::OutsideAllowedRoot),
+        );
+
+        fs::remove_dir_all(fixture).expect("remove disposable path fixture");
+    }
+
+    #[test]
+    fn cleanup_path_validation_fails_closed_when_resolution_is_incomplete() {
+        let fixture = std::env::temp_dir().join(format!("moonships-path-{}", uuid::Uuid::new_v4()));
+        let root = fixture.join("root");
+        fs::create_dir_all(&root).expect("create disposable root");
+        let missing_candidate = root.join("missing.txt");
+        let missing_protected = fixture.join("missing-protected");
+
+        assert_eq!(
+            super::validate_cleanup_path(&root, &missing_candidate, &[]),
+            Err(super::CleanupPathError::PathResolutionFailed),
+        );
+        let candidate = root.join("candidate.txt");
+        fs::write(&candidate, b"candidate").expect("write candidate fixture");
+        assert_eq!(
+            super::validate_cleanup_path(&root, &candidate, &[missing_protected]),
+            Err(super::CleanupPathError::PathResolutionFailed),
+        );
+        assert_eq!(
+            super::validate_cleanup_path(&candidate, &candidate, &[]),
+            Err(super::CleanupPathError::InvalidRoot),
+        );
+
+        fs::remove_dir_all(fixture).expect("remove disposable path fixture");
     }
 }

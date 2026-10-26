@@ -301,3 +301,7 @@ Added a typed, metadata-only native contract in `src-tauri/src/cleaner.rs`: stab
 ## M3-002 Read-only cleaner traversal — 2026-10-26
 
 Added a test-only metadata traversal helper beneath a disposable fixture root. It gathers regular-file metadata recursively, skips links without recursing, does not open file contents, and has no mutation operation. It is compiled only for tests and has no IPC exposure. The nested-fixture test confirms both files remain byte-identical after scanning. Targeted cleaner tests passed 7/7; full Rust tests passed 103/103; format, Clippy with warnings denied, backlog validation and `git diff --check` all pass. **Next task:** M3-003 protected-path and containment checks; M3-004 adds platform-specific link/junction coverage.
+
+## M3-003 Cleaner path containment — 2026-10-26
+
+Added `validate_cleanup_path`: canonicalizes an existing allowed root, candidate and native-policy protected paths; rejects unresolved paths, invalid roots, the root itself, outside-root traversal and protected descendants. Tests use disposable fixtures for valid paths, `..` escape, protected target, root target and missing-path fail-closed behavior. This is metadata/path resolution only and performs no mutation. Canonicalization does not close link or TOCTOU races; M3-004 and later revalidation remain required. Full Rust tests passed 105/105, Clippy with warnings denied, formatting and `git diff --check` passed. **Next task:** M3-004 symlink/junction escape behavior.
