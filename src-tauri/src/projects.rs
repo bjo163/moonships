@@ -112,6 +112,13 @@ pub fn create_project(
             }
         })?;
 
+    crate::activity::record_creation(
+        &transaction,
+        workspace_id,
+        crate::activity::ActivityEntityKind::Project,
+        &id,
+    )?;
+
     let created = transaction
         .query_row(
             "SELECT id, workspace_id, name, project_key, description,

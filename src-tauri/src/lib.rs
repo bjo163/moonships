@@ -1,3 +1,4 @@
+pub mod activity;
 pub mod config;
 pub mod domain;
 pub mod local_logging;
@@ -44,7 +45,7 @@ fn open_database_in(app_data_dir: &Path) -> Result<Connection, String> {
     Ok(connection)
 }
 
-const CURRENT_SCHEMA_VERSION: i64 = 4;
+const CURRENT_SCHEMA_VERSION: i64 = 5;
 const PERSONAL_WORKSPACE_ID: &str = "00000000-0000-4000-8000-000000000001";
 
 pub(crate) fn run_migrations(connection: &mut Connection) -> Result<(), String> {
@@ -180,6 +181,43 @@ pub(crate) fn run_migrations(connection: &mut Connection) -> Result<(), String> 
                 INSERT INTO schema_migrations (version) VALUES (4);",
             )
             .map_err(|error| format!("Could not apply task schema migration: {error}"))?;
+    }
+
+    if current_version < 5 {
+        transaction
+            .execute_batch(
+                "CREATE TABLE activity_events (
+                    id TEXT PRIMARY KEY NOT NULL,
+                    workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE RESTRICT,
+                    actor_type TEXT NOT NULL DEFAULT 'local'
+                        CHECK (actor_type IN ('local', 'system', 'tool')),
+                    entity_type TEXT NOT NULL
+                        CHECK (entity_type IN ('project', 'task')),
+                    entity_id TEXT NOT NULL CHECK (length(trim(entity_id)) > 0),
+                    project_id TEXT,
+                    task_id TEXT,
+                    action TEXT NOT NULL CHECK (length(trim(action)) > 0),
+                    occurred_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+                    summary TEXT NOT NULL CHECK (length(trim(summary)) > 0),
+                    sensitivity TEXT NOT NULL DEFAULT 'normal'
+                        CHECK (sensitivity IN ('normal', 'restricted')),
+                    FOREIGN KEY (workspace_id, project_id)
+                        REFERENCES projects(workspace_id, id) ON DELETE RESTRICT,
+                    FOREIGN KEY (workspace_id, task_id)
+                        REFERENCES tasks(workspace_id, id) ON DELETE RESTRICT,
+                    CHECK (
+                        (entity_type = 'project' AND project_id IS NOT NULL
+                         AND task_id IS NULL AND entity_id = project_id)
+                        OR
+                        (entity_type = 'task' AND task_id IS NOT NULL
+                         AND project_id IS NULL AND entity_id = task_id)
+                    )
+                );
+                CREATE INDEX idx_activity_events_entity
+                    ON activity_events(workspace_id, entity_type, entity_id, occurred_at);
+                INSERT INTO schema_migrations (version) VALUES (5);",
+            )
+            .map_err(|error| format!("Could not apply activity schema migration: {error}"))?;
     }
 
     transaction
@@ -685,7 +723,8 @@ mod tests {
         // index name so schema v3 fails *after* CREATE TABLE projects succeeds.
         connection
             .execute_batch(
-                "DROP TABLE tasks;
+                "DROP TABLE activity_events;
+                 DROP TABLE tasks;
                  DROP TABLE projects;
                  DELETE FROM schema_migrations WHERE version >= 3;
                  INSERT INTO app_metadata (key, value)
@@ -893,9 +932,10 @@ mod tests {
         run_migrations(&mut connection).expect("create schema fixture");
         connection
             .execute_batch(
-                "DROP TABLE tasks;
+                "DROP TABLE activity_events;
+                 DROP TABLE tasks;
                  DROP INDEX idx_projects_workspace_id;
-                 DELETE FROM schema_migrations WHERE version = 4;
+                 DELETE FROM schema_migrations WHERE version >= 4;
                  INSERT INTO app_metadata (key, value) VALUES ('saved', 'keep-me');
                  INSERT INTO projects (id, workspace_id, name)
                  VALUES ('existing-project', '00000000-0000-4000-8000-000000000001', 'Keep Project');",
@@ -937,9 +977,10 @@ mod tests {
         run_migrations(&mut connection).expect("create fixture");
         connection
             .execute_batch(
-                "DROP TABLE tasks;
+                "DROP TABLE activity_events;
+                 DROP TABLE tasks;
                  DROP INDEX idx_projects_workspace_id;
-                 DELETE FROM schema_migrations WHERE version = 4;
+                 DELETE FROM schema_migrations WHERE version >= 4;
                  INSERT INTO app_metadata (key, value) VALUES ('saved', 'preserve-me');
                  CREATE TABLE unrelated_fixture (id TEXT);
                  CREATE INDEX idx_tasks_workspace_status ON unrelated_fixture (id);",
@@ -982,6 +1023,91 @@ mod tests {
 
         drop(connection);
         let _ = fs::remove_dir_all(app_data_dir);
+    }
+
+    #[test]
+    fn upgrading_v4_to_activity_schema_preserves_existing_projects_and_tasks() {
+        let dir = unique_temp_dir("activity-upgrade");
+        let mut connection = open_database_in(&dir).expect("disposable connection");
+        run_migrations(&mut connection).expect("fresh baseline");
+        connection
+            .execute_batch(
+                "DROP TABLE activity_events;
+                 DELETE FROM schema_migrations WHERE version = 5;
+                 INSERT INTO projects (id, workspace_id, name)
+                 VALUES ('saved-project', '00000000-0000-4000-8000-000000000001', 'Preserve');
+                 INSERT INTO tasks (id, workspace_id, project_id, title)
+                 VALUES ('saved-task', '00000000-0000-4000-8000-000000000001',
+                         'saved-project', 'Preserve task');
+                 INSERT INTO app_metadata (key, value) VALUES ('saved-key', 'keep-me');",
+            )
+            .expect("v4 user-data fixture");
+
+        run_migrations(&mut connection).expect("v4 to v5");
+        run_migrations(&mut connection).expect("idempotent v5");
+        let saved: (String, String, String) = connection
+            .query_row(
+                "SELECT p.name, t.title, m.value
+                 FROM projects p JOIN tasks t ON t.project_id = p.id
+                 JOIN app_metadata m ON m.key = 'saved-key'
+                 WHERE p.id = 'saved-project'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .expect("existing rows preserved");
+        assert_eq!(
+            saved,
+            ("Preserve".to_string(), "Preserve task".to_string(), "keep-me".to_string())
+        );
+        let count: i64 = connection
+            .query_row("SELECT COUNT(*) FROM activity_events", [], |row| row.get(0))
+            .expect("activity available");
+        assert_eq!(count, 0, "upgrade must not manufacture historical events");
+        drop(connection);
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn failed_activity_migration_is_atomic_and_preserves_existing_data() {
+        let dir = unique_temp_dir("activity-rollback");
+        let mut connection = open_database_in(&dir).expect("disposable connection");
+        run_migrations(&mut connection).expect("baseline");
+        connection
+            .execute_batch(
+                "DROP TABLE activity_events;
+                 DELETE FROM schema_migrations WHERE version = 5;
+                 INSERT INTO app_metadata (key, value) VALUES ('keep', 'original');
+                 CREATE TABLE unrelated_fixture (id TEXT);
+                 CREATE INDEX idx_activity_events_entity ON unrelated_fixture(id);",
+            )
+            .expect("reserved index collision fixture");
+
+        assert!(run_migrations(&mut connection).is_err());
+        let table_count: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master
+                 WHERE type = 'table' AND name = 'activity_events'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("schema inspection");
+        assert_eq!(table_count, 0, "failed CREATE TABLE must roll back");
+        let version: i64 = connection
+            .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| {
+                row.get(0)
+            })
+            .expect("version");
+        assert_eq!(version, 4);
+        let saved: String = connection
+            .query_row(
+                "SELECT value FROM app_metadata WHERE key = 'keep'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("saved metadata");
+        assert_eq!(saved, "original");
+        drop(connection);
+        let _ = fs::remove_dir_all(dir);
     }
 
     #[test]

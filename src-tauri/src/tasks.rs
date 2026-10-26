@@ -115,6 +115,13 @@ pub fn create_task(connection: &mut Connection, request: CreateTask) -> Result<T
             ],
         )
         .map_err(|_| "IO_ERROR: could not create task".to_string())?;
+    crate::activity::record_creation(
+        &transaction,
+        workspace_id,
+        crate::activity::ActivityEntityKind::Task,
+        &id,
+    )?;
+
     let created = transaction
         .query_row(
             "SELECT id, workspace_id, project_id, title, description,
