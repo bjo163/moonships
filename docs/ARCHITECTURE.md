@@ -98,6 +98,8 @@ M2-024 migration v8 adds `milestones` and `milestone_tasks`. Composite workspace
 
 M2-025 adds the typed `list_task_activity` command using only a Task ID request; the native service derives Personal workspace scope, verifies that the Task is active, and returns at most 50 newest trusted summaries. The Task update service records `status_changed`, `priority_changed`, and generic `updated` events according to the fields that actually changed, in the same transaction as the Task update. No-op updates create no event; activity summaries contain no Task content or credentials. Task detail presents a retryable history read independently from the saved form.
 
+M2-026 defines artifact references as metadata-only typed targets: validated HTTP(S) URL, namespaced opaque provider ID, or opaque app-managed artifact ID. Native code rejects arbitrary renderer paths and unsafe schemes; an app-managed ID resolves only below app-owned storage after canonical containment checks. Saving a reference never fetches, downloads, opens or executes it. Opening later requires an explicit action through a narrow native adapter that revalidates the target; provider navigation needs a separately reviewed adapter.
+
 ## Tauri command DTO conventions
 
 Every frontend-to-native command must use an explicit, named request/response contract once it crosses the Tauri IPC boundary. Do not expose internal domain structs directly as a long-lived IPC schema.

@@ -1,5 +1,11 @@
 # Moonships — Engineering Continuity & Foundation Evidence
 
+## M2-026 Artifact/reference contract — 2026-10-26
+
+References are typed as validated HTTP(S) URL, namespaced provider ID, or opaque app-managed artifact ID. URL validation excludes embedded credentials and unsafe schemes; renderer-provided paths are rejected. App-managed references resolve below application-owned storage after canonical containment checks. Saving never opens, fetches, downloads or executes the target; opening requires a later explicit user action through a reviewed native adapter. The contract is documentation-only; no storage or open UI is claimed live.
+
+**Verification passed:** backlog validation and `git diff --check`. This task changes the product/data/security contract only; no executable behavior or runtime result is claimed. M2-026 is accepted; next dependency-ready task is M2-027 — keyboard shortcut to create a Task. M2 exit gates remain open.
+
 ## M2-025 Task Activity history — 2026-10-26
 
 Task updates now record explicit `status_changed` and `priority_changed` events; meaningful title, description, due-date or Project edits use a generic `updated` event. Applicable events commit atomically with the Task update and no-op saves add none. A typed Task-ID-only command returns up to 50 newest records for an active Task in the fixed Personal workspace. Task detail shows real persisted summaries and timestamps, a separate empty/error state, and retries history without resetting unsaved form edits. Summaries stay fixed trusted text and do not expose Task content or credentials.

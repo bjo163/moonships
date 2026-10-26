@@ -115,7 +115,7 @@
 - [x] **M2-023 — Add subtask relationship/UI** [S] [depends: M2-003,M2-017] — One-level nesting first. **AC:** parent/child navigation is stable and cycle-safe.
 - [x] **M2-024 — Add milestone model and project view** [S] [depends: M2-002] — Basic due date/status. **AC:** milestone can group/associate tasks without silent status changes.
 - [x] **M2-025 — Add activity history to task detail** [S] [depends: M2-006,M2-017] — Status/priority/edit events. **AC:** meaningful edits create events without logging secrets.
-- [ ] **M2-026 — Add artifact/reference linking contract** [S] [depends: M1-027,M2-003] — URL/provider ID or app-managed file. **AC:** arbitrary paths are not auto-opened/executed.
+- [x] **M2-026 — Add artifact/reference linking contract** [S] [depends: M1-027,M2-003] — URL/provider ID or app-managed file. **AC:** arbitrary paths are not auto-opened/executed.
 - [ ] **M2-027 — Add keyboard shortcut to create a task** [S] [depends: M2-016] — Make it discoverable. **AC:** shortcut opens form and respects focus/dialog state.
 - [x] **M2-028 — Add project/task empty/loading/error states** [S] [depends: M2-014,M2-018] — Include retry where safe. **AC:** screens do not present DB failures as empty content.
 - [ ] **M2-029 — Add project/task export to a versioned JSON format** [S] [depends: M2-003,M2-006] — Exclude secrets. **AC:** exported file includes schema/app version and passes schema validation.

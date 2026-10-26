@@ -133,6 +133,14 @@ Before executing an assessment:
 
 ## 7. AI and untrusted input
 
+### Artifact and reference handling — M2-026
+- Treat URL, provider IDs, file names and metadata as untrusted input; validate them in the native adapter before persistence or opening.
+- External URLs must be absolute HTTP(S) with a host and no embedded username/password. Reject script, data, file and unknown schemes. Never fetch, download or open a saved reference automatically.
+- Provider references remain namespaced opaque IDs; they do not become URLs or trigger network access without a separately reviewed adapter and explicit user action.
+- Local artifact references are opaque IDs resolved only under app-owned artifact storage. Do not accept renderer-supplied absolute paths or arbitrary filesystem paths. Canonicalize and revalidate containment before explicit open; reject traversal and symlink/junction escape.
+- Opening a link or managed artifact requires a user action and a narrow native platform adapter. Never construct shell commands from reference text or execute referenced content.
+- Persist reference metadata only; binary size/retention, import and export require their own contracts. Do not store credentials in URLs or reference metadata.
+
 - Model output never sets permissions or policy.
 - Validate every AI-generated tool ID and argument against an allowlisted registry and strict schema.
 - Retrieved web pages, feeds, video transcripts, code, comments, logs and task descriptions are untrusted data, even if they contain instructions aimed at the model.
