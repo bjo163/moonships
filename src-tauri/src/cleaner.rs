@@ -76,6 +76,29 @@ impl CleanupRule {
     }
 }
 
+/// Conservative defaults for app-owned scratch and regenerable cache only.
+/// The shared OS user-temporary directory is intentionally absent.
+pub fn safe_cleanup_rules() -> [CleanupRule; 2] {
+    [
+        CleanupRule {
+            id: "moonships-temp-stale".to_string(),
+            version: 1,
+            category: CleanupCategory::TemporaryFiles,
+            allowed_root: CleanupRoot::AppTemporary,
+            minimum_age: Duration::from_secs(7 * 24 * 60 * 60),
+            maximum_item_bytes: 64 * 1024 * 1024,
+        },
+        CleanupRule {
+            id: "moonships-cache-stale".to_string(),
+            version: 1,
+            category: CleanupCategory::ApplicationCache,
+            allowed_root: CleanupRoot::AppCache,
+            minimum_age: Duration::from_secs(30 * 24 * 60 * 60),
+            maximum_item_bytes: 128 * 1024 * 1024,
+        },
+    ]
+}
+
 fn is_valid_rule_id(id: &str) -> bool {
     let mut characters = id.chars();
     matches!(characters.next(), Some('a'..='z' | '0'..='9'))
@@ -1165,6 +1188,53 @@ mod tests {
             rule.validate(),
             Err(RuleValidationError::MissingItemSizeLimit),
         );
+    }
+
+    #[test]
+    fn default_cleanup_rules_are_narrow_and_bind_only_app_owned_roots() {
+        let rules = super::safe_cleanup_rules();
+        assert_eq!(rules.len(), 2);
+        assert_eq!(rules[0].id, "moonships-temp-stale");
+        assert_eq!(rules[0].allowed_root, CleanupRoot::AppTemporary);
+        assert_eq!(rules[0].minimum_age, Duration::from_secs(7 * 24 * 60 * 60));
+        assert_eq!(rules[0].maximum_item_bytes, 64 * 1024 * 1024);
+        assert_eq!(rules[1].id, "moonships-cache-stale");
+        assert_eq!(rules[1].allowed_root, CleanupRoot::AppCache);
+        assert_eq!(rules[1].minimum_age, Duration::from_secs(30 * 24 * 60 * 60));
+        assert_eq!(rules[1].maximum_item_bytes, 128 * 1024 * 1024);
+
+        for rule in &rules {
+            assert_eq!(rule.validate(), Ok(()));
+            assert_eq!(
+                evaluate_eligibility(
+                    rule,
+                    candidate(
+                        rule.allowed_root,
+                        CleanupFileKind::RegularFile,
+                        rule.minimum_age.as_secs(),
+                        rule.maximum_item_bytes,
+                    ),
+                    NOW,
+                ),
+                EligibilityDecision::Eligible,
+            );
+            assert_eq!(
+                evaluate_eligibility(
+                    rule,
+                    candidate(
+                        rule.allowed_root,
+                        CleanupFileKind::RegularFile,
+                        rule.minimum_age.as_secs(),
+                        rule.maximum_item_bytes + 1,
+                    ),
+                    NOW,
+                ),
+                EligibilityDecision::Excluded(EligibilityExclusion::ItemTooLarge),
+            );
+        }
+        assert!(rules
+            .iter()
+            .all(|rule| rule.allowed_root != CleanupRoot::UserTemporary));
     }
 
     #[test]

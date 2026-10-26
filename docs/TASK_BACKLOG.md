@@ -142,7 +142,7 @@
 - [x] **M3-010 — Add bounded deletion executor** [S] [depends: M3-009] — Handle locked/denied files individually. **AC:** one failed file does not crash whole job.
 - [x] **M3-011 — Report estimated versus actual freed bytes** [S] [depends: M3-010] — Separate measurements. **AC:** report does not claim all estimated bytes were freed.
 - [x] **M3-012 — Add cleaner tests for locked/denied/changed files** [S] [depends: M3-010] — Platform-appropriate tests. **AC:** each case produces a documented skipped/failed status.
-- [ ] **M3-013 — Implement safe temporary-file rule set** [S] [depends: M3-001..M3-012] — Narrow allowlist only. **AC:** each rule names target and exclusions in docs.
+- [x] **M3-013 — Implement safe temporary-file rule set** [S] [depends: M3-001..M3-012] — Narrow allowlist only. **AC:** each rule names target and exclusions in docs.
 - [ ] **M3-014 — Add cleanup report and optional task link** [S] [depends: M2-026,M3-011] — Save summary, not sensitive full path list by default. **AC:** result can be inspected after operation.
 
 ### Offline DevTools

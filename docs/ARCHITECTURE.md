@@ -180,6 +180,8 @@ M3-010 adds a native-only bounded executor for an exact approved preview and can
 
 M3-011 keeps the approved estimate separate from `actual_deleted_bytes`, which sums only logical file sizes whose deletion completed and whose path disappeared after the handle closed. Failed or skipped candidates contribute zero. This value describes removed file contents by logical size; it is not a measurement of physical disk space reclaimed, which varies with compression, sparse files and hard links.
 
+M3-013's default rule registry contains only app-owned scratch files older than seven days (64 MiB per item) and regenerable app cache older than thirty days (128 MiB per item). The native app-data roots are `temporary/` and `cache/`; the shared OS user-temp directory has no default rule. Security exclusions and the ownership contract are listed in `SECURITY_MODEL.md`. These rules are definitions only; they do not make scanning or deletion available in the UI.
+
 ## 7. Error model
 
 Use stable error codes/categories:
