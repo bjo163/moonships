@@ -329,6 +329,8 @@ M5-014 stores a strict, versioned desktop-notification preference in app-owned m
 
 M5-015 adds an official U.S. National Weather Service active-alert Atom preset for one explicitly selected state or DC area. It uses the documented public Atom endpoint and identifies Moonships through an HTTP User-Agent. New presets remain disabled and terms-unreviewed; the minimum interval is 30 minutes, and fetching is still an explicit manual action. The preset has a 10-second timeout, a 2 MiB response limit and a 500-item limit. HTTP 429 and NWS-specific HTTP 403 become `RateLimited`; other non-success responses, including 5xx, remain `HttpStatus`. Existing manual retry backoff applies and no automatic retry or schedule is added. The feed is awareness information only, not an authoritative substitute for NWS warnings or an emergency alerting/EAS system.
 
+M5-017 adds adversarial Atom fixture content that asks the system to ignore rules, invoke shell and export secrets. The existing parser keeps that bounded payload as untrusted title/summary text and the Intelligence detail displays it as text. Ingestion/display invokes no model or tool, and retrieved source content cannot select tool IDs, permissions, network targets or native policy.
+
 ## 11. AI adapter boundary
 
 AI consumes a limited context assembled by Moonships and can request only registered tools. Keep provider request/response types behind an internal interface. Persist prompt/output only when configured and necessary; redact secrets and minimize sensitive data.
