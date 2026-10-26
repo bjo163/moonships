@@ -78,7 +78,7 @@ Exit criteria:
 
 ## M2 — Projects & Tasks
 
-> 2026-10-26 implementation checkpoint: M2-008 Project update/archive and M2-010/M2-012 Task update/status-policy services passed repository CI (49/49 Rust tests). Native IPC, persisted React UI, primary restart acceptance, manual Windows runtime, and all M2 exit gates remain open; see docs/ENGINEERING_HANDOFF.md.
+> 2026-10-26 implementation checkpoint: M2-008 Project update/archive, M2-010/M2-012 Task update/status-policy, and M2-011 Task archive/restore are implemented. M2-011 local evidence: 54/54 Rust tests, formatting, Clippy, repository checks, and Windows MSI/NSIS packaging passed; issue sync and CI for commit `8815dfb` are pending. Native IPC, persisted React UI, primary restart acceptance, manual Windows runtime, and M2 exit gates remain open; see docs/ENGINEERING_HANDOFF.md.
 
 Deliverables:
 - Workspace and personal work inbox
