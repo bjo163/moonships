@@ -67,7 +67,7 @@ pub fn create_project(
         return Err("VALIDATION_FAILED: unsupported project status".to_string());
     }
     if status == "archived" {
-        return Err("VALIDATION_FAILED: archive projects through the archive operation".to_string());
+        return Err("VALIDATION_FAILED: use archive_project to archive".to_string());
     }
     let project_key = nonempty_optional(request.project_key, MAX_KEY_CHARS)?;
     let description = nonempty_optional(request.description, MAX_DESCRIPTION_CHARS)?;
