@@ -1057,7 +1057,11 @@ mod tests {
             .expect("existing rows preserved");
         assert_eq!(
             saved,
-            ("Preserve".to_string(), "Preserve task".to_string(), "keep-me".to_string())
+            (
+                "Preserve".to_string(),
+                "Preserve task".to_string(),
+                "keep-me".to_string()
+            )
         );
         let count: i64 = connection
             .query_row("SELECT COUNT(*) FROM activity_events", [], |row| row.get(0))

@@ -102,23 +102,31 @@ mod tests {
                  FROM activity_events ORDER BY rowid",
             )
             .expect("activity query");
-        let events: Vec<(String, String, String, String, String, String, String, String)> =
-            statement
-                .query_map([], |row| {
-                    Ok((
-                        row.get(0)?,
-                        row.get(1)?,
-                        row.get(2)?,
-                        row.get(3)?,
-                        row.get(4)?,
-                        row.get(5)?,
-                        row.get(6)?,
-                        row.get(7)?,
-                    ))
-                })
-                .expect("rows")
-                .map(|row| row.expect("row"))
-                .collect();
+        let events: Vec<(
+            String,
+            String,
+            String,
+            String,
+            String,
+            String,
+            String,
+            String,
+        )> = statement
+            .query_map([], |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                    row.get(6)?,
+                    row.get(7)?,
+                ))
+            })
+            .expect("rows")
+            .map(|row| row.expect("row"))
+            .collect();
         assert_eq!(events.len(), 2);
         assert_eq!(events[0].0, PERSONAL);
         assert_eq!(events[0].1, "project");
