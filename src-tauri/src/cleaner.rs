@@ -14,7 +14,8 @@ pub enum CleanupRoot {
     UserTemporary,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum CleanupCategory {
     TemporaryFiles,
     ApplicationCache,
@@ -201,7 +202,8 @@ pub enum CleanupScanEvent {
     Terminal(CleanupScanTerminal),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum EligibilityExclusion {
     InvalidRule,
     WrongRoot,
@@ -209,6 +211,58 @@ pub enum EligibilityExclusion {
     ModifiedTimeInFuture,
     TooRecent,
     ItemTooLarge,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CleanupPreviewDisposition {
+    Eligible,
+    Skipped,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CleanupPreviewItemDto {
+    pub candidate_id: String,
+    pub category: CleanupCategory,
+    pub display_name: String,
+    pub size_bytes: u64,
+    pub modified_at: String,
+    pub disposition: CleanupPreviewDisposition,
+    pub skip_reason: Option<EligibilityExclusion>,
+}
+
+impl CleanupPreviewItemDto {
+    pub fn from_candidate(
+        candidate: &CleanupCandidateIdentity,
+        category: CleanupCategory,
+        disposition: CleanupPreviewDisposition,
+        skip_reason: Option<EligibilityExclusion>,
+    ) -> Result<Self, CandidateIdentityError> {
+        let display_name = candidate
+            .relative_path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .filter(|name| !name.is_empty())
+            .ok_or(CandidateIdentityError::InvalidRelativePath)?;
+        Ok(Self {
+            candidate_id: candidate.id.to_string(),
+            category,
+            display_name: display_name.to_string(),
+            size_bytes: candidate.metadata.size_bytes,
+            modified_at: chrono::DateTime::<chrono::Utc>::from(candidate.metadata.modified_at)
+                .to_rfc3339(),
+            disposition,
+            skip_reason,
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CleanupPreviewDto {
+    pub generated_at: String,
+    pub items: Vec<CleanupPreviewItemDto>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -732,6 +786,42 @@ mod tests {
             serde_json::from_value::<super::CleanupScanEvent>(terminal_json).unwrap(),
             super::CleanupScanEvent::Terminal(terminal),
         );
+    }
+
+    #[test]
+    fn preview_dto_exposes_summary_fields_and_leaf_name_not_absolute_path() {
+        let identity = super::CleanupCandidateIdentity::new(
+            PathBuf::from("nested/cache.bin"),
+            candidate(
+                CleanupRoot::AppTemporary,
+                CleanupFileKind::RegularFile,
+                300,
+                24,
+            ),
+        )
+        .expect("valid candidate identity");
+        let item = super::CleanupPreviewItemDto::from_candidate(
+            &identity,
+            CleanupCategory::TemporaryFiles,
+            super::CleanupPreviewDisposition::Skipped,
+            Some(EligibilityExclusion::TooRecent),
+        )
+        .expect("create preview row");
+        let preview = super::CleanupPreviewDto {
+            generated_at: "2026-10-26T00:00:00Z".to_string(),
+            items: vec![item],
+        };
+        let serialized = serde_json::to_value(&preview).expect("serialize preview DTO");
+
+        assert_eq!(serialized["items"][0]["displayName"], "cache.bin");
+        assert_eq!(serialized["items"][0]["sizeBytes"], 24);
+        assert_eq!(serialized["items"][0]["disposition"], "skipped");
+        assert_eq!(serialized["items"][0]["skipReason"], "too_recent");
+        assert!(serialized["items"][0]["displayName"]
+            .as_str()
+            .unwrap()
+            .contains("cache.bin"));
+        assert!(!serialized.to_string().contains("nested/cache.bin"));
     }
 
     #[cfg(windows)]

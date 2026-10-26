@@ -170,6 +170,8 @@ Rules:
 
 M3-006 defines cleaner scan updates as serialized progress and terminal events keyed by the Activity Center job UUID. Progress reports stage and observed counts, plus whether cancellation is best-effort or unsupported; it does not invent a percentage when the total is unknown. A terminal event carries one terminal outcome (`succeeded`, `partial`, `failed`, `cancelled` or `timed_out`), final counts and a closed error code. A `cancelled` outcome is emitted only after work actually stops; a cancellation request alone is not completion. This is a DTO contract, not a wired UI or running scan executor.
 
+M3-007 defines a preview DTO with candidate ID, category, leaf display name, size, modification time, eligible/skipped disposition and a closed skip reason. It excludes absolute paths. The Clean & Storage route renders only the supplied preview, derives counts and estimated bytes from its rows, and has no mutation action. When no scan result exists it explains that scanning is unavailable; it does not fabricate candidates.
+
 ## 7. Error model
 
 Use stable error codes/categories:

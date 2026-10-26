@@ -84,6 +84,8 @@ describe("Moonships application shell", () => {
 
     expect(markup).toContain('aria-label="Workspace navigation"');
     expect(markup).toContain('href="#/overview"');
+    expect(markup).toContain('href="#/cleaner"');
+    expect(markup).toContain("Clean &amp; Storage");
     expect(markup).toContain('aria-current="page"');
     for (const label of [
       "My Work",
@@ -110,6 +112,7 @@ describe("Moonships application shell", () => {
     expect(resolveRoute("#home")).toEqual({ kind: "page", id: "overview" });
     expect(resolveRoute("#/projects")).toEqual({ kind: "page", id: "projects" });
     expect(resolveRoute("#/tasks")).toEqual({ kind: "page", id: "tasks" });
+    expect(resolveRoute("#/cleaner")).toEqual({ kind: "page", id: "cleaner" });
     expect(resolveRoute("#/projects/project-id")).toEqual({
       kind: "project-overview",
       projectId: "project-id",

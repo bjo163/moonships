@@ -423,6 +423,8 @@ Results: removed / skipped / failed / actual bytes freed
 
 No candidate is actionable until it passes policy; an unsafe candidate should be omitted or visibly blocked, not merely unchecked by default.
 
+M3-007 exposes Clean & Storage as a workspace route and adds a read-only preview view for typed candidate data: eligible/skipped counts, estimated bytes, category, item label, size, modification time and skip reason. The route shows an explicit unavailable state when no scan preview exists; it does not invent candidates or offer a clean action. The current component does not start a scan or mutate files.
+
 ### Intelligence monitor
 
 ```text

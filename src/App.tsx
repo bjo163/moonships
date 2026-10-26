@@ -7,6 +7,7 @@ import { ProjectOverviewPage } from "./ProjectOverviewPage";
 import { TaskListPage } from "./TaskListPage";
 import { TaskDetailPage } from "./TaskDetailPage";
 import { TaskCreateDialog } from "./TaskCreateDialog";
+import { CleanerPreviewPage } from "./CleanerPreviewPage";
 import { HomeDashboardPage } from "./HomeDashboardPage";
 import { Button } from "./ui-primitives";
 import { CommandPalette, type PaletteCommand } from "./CommandPalette";
@@ -95,6 +96,13 @@ export function AppShell({
             aria-current={activeRoute === "tasks" ? "page" : undefined}
           >
             <span>Tasks</span>
+          </a>
+          <a
+            className={`nav-item${activeRoute === "cleaner" ? " nav-item-active" : ""}`}
+            href="#/cleaner"
+            aria-current={activeRoute === "cleaner" ? "page" : undefined}
+          >
+            <span>Clean &amp; Storage</span>
           </a>
           {plannedNavigationItems.map((label) => (
             <div
@@ -799,6 +807,8 @@ export default function App() {
             window.location.hash = `#/tasks/${encodeURIComponent(taskId)}`;
           }}
         />
+      ) : route.kind === "page" && route.id === "cleaner" ? (
+        <CleanerPreviewPage preview={null} />
       ) : route.kind === "task-detail" ? (
         <TaskDetailPage taskId={route.taskId} />
       ) : (
