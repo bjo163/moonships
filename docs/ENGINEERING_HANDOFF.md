@@ -647,3 +647,9 @@ Verification passed: AI registry-discovery tests 3/3; full Rust library suite 29
 Added in-memory previews for accepted recommendations. A SHA-256 binding covers exact registered tool ID/version/API version, optional target and arguments. Approval requires the exact displayed preview ID and is not deserializable from model/renderer data. Verification recomputes the binding and rejects altered arguments, tool version, target or preview ID. No action is executed and approvals are not persisted.
 
 Verification passed: AI action-preview tests 3/3; full Rust library suite 301/301; `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`; `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`; backlog validation (159/238 checked); and `git diff --check`. Backlog before this task: 158/238 checked (66.4%); after this task: 159/238 checked (66.8%). M2-035 remains open by direction.
+
+## M7-012 Claim-level AI source attribution — 2026-10-26
+
+Added strict summary claims labeled `supported` or `unknown`. Supported claims require evidence IDs from the supplied validated intelligence items; source IDs and URLs are resolved locally from those items. Unknown claims cannot carry citations, and invented evidence IDs or unsupported claims labeled supported fail closed.
+
+Verification passed: AI summary-attribution tests 3/3; full Rust library suite 304/304; `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`; `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`; backlog validation (160/238 checked); and `git diff --check`. Backlog before this task: 159/238 checked (66.8%); after this task: 160/238 checked (67.2%). M2-035 remains open by direction.

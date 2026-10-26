@@ -191,6 +191,9 @@ Read-only AI discovery combines a bounded prompt with a stable catalog of enable
 ### AiActionPreview / AiActionApproval
 An in-memory preview binds preview ID, exact tool ID/version/API version, optional target and arguments through a SHA-256 binding hash. Approval is constructed only against the exact displayed preview ID and stores that binding plus approval time. Verification recomputes the hash; mutation of arguments, target, tool version or preview ID rejects approval. Neither record is persisted or executable by itself.
 
+### AttributedSummary
+Version-1 summaries contain bounded individual claims, each marked `supported` or `unknown`. Supported claims require one or more known evidence item IDs; source IDs and URLs are looked up from validated `IntelligenceItem` records, never accepted from the model. Unknown claims cannot carry citations, preventing a fabricated reference from implying support.
+
 ### ResearchCollection / Note
 Collection fields: id, workspace_id, name, description?, created_at, updated_at.
 Note fields: id, workspace_id, collection_id?, title, body, created_at, updated_at.

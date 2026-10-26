@@ -396,6 +396,7 @@ Before executing an assessment:
 - M7-009 treats structured model output as untrusted JSON. The parser rejects unknown fields, unsupported schema versions, invalid tool IDs, oversized documents, excessive argument counts and nested values. Parsing produces inert request data and cannot invoke the registry; registry matching and policy checks remain independent mandatory steps.
 - M7-010 gives AI only the bounded catalog of enabled registered tools. A proposed ID must match an enabled registry entry exactly; invented and disabled IDs are rejected. Discovery returns an inert recommendation and does not dispatch tools or grant capability/approval. The production registry and approval path remain separate.
 - M7-011 preview approval binds the exact registered tool/API version, target, arguments and preview ID. Approval requires the displayed preview ID, and verification recomputes the SHA-256 binding before accepting it; changed arguments, target or version fail closed. Approval data is not deserializable from model/renderer data, is not persisted, and does not itself execute or authorize an action.
+- M7-012 summaries are parsed into claims with explicit `supported` or `unknown` status. Supported claims require known evidence item IDs, and display URLs/source IDs are resolved from validated local evidence records rather than model-supplied references. Unknown claims cannot carry citations; invented evidence IDs and uncited supported claims fail closed.
 
 ## 8. Secrets and privacy
 

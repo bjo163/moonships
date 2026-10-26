@@ -4,6 +4,7 @@ pub mod ai_action_preview;
 pub mod ai_provider;
 pub mod ai_registry_discovery;
 pub mod ai_structured_output;
+pub mod ai_summary_attribution;
 pub mod assessment_scope;
 pub mod cleaner;
 pub mod cleanup_reports;
