@@ -62,9 +62,11 @@ function nullableText(value: string): string | null {
 export function ProjectsPage({
   createOnOpen = false,
   onCreateHandled,
+  onOpenProject,
 }: {
   createOnOpen?: boolean;
   onCreateHandled?: () => void;
+  onOpenProject?: (projectId: string) => void;
 }) {
   const [projects, setProjects] = useState<ProjectRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -224,9 +226,20 @@ export function ProjectsPage({
                   <td>{project.goal || <span className="muted">No goal set</span>}</td>
                   <td>{formatUpdatedAt(project.updatedAt)}</td>
                   <td>
-                    <Button variant="secondary" size="sm" onClick={() => startEdit(project)}>
-                      Edit
-                    </Button>
+                    <div className="projects-table__actions">
+                      {onOpenProject ? (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => onOpenProject(project.id)}
+                        >
+                          Open
+                        </Button>
+                      ) : null}
+                      <Button variant="secondary" size="sm" onClick={() => startEdit(project)}>
+                        Edit
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}

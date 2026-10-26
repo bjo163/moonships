@@ -147,6 +147,42 @@ struct TaskListResponseDto {
     tasks: Vec<TaskDto>,
 }
 
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ProjectOverviewRequestDto {
+    id: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ProjectActivityDto {
+    id: String,
+    entity_type: String,
+    action: String,
+    summary: String,
+    occurred_at: String,
+}
+
+impl From<activity::ProjectActivity> for ProjectActivityDto {
+    fn from(event: activity::ProjectActivity) -> Self {
+        Self {
+            id: event.id,
+            entity_type: event.entity_type,
+            action: event.action,
+            summary: event.summary,
+            occurred_at: event.occurred_at,
+        }
+    }
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ProjectOverviewResponseDto {
+    project: ProjectDto,
+    active_task_count: u64,
+    recent_activity: Vec<ProjectActivityDto>,
+}
+
 impl From<tasks::Task> for TaskDto {
     fn from(task: tasks::Task) -> Self {
         Self {
@@ -433,6 +469,27 @@ fn list_tasks(app: AppHandle, request: ListTasksRequestDto) -> Result<TaskListRe
     Ok(TaskListResponseDto { tasks })
 }
 
+#[tauri::command]
+fn get_project_overview(
+    app: AppHandle,
+    request: ProjectOverviewRequestDto,
+) -> Result<ProjectOverviewResponseDto, String> {
+    let connection = open_personal_workspace_database(&app)?;
+    let project = projects::get_project(&connection, PERSONAL_WORKSPACE_ID, &request.id)?;
+    let active_task_count =
+        tasks::count_active_project_tasks(&connection, PERSONAL_WORKSPACE_ID, &project.id)?;
+    let recent_activity =
+        activity::list_project_activity(&connection, PERSONAL_WORKSPACE_ID, &project.id)?
+            .into_iter()
+            .map(ProjectActivityDto::from)
+            .collect();
+    Ok(ProjectOverviewResponseDto {
+        project: ProjectDto::from(project),
+        active_task_count,
+        recent_activity,
+    })
+}
+
 fn hide_to_tray_path(app: &AppHandle) -> Result<PathBuf, String> {
     app.path()
         .app_config_dir()
@@ -532,7 +589,8 @@ pub fn run() {
             create_project,
             update_project,
             create_task,
-            list_tasks
+            list_tasks,
+            get_project_overview
         ])
         .setup(|app| {
             let app_data_dir = app.path().app_data_dir()?;
@@ -617,7 +675,8 @@ mod tests {
     use super::{
         database_path, hide_to_tray_enabled, open_database_in, run_migrations,
         CreateProjectRequestDto, CreateTaskRequestDto, ListProjectsRequestDto, ListTasksRequestDto,
-        ProjectDto, ProjectListResponseDto, TaskDto, TaskListResponseDto, CURRENT_SCHEMA_VERSION,
+        ProjectActivityDto, ProjectDto, ProjectListResponseDto, ProjectOverviewRequestDto,
+        ProjectOverviewResponseDto, TaskDto, TaskListResponseDto, CURRENT_SCHEMA_VERSION,
         DATABASE_BUSY_TIMEOUT_MS, DATABASE_FILE_NAME, PERSONAL_WORKSPACE_ID,
     };
     use std::{
@@ -726,6 +785,49 @@ mod tests {
         assert_eq!(json["tasks"][0]["projectId"], "project-id");
         assert_eq!(json["tasks"][0]["createdAt"], "2026-10-26T00:00:00Z");
         assert!(json["tasks"][0].get("workspace_id").is_none());
+    }
+
+    #[test]
+    fn project_overview_ipc_accepts_only_project_id_and_serializes_real_summary_fields() {
+        let request: ProjectOverviewRequestDto =
+            serde_json::from_str(r#"{"id":"project-id"}"#).expect("project ID request");
+        assert_eq!(request.id, "project-id");
+        assert!(serde_json::from_str::<ProjectOverviewRequestDto>(
+            r#"{"id":"project-id","workspaceId":"other","path":"C:/data"}"#
+        )
+        .is_err());
+
+        let response = ProjectOverviewResponseDto {
+            project: ProjectDto {
+                id: "project-id".to_string(),
+                workspace_id: PERSONAL_WORKSPACE_ID.to_string(),
+                name: "Moonships".to_string(),
+                project_key: None,
+                description: None,
+                goal: Some("Ship the local workflow".to_string()),
+                status: "active".to_string(),
+                archived_at: None,
+                created_at: "2026-10-26T00:00:00Z".to_string(),
+                updated_at: "2026-10-26T00:00:00Z".to_string(),
+            },
+            active_task_count: 2,
+            recent_activity: vec![ProjectActivityDto {
+                id: "event-id".to_string(),
+                entity_type: "task".to_string(),
+                action: "created".to_string(),
+                summary: "Task created".to_string(),
+                occurred_at: "2026-10-26T00:00:00Z".to_string(),
+            }],
+        };
+        let json = serde_json::to_value(response).expect("serialize overview");
+        assert_eq!(json["project"]["goal"], "Ship the local workflow");
+        assert_eq!(json["activeTaskCount"], 2);
+        assert_eq!(json["recentActivity"][0]["entityType"], "task");
+        assert_eq!(
+            json["recentActivity"][0]["occurredAt"],
+            "2026-10-26T00:00:00Z"
+        );
+        assert!(json.get("active_task_count").is_none());
     }
 
     #[test]

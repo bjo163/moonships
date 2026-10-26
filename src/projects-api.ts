@@ -28,6 +28,20 @@ export type UpdateProjectInput = ProjectInput & {
 
 type ProjectListResponse = { projects: ProjectRecord[] };
 
+export type ProjectActivityRecord = {
+  id: string;
+  entityType: "project" | "task";
+  action: string;
+  summary: string;
+  occurredAt: string;
+};
+
+export type ProjectOverviewRecord = {
+  project: ProjectRecord;
+  activeTaskCount: number;
+  recentActivity: ProjectActivityRecord[];
+};
+
 export function listProjects(): Promise<ProjectRecord[]> {
   return invoke<ProjectListResponse>("list_projects", { request: {} }).then(
     ({ projects }) => projects,
@@ -40,6 +54,10 @@ export function createProject(request: ProjectInput): Promise<ProjectRecord> {
 
 export function updateProject(request: UpdateProjectInput): Promise<ProjectRecord> {
   return invoke<ProjectRecord>("update_project", { request });
+}
+
+export function getProjectOverview(id: string): Promise<ProjectOverviewRecord> {
+  return invoke<ProjectOverviewRecord>("get_project_overview", { request: { id } });
 }
 
 export function toProjectErrorMessage(error: unknown, action: "load" | "save"): string {

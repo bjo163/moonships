@@ -10,7 +10,15 @@ import { TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from "./task-presentation";
 import { listProjects, type ProjectRecord } from "./projects-api";
 import { Badge, Button, Dialog, Input } from "./ui-primitives";
 
-export function TaskCreateDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function TaskCreateDialog({
+  open,
+  onClose,
+  initialProjectId = null,
+}: {
+  open: boolean;
+  onClose: () => void;
+  initialProjectId?: string | null;
+}) {
   const [title, setTitle] = useState("");
   const [projectId, setProjectId] = useState("");
   const [status, setStatus] = useState<TaskStatus>("todo");
@@ -39,13 +47,13 @@ export function TaskCreateDialog({ open, onClose }: { open: boolean; onClose: ()
   useEffect(() => {
     if (!open) return;
     setTitle("");
-    setProjectId("");
+    setProjectId(initialProjectId ?? "");
     setStatus("todo");
     setPriority("p2");
     setTitleError(null);
     setSaveError(null);
     setCreatedTask(null);
-  }, [open]);
+  }, [open, initialProjectId]);
 
   useEffect(() => {
     if (open) void loadProjects();

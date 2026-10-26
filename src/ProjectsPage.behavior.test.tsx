@@ -118,4 +118,19 @@ describe("M2-014 persisted Projects screen", () => {
     await user.click(screen.getByRole("button", { name: "Try again" }));
     expect(await screen.findByText("No active projects yet")).toBeTruthy();
   });
+
+  it("opens a persisted Project overview from its list row", async () => {
+    const user = userEvent.setup();
+    invokeMock.mockImplementation(async (command: string) => {
+      if (command === "list_projects") return { projects: [project] };
+      if (command === undefined) return { projects: [project] };
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const onOpenProject = vi.fn();
+    render(<ProjectsPage onOpenProject={onOpenProject} />);
+    const row = await screen.findByRole("row", { name: /Moonships/ });
+
+    await user.click(within(row).getByRole("button", { name: "Open" }));
+    expect(onOpenProject).toHaveBeenCalledWith("project-1");
+  });
 });

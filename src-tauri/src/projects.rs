@@ -236,6 +236,35 @@ fn read_project(connection: &Connection, workspace_id: &str, id: &str) -> Result
         .ok_or_else(|| "NOT_FOUND: project is not available in this workspace".to_string())
 }
 
+/// Reads one non-archived project within an active workspace.
+pub fn get_project(
+    connection: &Connection,
+    workspace_id: &str,
+    id: &str,
+) -> Result<Project, String> {
+    let workspace_id = workspace_id.trim();
+    let id = id.trim();
+    if workspace_id.is_empty() || id.is_empty() {
+        return Err("VALIDATION_FAILED: project and workspace IDs are required".to_string());
+    }
+    let workspace_exists: Option<i64> = connection
+        .query_row(
+            "SELECT 1 FROM workspaces WHERE id = ?1 AND archived_at IS NULL",
+            params![workspace_id],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|_| "IO_ERROR: could not read project workspace".to_string())?;
+    if workspace_exists.is_none() {
+        return Err("NOT_FOUND: project workspace does not exist or is archived".to_string());
+    }
+    let project = read_project(connection, workspace_id, id)?;
+    if project.archived_at.is_some() {
+        return Err("NOT_FOUND: project is archived".to_string());
+    }
+    Ok(project)
+}
+
 pub fn update_project(
     connection: &mut Connection,
     request: UpdateProject,
@@ -387,6 +416,24 @@ mod tests {
             goal: None,
             status: None,
         }
+    }
+
+    #[test]
+    fn project_read_is_workspace_scoped_and_excludes_archived_records() {
+        let mut connection = fixture();
+        let project = create_project(&mut connection, request()).expect("create project");
+        assert_eq!(
+            get_project(&connection, PERSONAL, &project.id).expect("read project"),
+            project
+        );
+        assert!(get_project(&connection, "other-workspace", &project.id)
+            .expect_err("another workspace cannot read the project")
+            .starts_with("NOT_FOUND:"));
+
+        archive_project(&mut connection, PERSONAL, &project.id).expect("archive project");
+        assert!(get_project(&connection, PERSONAL, &project.id)
+            .expect_err("archived project is unavailable")
+            .starts_with("NOT_FOUND:"));
     }
 
     #[test]

@@ -141,4 +141,17 @@ describe("M2-016 persisted Task creation dialog", () => {
     await user.click(within(dialog).getByRole("button", { name: "Create task" }));
     expect(await screen.findByText("Personal inbox · Todo · P2 · Normal")).toBeTruthy();
   });
+
+  it("preselects the Project when launched from its overview", async () => {
+    invokeMock.mockImplementation(async (command: string) => {
+      if (command === "list_projects") return { projects: [project] };
+      if (command === undefined) return { projects: [project] };
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    render(<TaskCreateDialog open initialProjectId="project-1" onClose={() => undefined} />);
+    const dialog = await screen.findByRole("dialog", { name: "Create task" });
+    expect(
+      (within(dialog).getByRole("combobox", { name: "Project" }) as HTMLSelectElement).value,
+    ).toBe("project-1");
+  });
 });

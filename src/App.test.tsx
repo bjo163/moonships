@@ -111,6 +111,10 @@ describe("Moonships application shell", () => {
     expect(resolveRoute("#home")).toEqual({ kind: "page", id: "overview" });
     expect(resolveRoute("#/projects")).toEqual({ kind: "page", id: "projects" });
     expect(resolveRoute("#/tasks")).toEqual({ kind: "page", id: "tasks" });
+    expect(resolveRoute("#/projects/project-id")).toEqual({
+      kind: "project-overview",
+      projectId: "project-id",
+    });
     expect(resolveRoute("")).toEqual({ kind: "page", id: "overview" });
   });
 

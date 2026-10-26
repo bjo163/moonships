@@ -20,9 +20,20 @@ export type RouteId = keyof typeof ROUTE_REGISTRY;
 
 export type RouteResolution =
   | { kind: "page"; id: RouteId }
+  | { kind: "project-overview"; projectId: string }
   | { kind: "not-found"; requested: string };
 
 export function resolveRoute(input: string): RouteResolution {
+  const path = input.trim().replace(/^#/, "").replace(/^\/+/, "");
+  const projectMatch = path.match(/^projects\/([^/]+)$/i);
+  if (projectMatch) {
+    try {
+      const projectId = decodeURIComponent(projectMatch[1]);
+      if (projectId && projectId.length <= 128) return { kind: "project-overview", projectId };
+    } catch {
+      return { kind: "not-found", requested: input };
+    }
+  }
   const normalized = input.trim().replace(/^#/, "").replace(/^\/+/, "").toLowerCase();
 
   // Keep the existing home anchor compatible while establishing stable route IDs.

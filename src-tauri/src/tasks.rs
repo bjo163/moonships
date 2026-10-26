@@ -106,6 +106,28 @@ pub fn list_tasks(
         .map_err(|_| "IO_ERROR: could not read task list".to_string())
 }
 
+/// Counts non-archived tasks currently linked to a project in the given workspace.
+pub fn count_active_project_tasks(
+    connection: &Connection,
+    workspace_id: &str,
+    project_id: &str,
+) -> Result<u64, String> {
+    let workspace_id = workspace_id.trim();
+    let project_id = project_id.trim();
+    if workspace_id.is_empty() || project_id.is_empty() {
+        return Err("VALIDATION_FAILED: project and workspace IDs are required".to_string());
+    }
+    let count: i64 = connection
+        .query_row(
+            "SELECT COUNT(*) FROM tasks
+             WHERE workspace_id = ?1 AND project_id = ?2 AND archived_at IS NULL",
+            params![workspace_id, project_id],
+            |row| row.get(0),
+        )
+        .map_err(|_| "IO_ERROR: could not count project tasks".to_string())?;
+    u64::try_from(count).map_err(|_| "IO_ERROR: invalid project task count".to_string())
+}
+
 fn mutate_archive(
     connection: &mut Connection,
     workspace_id: &str,
@@ -515,6 +537,37 @@ mod tests {
             .query_row("SELECT COUNT(*) FROM tasks", [], |row| row.get(0))
             .unwrap();
         assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn project_task_count_includes_only_non_archived_links_in_workspace_scope() {
+        let mut connection = fixture();
+        connection
+            .execute(
+                "INSERT INTO projects (id, workspace_id, name) VALUES ('project-a', ?1, 'Project')",
+                params![PERSONAL],
+            )
+            .expect("project fixture");
+        let mut linked = request();
+        linked.project_id = Some("project-a".to_string());
+        let first = create_task(&mut connection, linked.clone()).expect("first linked task");
+        linked.title = "Second linked task".to_string();
+        create_task(&mut connection, linked).expect("second linked task");
+        create_task(&mut connection, request()).expect("inbox task");
+        assert_eq!(
+            count_active_project_tasks(&connection, PERSONAL, "project-a").unwrap(),
+            2
+        );
+
+        archive_task(&mut connection, PERSONAL, &first.id).expect("archive one linked task");
+        assert_eq!(
+            count_active_project_tasks(&connection, PERSONAL, "project-a").unwrap(),
+            1
+        );
+        assert_eq!(
+            count_active_project_tasks(&connection, "other-workspace", "project-a").unwrap(),
+            0
+        );
     }
 
     #[test]

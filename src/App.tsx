@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { resolveRoute, type RouteId, type RouteResolution } from "./route-registry";
 import { ProjectsPage } from "./ProjectsPage";
+import { ProjectOverviewPage } from "./ProjectOverviewPage";
 import { TaskListPage } from "./TaskListPage";
 import { TaskCreateDialog } from "./TaskCreateDialog";
 import { Button } from "./ui-primitives";
@@ -582,6 +583,16 @@ export default function App() {
   const [hideToTrayStatus, setHideToTrayStatus] = useState("Loading preference…");
   const [createProjectOnOpen, setCreateProjectOnOpen] = useState(false);
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
+  const [createTaskProjectId, setCreateTaskProjectId] = useState<string | null>(null);
+
+  const openTaskCreation = (projectId?: string) => {
+    setCreateTaskProjectId(projectId ?? null);
+    setCreateTaskOpen(true);
+  };
+  const closeTaskCreation = () => {
+    setCreateTaskOpen(false);
+    setCreateTaskProjectId(null);
+  };
 
   useEffect(() => {
     applyThemePreference(theme, document.documentElement);
@@ -655,7 +666,7 @@ export default function App() {
       return;
     }
     if (command.kind === "create-task") {
-      setCreateTaskOpen(true);
+      openTaskCreation();
       return;
     }
     if (command.kind === "navigate") {
@@ -745,14 +756,20 @@ export default function App() {
   return (
     <AppShell
       theme={theme}
-      activeRoute={route.kind === "page" ? route.id : "overview"}
+      activeRoute={
+        route.kind === "page"
+          ? route.id
+          : route.kind === "project-overview"
+            ? "projects"
+            : "overview"
+      }
       onToggleTheme={toggleTheme}
       onOpenCommandPalette={() => {
         paletteTriggerRef.current =
           document.activeElement instanceof HTMLElement ? document.activeElement : null;
         setCommandPaletteOpen(true);
       }}
-      onCreateTask={() => setCreateTaskOpen(true)}
+      onCreateTask={() => openTaskCreation()}
       profileLabel={getWorkspaceProfile(profileId).label}
       pinnedItems={getWorkspaceProfile(profileId).pinned}
       onOpenProfile={() => setProfileDialogOpen(true)}
@@ -763,9 +780,14 @@ export default function App() {
         <ProjectsPage
           createOnOpen={createProjectOnOpen}
           onCreateHandled={() => setCreateProjectOnOpen(false)}
+          onOpenProject={(projectId) => {
+            window.location.hash = `#/projects/${encodeURIComponent(projectId)}`;
+          }}
         />
+      ) : route.kind === "project-overview" ? (
+        <ProjectOverviewPage projectId={route.projectId} onCreateTask={openTaskCreation} />
       ) : route.kind === "page" && route.id === "tasks" ? (
-        <TaskListPage onCreateTask={() => setCreateTaskOpen(true)} />
+        <TaskListPage onCreateTask={() => openTaskCreation()} />
       ) : (
         <NotFoundPage requested={route.kind === "not-found" ? route.requested : ""} />
       )}
@@ -775,7 +797,11 @@ export default function App() {
         onClose={() => setCommandPaletteOpen(false)}
         onSelect={(command) => selectPaletteCommand(command.id)}
       />
-      <TaskCreateDialog open={createTaskOpen} onClose={() => setCreateTaskOpen(false)} />
+      <TaskCreateDialog
+        open={createTaskOpen}
+        initialProjectId={createTaskProjectId}
+        onClose={closeTaskCreation}
+      />
       {profileDialogOpen ? (
         <WorkspaceProfileDialog
           currentProfile={profileId}
