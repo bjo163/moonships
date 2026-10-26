@@ -327,6 +327,8 @@ M5-013 adds app-owned local research notes with a typed one-to-one intelligence 
 
 M5-014 stores a strict, versioned desktop-notification preference in app-owned metadata and defaults it off. The native fetch path emits a generic OS notification only after a user-triggered fetch succeeds with at least one returned item and the preference is enabled; notification errors do not fail the fetch. Notification settings request OS permission only from the user's enable action. No startup, timer, background, or notification-triggered fetch is registered.
 
+M5-015 adds an official U.S. National Weather Service active-alert Atom preset for one explicitly selected state or DC area. It uses the documented public Atom endpoint and identifies Moonships through an HTTP User-Agent. New presets remain disabled and terms-unreviewed; the minimum interval is 30 minutes, and fetching is still an explicit manual action. The preset has a 10-second timeout, a 2 MiB response limit and a 500-item limit. HTTP 429 and NWS-specific HTTP 403 become `RateLimited`; other non-success responses, including 5xx, remain `HttpStatus`. Existing manual retry backoff applies and no automatic retry or schedule is added. The feed is awareness information only, not an authoritative substitute for NWS warnings or an emergency alerting/EAS system.
+
 ## 11. AI adapter boundary
 
 AI consumes a limited context assembled by Moonships and can request only registered tools. Keep provider request/response types behind an internal interface. Persist prompt/output only when configured and necessary; redact secrets and minimize sensitive data.

@@ -47,6 +47,60 @@ const emptyDraft: Draft = {
   minimumPollIntervalSeconds: 900,
 };
 
+const nwsAlertAreas = [
+  "AL",
+  "AK",
+  "AZ",
+  "AR",
+  "CA",
+  "CO",
+  "CT",
+  "DE",
+  "DC",
+  "FL",
+  "GA",
+  "HI",
+  "ID",
+  "IL",
+  "IN",
+  "IA",
+  "KS",
+  "KY",
+  "LA",
+  "ME",
+  "MD",
+  "MA",
+  "MI",
+  "MN",
+  "MS",
+  "MO",
+  "MT",
+  "NE",
+  "NV",
+  "NH",
+  "NJ",
+  "NM",
+  "NY",
+  "NC",
+  "ND",
+  "OH",
+  "OK",
+  "OR",
+  "PA",
+  "RI",
+  "SC",
+  "SD",
+  "TN",
+  "TX",
+  "UT",
+  "VT",
+  "VA",
+  "WA",
+  "WV",
+  "WI",
+  "WY",
+];
+
 function cadenceLabel(seconds: number): string {
   if (seconds % 86_400 === 0)
     return `Every ${seconds / 86_400} day${seconds === 86_400 ? "" : "s"}`;
@@ -68,6 +122,7 @@ export function IntelligenceSourcesPage() {
   const [error, setError] = useState<string | null>(null);
   const [sourcesUnavailable, setSourcesUnavailable] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [nwsArea, setNwsArea] = useState("");
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -113,6 +168,38 @@ export function IntelligenceSourcesPage() {
     }
   };
 
+  const addNwsAlerts = async () => {
+    if (!nwsArea) {
+      setError("Choose a state or district before adding its NWS alert feed.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    setNotice(null);
+    try {
+      await invoke<Source>("save_intelligence_source", {
+        request: {
+          id: null,
+          displayName: `NWS Active Alerts (${nwsArea})`,
+          sourceUrl: `https://api.weather.gov/alerts/active.atom?area=${nwsArea}`,
+          termsUrl: "https://www.weather.gov/documentation/services-web-alerts",
+          termsNotes:
+            "Official National Weather Service active-alert Atom feed. Review NWS access guidance before enabling. Manual fetch only; configured minimum interval is 30 minutes.",
+          termsReview: "unreviewed",
+          minimumPollIntervalSeconds: 1_800,
+        },
+      });
+      setNotice(
+        `Added the NWS ${nwsArea} feed disabled. Review the linked NWS guidance before enabling it.`,
+      );
+      await reload();
+    } catch (reason) {
+      setError(typeof reason === "string" ? reason : "NWS alert source could not be added.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const toggle = async (source: Source) => {
     setBusySource(source.connector.id);
     setError(null);
@@ -153,7 +240,8 @@ export function IntelligenceSourcesPage() {
           <p className="eyebrow">INTELLIGENCE / SOURCES</p>
           <h2 id="intelligence-sources-title">Intelligence Sources</h2>
           <p className="page-description">
-            Manage RSS source declarations and review their terms before allowing a manual fetch.
+            Manage RSS and Atom source declarations and review their terms before allowing a manual
+            fetch.
           </p>
         </div>
       </header>
@@ -265,11 +353,41 @@ export function IntelligenceSourcesPage() {
         )}
       </section>
 
+      <section className="source-form-section" aria-labelledby="nws-preset-title">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">OFFICIAL ALERT FEED</p>
+            <h3 id="nws-preset-title">National Weather Service</h3>
+          </div>
+        </div>
+        <p className="field-help">
+          Add a state or district active-alert feed. It starts disabled and requires you to review
+          NWS access guidance. Fetching stays manual; Moonships waits at least 30 minutes between
+          requests for this preset.
+        </p>
+        <div className="source-form-actions">
+          <label>
+            State or district code
+            <select value={nwsArea} onChange={(event) => setNwsArea(event.target.value)}>
+              <option value="">Choose an area</option>
+              {nwsAlertAreas.map((area) => (
+                <option key={area} value={area}>
+                  {area}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Button type="button" onClick={() => void addNwsAlerts()} disabled={saving}>
+            {saving ? "Saving…" : "Add NWS alert feed"}
+          </Button>
+        </div>
+      </section>
+
       <section className="source-form-section" aria-labelledby="source-form-title">
         <div className="section-heading">
           <div>
             <p className="eyebrow">SOURCE SETTINGS</p>
-            <h3 id="source-form-title">{draft.id ? "Edit source" : "Add RSS source"}</h3>
+            <h3 id="source-form-title">{draft.id ? "Edit source" : "Add RSS or Atom source"}</h3>
           </div>
           {draft.id ? (
             <Button variant="secondary" size="sm" onClick={() => setDraft(emptyDraft)}>
@@ -288,7 +406,7 @@ export function IntelligenceSourcesPage() {
             />
           </label>
           <label>
-            RSS feed URL
+            RSS or Atom feed URL
             <input
               required
               type="url"

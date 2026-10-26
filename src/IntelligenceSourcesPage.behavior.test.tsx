@@ -86,7 +86,7 @@ describe("M5-008 Intelligence Sources", () => {
     render(<IntelligenceSourcesPage />);
     await screen.findByText("No sources configured");
     fireEvent.change(screen.getByLabelText("Display name"), { target: { value: "Example RSS" } });
-    fireEvent.change(screen.getByLabelText("RSS feed URL"), {
+    fireEvent.change(screen.getByLabelText("RSS or Atom feed URL"), {
       target: { value: "https://example.test/feed.xml" },
     });
     fireEvent.change(screen.getByLabelText("Terms and access notes"), {
@@ -105,5 +105,72 @@ describe("M5-008 Intelligence Sources", () => {
     await waitFor(() => expect(within(card).getByText("Enabled for manual fetch")).toBeTruthy());
     expect(invokeMock.mock.calls.some(([command]) => command === "fetch_rss")).toBe(false);
     expect(invokeMock.mock.calls.filter(([command]) => command === undefined)).toHaveLength(0);
+  });
+
+  it("adds an unreviewed NWS Atom alert preset disabled and without fetching", async () => {
+    let savedRequest: Record<string, unknown> | null = null;
+    const sources: Array<{
+      connector: {
+        id: string;
+        displayName: string;
+        sourceUrl: string;
+        termsUrl: string | null;
+        termsNotes: string;
+        termsReview: "unreviewed" | "reviewed" | "restricted";
+        minimumPollIntervalSeconds: number;
+        enabled: boolean;
+        health: string;
+      };
+      freshness: { status: "disabled" | "unknown"; lastSuccessAt: string | null; isLive: boolean };
+    }> = [];
+    invokeMock.mockImplementation(
+      async (command: string, args?: { request?: Record<string, unknown> }) => {
+        if (command === "list_intelligence_sources") return sources;
+        if (command === "save_intelligence_source") {
+          savedRequest = args?.request ?? null;
+          sources.push({
+            connector: {
+              id: "rss-nws-ca",
+              displayName: String(savedRequest?.displayName),
+              sourceUrl: String(savedRequest?.sourceUrl),
+              termsUrl: String(savedRequest?.termsUrl),
+              termsNotes: String(savedRequest?.termsNotes),
+              termsReview: "unreviewed",
+              minimumPollIntervalSeconds: 1800,
+              enabled: false,
+              health: "not_configured",
+            },
+            freshness: { status: "disabled", lastSuccessAt: null, isLive: false },
+          });
+          return sources[0];
+        }
+        if (command === undefined) return sources;
+        throw new Error(`Unexpected command: ${command}`);
+      },
+    );
+
+    render(<IntelligenceSourcesPage />);
+    await screen.findByText("No sources configured");
+    const addButton = screen.getByRole("button", { name: "Add NWS alert feed" });
+    fireEvent.click(addButton);
+    expect((await screen.findByRole("alert")).textContent).toContain("Choose a state or district");
+    expect(savedRequest).toBeNull();
+
+    fireEvent.change(screen.getByLabelText("State or district code"), {
+      target: { value: "CA" },
+    });
+    fireEvent.click(addButton);
+    expect(await screen.findByText(/Added the NWS CA feed disabled/)).toBeTruthy();
+    expect(savedRequest).toMatchObject({
+      displayName: "NWS Active Alerts (CA)",
+      sourceUrl: "https://api.weather.gov/alerts/active.atom?area=CA",
+      termsUrl: "https://www.weather.gov/documentation/services-web-alerts",
+      termsReview: "unreviewed",
+      minimumPollIntervalSeconds: 1800,
+    });
+    expect(sources[0].connector.enabled).toBe(false);
+    expect(invokeMock.mock.calls.some(([command]) => command === "fetch_intelligence_source")).toBe(
+      false,
+    );
   });
 });

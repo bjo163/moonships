@@ -111,6 +111,13 @@ pub fn save_source(
     source.terms_review = settings.terms_review;
     source.minimum_poll_interval_seconds = settings.minimum_poll_interval_seconds;
     source.freshness_threshold_seconds = 3_600.max(source.minimum_poll_interval_seconds);
+    if is_nws_active_alert_feed(&source.source_url) {
+        // Official per-area Atom feeds may contain many current alerts; keep both
+        // limits bounded while allowing a useful snapshot for one selected area.
+        source.request_timeout_ms = 10_000;
+        source.maximum_response_bytes = 2 * 1024 * 1024;
+        source.maximum_items_per_run = 500;
+    }
     if source_url_changed {
         source.disable();
         source.health = ConnectorHealth::NotConfigured;
@@ -127,6 +134,14 @@ pub fn save_source(
         .commit()
         .map_err(|error| format!("DB_ERROR: could not save source settings: {error}"))?;
     Ok(source)
+}
+
+fn is_nws_active_alert_feed(source_url: &str) -> bool {
+    reqwest::Url::parse(source_url).is_ok_and(|url| {
+        url.scheme() == "https"
+            && url.host_str() == Some("api.weather.gov")
+            && url.path() == "/alerts/active.atom"
+    })
 }
 
 pub fn set_enabled(
@@ -244,6 +259,27 @@ mod tests {
         faster.minimum_poll_interval_seconds = 900;
         let faster = save_source(&mut connection, faster).unwrap();
         assert_eq!(faster.freshness_threshold_seconds, 3_600);
+    }
+
+    #[test]
+    fn nws_preset_gets_bounded_alert_snapshot_limits_and_other_sources_do_not() {
+        let mut connection = database();
+        let mut nws = settings();
+        nws.display_name = "NWS Active Alerts (CA)".to_owned();
+        nws.source_url = "https://api.weather.gov/alerts/active.atom?area=CA".to_owned();
+        nws.terms_url =
+            Some("https://www.weather.gov/documentation/services-web-alerts".to_owned());
+        nws.minimum_poll_interval_seconds = 1_800;
+        let nws = save_source(&mut connection, nws).unwrap();
+        assert_eq!(nws.request_timeout_ms, 10_000);
+        assert_eq!(nws.maximum_response_bytes, 2 * 1024 * 1024);
+        assert_eq!(nws.maximum_items_per_run, 500);
+        assert!(!nws.is_enabled());
+
+        let other = save_source(&mut connection, settings()).unwrap();
+        assert_eq!(other.request_timeout_ms, 5_000);
+        assert_eq!(other.maximum_response_bytes, 512_000);
+        assert_eq!(other.maximum_items_per_run, 100);
     }
 
     #[test]

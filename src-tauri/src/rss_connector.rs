@@ -119,10 +119,13 @@ impl RssTransport for HttpRssTransport {
         if url.scheme() != "https" || !url.username().is_empty() || url.password().is_some() {
             return Err(RssFetchError::InvalidConnector);
         }
-        let host = url.host_str().ok_or(RssFetchError::InvalidConnector)?;
+        let host = url
+            .host_str()
+            .ok_or(RssFetchError::InvalidConnector)?
+            .to_owned();
         let timeout = Duration::from_millis(u64::from(connector.request_timeout_ms));
         let started_at = Instant::now();
-        let addresses = resolve_public_addresses(host, timeout)?;
+        let addresses = resolve_public_addresses(&host, timeout)?;
         let remaining_timeout = timeout.saturating_sub(started_at.elapsed());
         if remaining_timeout.is_zero() {
             return Err(RssFetchError::RequestTimedOut);
@@ -132,20 +135,23 @@ impl RssTransport for HttpRssTransport {
             .no_proxy()
             .redirect(Policy::none())
             .timeout(remaining_timeout)
-            .resolve_to_addrs(host, &addresses)
+            .resolve_to_addrs(&host, &addresses)
             .build()
             .map_err(|_| RssFetchError::NetworkFailure)?;
         let response = client
             .get(url)
             .header(
                 reqwest::header::ACCEPT,
-                "application/rss+xml, application/xml, text/xml;q=0.9",
+                "application/atom+xml, application/rss+xml, application/xml, text/xml;q=0.9",
             )
-            .header(reqwest::header::USER_AGENT, "Moonships/0.1 RSS reader")
+            .header(
+                reqwest::header::USER_AGENT,
+                "Moonships Workbench/0.1.0 (https://github.com/bjo163/moonships)",
+            )
             .send()
             .map_err(map_request_error)?;
         if !response.status().is_success() {
-            return Err(RssFetchError::HttpStatus);
+            return Err(map_http_status(&host, response.status()));
         }
         let limit = connector.maximum_response_bytes;
         if response
@@ -155,6 +161,17 @@ impl RssTransport for HttpRssTransport {
             return Err(RssFetchError::ResponseTooLarge);
         }
         read_bounded(response, limit)
+    }
+}
+
+fn map_http_status(host: &str, status: reqwest::StatusCode) -> RssFetchError {
+    if status == reqwest::StatusCode::TOO_MANY_REQUESTS
+        || (host.eq_ignore_ascii_case("api.weather.gov")
+            && status == reqwest::StatusCode::FORBIDDEN)
+    {
+        RssFetchError::RateLimited
+    } else {
+        RssFetchError::HttpStatus
     }
 }
 
@@ -354,6 +371,13 @@ struct RssEntry {
     description: Option<String>,
     guid: Option<String>,
     pub_date: Option<String>,
+    updated_date: Option<String>,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum RootFormat {
+    Rss,
+    Atom,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -363,16 +387,42 @@ enum Field {
     Description,
     Guid,
     PubDate,
+    UpdatedDate,
 }
 
 fn item_field(name: &[u8]) -> Option<Field> {
     match name {
         b"title" => Some(Field::Title),
         b"link" => Some(Field::Link),
-        b"description" | b"content:encoded" => Some(Field::Description),
-        b"guid" => Some(Field::Guid),
-        b"pubDate" => Some(Field::PubDate),
+        b"description" | b"content:encoded" | b"summary" => Some(Field::Description),
+        b"guid" | b"id" => Some(Field::Guid),
+        b"pubDate" | b"published" => Some(Field::PubDate),
+        b"updated" => Some(Field::UpdatedDate),
         _ => None,
+    }
+}
+
+fn atom_link_href(
+    element: &quick_xml::events::BytesStart<'_>,
+) -> Result<Option<String>, RssFetchError> {
+    let mut href = None;
+    let mut relation = None;
+    for attribute in element.attributes() {
+        let attribute = attribute.map_err(|_| RssFetchError::MalformedFeed)?;
+        let value = attribute
+            .unescape_value()
+            .map_err(|_| RssFetchError::MalformedFeed)?
+            .into_owned();
+        match attribute.key.as_ref() {
+            b"href" => href = Some(value),
+            b"rel" => relation = Some(value),
+            _ => {}
+        }
+    }
+    if relation.as_deref().is_none_or(|value| value == "alternate") {
+        Ok(href)
+    } else {
+        Ok(None)
     }
 }
 
@@ -388,7 +438,7 @@ fn parse_rss(
     // Preserve whitespace split around XML entities; individual field values are trimmed later.
     reader.config_mut().trim_text(false);
     let mut buffer = Vec::new();
-    let mut root_seen = false;
+    let mut root_format = None;
     let mut current_entry: Option<RssEntry> = None;
     let mut current_field: Option<(Field, String)> = None;
     let mut items = Vec::new();
@@ -405,43 +455,65 @@ fn parse_rss(
         match event {
             Event::Start(element) => {
                 let name = element.name();
-                if !root_seen {
-                    if name.as_ref() != b"rss" {
-                        return Err(RssFetchError::MalformedFeed);
-                    }
-                    let mut version = None;
-                    for attribute in element.attributes() {
-                        let attribute = attribute.map_err(|_| RssFetchError::MalformedFeed)?;
-                        if attribute.key.as_ref() == b"version" {
-                            version = Some(
-                                attribute
-                                    .unescape_value()
-                                    .map_err(|_| RssFetchError::MalformedFeed)?
-                                    .into_owned(),
-                            );
+                if root_format.is_none() {
+                    match name.as_ref() {
+                        b"rss" => {
+                            let mut version = None;
+                            for attribute in element.attributes() {
+                                let attribute =
+                                    attribute.map_err(|_| RssFetchError::MalformedFeed)?;
+                                if attribute.key.as_ref() == b"version" {
+                                    version = Some(
+                                        attribute
+                                            .unescape_value()
+                                            .map_err(|_| RssFetchError::MalformedFeed)?
+                                            .into_owned(),
+                                    );
+                                }
+                            }
+                            if version.as_deref() != Some("2.0") {
+                                return Err(RssFetchError::MalformedFeed);
+                            }
+                            root_format = Some(RootFormat::Rss);
                         }
+                        b"feed" => root_format = Some(RootFormat::Atom),
+                        _ => return Err(RssFetchError::MalformedFeed),
                     }
-                    if version.as_deref() != Some("2.0") {
-                        return Err(RssFetchError::MalformedFeed);
-                    }
-                    root_seen = true;
-                } else if name.as_ref() == b"item" {
+                } else if (root_format == Some(RootFormat::Rss) && name.as_ref() == b"item")
+                    || (root_format == Some(RootFormat::Atom) && name.as_ref() == b"entry")
+                {
                     if current_entry.is_some() {
                         return Err(RssFetchError::MalformedFeed);
                     }
                     current_entry = Some(RssEntry::default());
                 } else if current_entry.is_some() {
-                    if let Some(field) = item_field(name.as_ref()) {
+                    if root_format == Some(RootFormat::Atom) && name.as_ref() == b"link" {
+                        if let Some(href) = atom_link_href(&element)? {
+                            if let Some(entry) = current_entry.as_mut() {
+                                entry.link = Some(href);
+                            }
+                        }
+                    } else if let Some(field) = item_field(name.as_ref()) {
                         current_field = Some((field, String::new()));
                     }
                 }
             }
             Event::Empty(element) => {
-                if !root_seen {
+                if root_format.is_none() {
                     return Err(RssFetchError::MalformedFeed);
                 }
                 if element.name().as_ref() == b"item" {
                     return Err(RssFetchError::InvalidItem);
+                }
+                if element.name().as_ref() == b"entry" {
+                    return Err(RssFetchError::MalformedFeed);
+                }
+                if root_format == Some(RootFormat::Atom) && element.name().as_ref() == b"link" {
+                    if let (Some(href), Some(entry)) =
+                        (atom_link_href(&element)?, current_entry.as_mut())
+                    {
+                        entry.link = Some(href);
+                    }
                 }
             }
             Event::Text(text) => {
@@ -484,7 +556,9 @@ fn parse_rss(
             }
             Event::End(element) => {
                 let name = element.name();
-                if name.as_ref() == b"item" {
+                if (root_format == Some(RootFormat::Rss) && name.as_ref() == b"item")
+                    || (root_format == Some(RootFormat::Atom) && name.as_ref() == b"entry")
+                {
                     let entry = current_entry.take().ok_or(RssFetchError::MalformedFeed)?;
                     items.push(normalize_entry(entry, connector, observed_at)?);
                     if items.len() > usize::from(connector.maximum_items_per_run) {
@@ -501,6 +575,7 @@ fn parse_rss(
                             Field::Description => entry.description = Some(value),
                             Field::Guid => entry.guid = Some(value),
                             Field::PubDate => entry.pub_date = Some(value),
+                            Field::UpdatedDate => entry.updated_date = Some(value),
                         }
                     } else {
                         current_field = Some((field, value));
@@ -513,7 +588,7 @@ fn parse_rss(
         }
         buffer.clear();
     }
-    if !root_seen || current_entry.is_some() || items.is_empty() {
+    if root_format.is_none() || current_entry.is_some() {
         return Err(RssFetchError::MalformedFeed);
     }
     Ok(items)
@@ -540,9 +615,14 @@ fn normalize_entry(
     let title = entry.title.ok_or(RssFetchError::InvalidItem)?;
     let url_identity = canonicalize_item_url(&entry.link.ok_or(RssFetchError::InvalidItem)?)
         .map_err(|_| RssFetchError::InvalidItem)?;
-    let published_at = match entry.pub_date.filter(|date| !date.is_empty()) {
+    let published_at = match entry
+        .pub_date
+        .or(entry.updated_date)
+        .filter(|date| !date.is_empty())
+    {
         Some(date) => Some(
             DateTime::parse_from_rfc2822(&date)
+                .or_else(|_| DateTime::parse_from_rfc3339(&date))
                 .map_err(|_| RssFetchError::InvalidItem)?
                 .with_timezone(&Utc)
                 .to_rfc3339_opts(SecondsFormat::Millis, true),
@@ -552,11 +632,26 @@ fn normalize_entry(
     let summary = entry.description.filter(|value| !value.is_empty());
     let content_hash =
         content_fingerprint(&title, summary.as_deref()).map_err(|_| RssFetchError::InvalidItem)?;
+    let external_id = entry.guid.filter(|value| !value.is_empty());
+    let stable_identity = external_id
+        .as_deref()
+        .unwrap_or(url_identity.canonical.as_str());
+    let id_name = format!(
+        "{}:{}:{stable_identity}",
+        connector.id, connector.source_url
+    );
+    let id = Uuid::new_v5(&Uuid::NAMESPACE_URL, id_name.as_bytes()).to_string();
+    let category = reqwest::Url::parse(&connector.source_url)
+        .ok()
+        .filter(|url| {
+            url.host_str() == Some("api.weather.gov") && url.path().starts_with("/alerts/")
+        })
+        .map_or("general", |_| "weather_alert");
     let mut item = IntelligenceItem {
-        id: Uuid::new_v4().to_string(),
+        id,
         source_id: connector.id.clone(),
         source_url: connector.source_url.clone(),
-        external_id: entry.guid.filter(|value| !value.is_empty()),
+        external_id,
         original_url: url_identity.original,
         canonical_url: url_identity.canonical,
         title,
@@ -564,7 +659,7 @@ fn normalize_entry(
         published_at,
         observed_at: observed_at.to_owned(),
         event_time: None,
-        category: "general".to_owned(),
+        category: category.to_owned(),
         content_hash: Some(content_hash),
         freshness_state: ItemFreshness::Fresh,
         verification_state: ItemVerification::SourceAttributed,
@@ -581,6 +676,11 @@ mod tests {
 <item><title>Example &amp; fixture</title><link>https://CNEOS.JPL.NASA.GOV/news/./example?utm_source=test&amp;id=4#section</link>
 <guid>cneos-example-1</guid><pubDate>Mon, 26 Oct 2026 04:00:00 +0000</pubDate>
 <description><![CDATA[A bounded local test fixture.]]></description></item></channel></rss>"#;
+    const NWS_ATOM_FIXTURE: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Active Alerts for California</title>
+<entry><id>urn:oid:2.49.0.1.840.0.fixture-alert</id><title>Flood Warning</title>
+<link rel="alternate" href="https://api.weather.gov/alerts/urn%3Aoid%3Afixture-alert"/>
+<updated>2026-10-26T04:00:00Z</updated><summary>A bounded weather alert fixture.</summary></entry></feed>"#;
 
     fn connector(id: &str) -> ConnectorDefinition {
         serde_json::from_value(serde_json::json!({
@@ -641,6 +741,76 @@ mod tests {
         );
         assert_eq!(items[0].observed_at, "2026-10-26T04:35:00.000Z");
         assert_eq!(items[0].event_time, None);
+    }
+
+    #[test]
+    fn parses_nws_atom_alerts_with_stable_ids_and_source_category() {
+        let mut connector = connector("fixture.nws.atom");
+        connector.display_name = "NWS Active Alerts (CA)".to_owned();
+        connector.source_url = "https://api.weather.gov/alerts/active.atom?area=CA".to_owned();
+        let first = parse_rss(
+            NWS_ATOM_FIXTURE.as_bytes(),
+            &connector,
+            "2026-10-26T04:35:00Z",
+        )
+        .unwrap();
+        let second = parse_rss(
+            NWS_ATOM_FIXTURE.as_bytes(),
+            &connector,
+            "2026-10-26T04:36:00Z",
+        )
+        .unwrap();
+        assert_eq!(first.len(), 1);
+        assert_eq!(first[0].title, "Flood Warning");
+        assert_eq!(first[0].category, "weather_alert");
+        assert_eq!(
+            first[0].external_id.as_deref(),
+            Some("urn:oid:2.49.0.1.840.0.fixture-alert")
+        );
+        assert_eq!(
+            first[0].original_url,
+            "https://api.weather.gov/alerts/urn%3Aoid%3Afixture-alert"
+        );
+        assert_eq!(
+            first[0].published_at.as_deref(),
+            Some("2026-10-26T04:00:00.000Z")
+        );
+        assert_eq!(first[0].id, second[0].id);
+        assert_ne!(first[0].observed_at, second[0].observed_at);
+    }
+
+    #[test]
+    fn valid_empty_atom_feed_is_a_successful_empty_result() {
+        let mut connector = connector("fixture.nws.empty");
+        connector.source_url = "https://api.weather.gov/alerts/active.atom?area=CA".to_owned();
+        assert_eq!(
+            parse_rss(
+                br#"<feed xmlns="http://www.w3.org/2005/Atom"><title>No active alerts</title></feed>"#,
+                &connector,
+                "2026-10-26T04:35:00Z",
+            ),
+            Ok(Vec::new())
+        );
+    }
+
+    #[test]
+    fn provider_rate_limit_statuses_map_to_backoff_without_hiding_other_http_errors() {
+        assert_eq!(
+            map_http_status("api.weather.gov", reqwest::StatusCode::TOO_MANY_REQUESTS),
+            RssFetchError::RateLimited
+        );
+        assert_eq!(
+            map_http_status("api.weather.gov", reqwest::StatusCode::FORBIDDEN),
+            RssFetchError::RateLimited
+        );
+        assert_eq!(
+            map_http_status("api.weather.gov", reqwest::StatusCode::SERVICE_UNAVAILABLE),
+            RssFetchError::HttpStatus
+        );
+        assert_eq!(
+            map_http_status("example.test", reqwest::StatusCode::FORBIDDEN),
+            RssFetchError::HttpStatus
+        );
     }
 
     #[test]

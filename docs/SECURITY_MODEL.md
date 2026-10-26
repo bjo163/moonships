@@ -130,6 +130,13 @@ Risk class is separate from task priority, vulnerability severity and business i
 - Enforce the connector timeout and response-byte ceiling while reading the body; a known oversized content length is rejected before reading. Slow reads, transport failures, non-success HTTP status and malformed/oversized RSS return stable error codes and no partial item set.
 - Failed attempts count toward per-source exponential backoff (60 seconds doubling to a one-hour cap) and the declared minimum poll interval. The next allowed manual request is the later of those two deadlines. Success clears failure history; the adapter never retries automatically. This rate/backoff state is process-local and bounded to 256 connector IDs.
 
+### Official NWS active-alert Atom preset (M5-015)
+
+- The only built-in provider preset is the documented public `https://api.weather.gov/alerts/active.atom?area=...` feed for one selected U.S. state or DC area. The native parser recognizes the exact NWS host/path for the `weather_alert` category; it does not activate emergency systems or replace official NWS warnings.
+- The request identifies Moonships with a descriptive `User-Agent`. The saved preset is disabled and terms-unreviewed until the user reviews source terms and separately enables it. Fetch remains a manual action; there is no startup, page-open, timer or background request. The 30-minute minimum is more conservative than NWS's published 30-second recommendation.
+- NWS preset requests are bounded to 10 seconds, 2 MiB and 500 items. Existing HTTPS-only transport, one bounded DNS resolution, public-address rejection, pinning, no proxy/redirect, XML DTD rejection and text-only treatment apply. Atom entry content is untrusted; no page/feed instruction can alter policy or tools.
+- HTTP 429 from any source and HTTP 403 from exact host `api.weather.gov` map to `RateLimited`; this accounts for NWS's documented rate limiting/blocking behavior. Other non-success statuses (including 5xx) map to `HttpStatus`. Failures enter the existing bounded exponential backoff (60 seconds to one hour, combined with the source cadence); no automatic retry occurs. No provider response body is surfaced as an instruction or error detail.
+
 ### Intelligence identity (M5-005)
 
 - Canonicalization accepts only validated HTTPS URLs without credentials and preserves the exact original item URL. It removes fragments and only the documented analytics parameter allowlist; it does not rewrite other query fields, path semantics or source attribution.

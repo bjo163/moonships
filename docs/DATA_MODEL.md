@@ -162,6 +162,8 @@ M5-013 adds a bounded local ResearchNote linked to one IntelligenceItem ID and a
 
 M5-014 stores `app.notifications.v1` as strict non-secret app metadata with its own schema version and an `enabled` flag that defaults to `false`. It contains no source content or permission tokens; system permission remains owned by the operating system.
 
+M5-015 accepts Atom alongside RSS 2.0 in the existing bounded source adapter. Atom entries normalize to the same `IntelligenceItem` fields; published time is parsed separately from observation time, and `updated` is only a fallback when the entry has no publication date. Source-specific UUIDv5 item IDs remain stable across repeated fetches and include source ID/URL plus provider GUID or canonical item URL. NWS alert-feed items use category `weather_alert`. The selected-area NWS preset persists as an ordinary disabled/unreviewed RSS-kind source with bounded provider limits (10 seconds, 2 MiB, 500 items); no separate alert database is introduced.
+
 ## 3. Relationship summary
 
 - Workspace 1:N Projects, Tasks, SavedViews, Notes, Settings (app-wide settings may be separate).
