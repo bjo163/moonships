@@ -123,6 +123,12 @@ Risk class is separate from task priority, vulnerability severity and business i
 - It returns service name, display name and current state only. It does not open service objects or expose start, stop, restart, configuration, remote-host or elevation actions.
 - Permission-denied, unavailable, unsupported, empty and partial results remain distinct in the UI; refresh is user-triggered and no background polling occurs.
 
+### Event log provider seam (M4-010)
+
+- Queries are scoped to a fixed channel enum, at most 100 summaries, and a 100–5,000 ms requested deadline. No free-form query string, XPath, remote computer, or unbounded time range is accepted; a future provider must enforce both limits.
+- Only event ID, provider name, level, optional timestamp and record ID are represented; raw event messages and payloads are not returned.
+- Empty, permission-denied, timed-out, unavailable, unsupported and partial states are distinct. The current seam has no OS provider, IPC command or UI and performs no event-log read.
+
 ## 5. Cleaner-specific safety
 
 - M3-001 defines rules as typed metadata with closed root IDs only: app-managed temporary storage, app cache, or an OS-resolved user temporary directory. Rules and renderer inputs cannot supply arbitrary paths. The pure eligibility evaluator accepts metadata only and never reads or deletes files. M3-002's test-only traversal helper reads metadata recursively under a disposable fixture, skips links, and performs no content reads or mutations; it is compiled only for tests and is not an IPC entry point. M3-003 canonicalizes the native-resolved allowed root, existing candidate and native-policy protected paths, then rejects candidates equal to/outside the root, beneath a protected path, or any unresolved input. Protected paths must be assembled by native policy, not supplied by renderer data. M3-004 tests a Windows directory junction aimed outside the root: canonical path validation rejects the target and read-only traversal skips the junction. This check does not close time-of-check/time-of-use races; immediate identity revalidation remains required before production mutation.

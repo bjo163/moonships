@@ -421,3 +421,7 @@ Added a Windows Tool Help process snapshot and a Processes page with one-time lo
 ## M4-009 Windows service inventory — 2026-10-26
 
 Added a local Service Control Manager snapshot and a Services page with user-triggered refresh. The native adapter requests enumeration-only access, returns service/display names and current state, caps results at 2,048, and closes its manager handle. It does not open individual service handles or expose start/stop/restart/configuration actions. Permission denied, unavailable, unsupported, empty and partial states are separate in the UI. Verification passed: Rust suite 146/146; frontend suite 178/178; `npm run check` (format, lint, repo tests, frontend tests, typecheck and production build); Clippy with warnings denied; Rust formatting; backlog validation; and `git diff --check`. Biome emitted the repository's existing non-fatal notice that its schema is 2.2 while the installed CLI is 2.6.3.
+
+## M4-010 Event log provider seam — 2026-10-26
+
+Added a fixed-channel, 100-record-bounded provider contract with a 100–5,000 ms requested deadline and privacy-minimized event summary DTO. Empty, permission-denied, timed-out, unavailable, unsupported and partial states map distinctly; event message text and payload are omitted. This task deliberately wires no OS provider, IPC command or UI, so it does not read event logs. Verification passed: Rust suite 149/149; Clippy with warnings denied; Rust formatting; backlog validation; and `git diff --check`.

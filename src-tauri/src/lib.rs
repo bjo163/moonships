@@ -4,6 +4,7 @@ pub mod cleanup_reports;
 pub mod config;
 pub mod dns_adapter;
 pub mod domain;
+pub mod event_log_adapter;
 pub mod hash_tools;
 pub mod home_dashboard;
 pub mod labels;

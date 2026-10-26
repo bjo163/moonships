@@ -167,7 +167,7 @@
 - [x] **M4-007 — Add system inventory read-only adapter** [S] — OS, CPU/RAM/storage metadata available via vetted API. **AC:** unsupported fields are null/status, not fabricated.
 - [x] **M4-008 — Add process inventory view** [S] — Read-only initially. **AC:** no kill action is exposed accidentally.
 - [x] **M4-009 — Add Windows service inventory view** [S] — Read-only initially. **AC:** user permissions/errors are visible.
-- [ ] **M4-010 — Add event log integration seam** [S] — Read-only and bounded. **AC:** unavailable/denied/log-empty states differ.
+- [x] **M4-010 — Add event log integration seam** [S] — Read-only and bounded. **AC:** unavailable/denied/log-empty states differ.
 - [ ] **M4-011 — Add allowlisted terminal/SSH/RDP profiles** [S] — Store secret references only. **AC:** secrets never appear in exported profile/log.
 - [ ] **M4-012 — Add Activity Center for long-running jobs** [S] [depends: M1-026] — Display state, progress, duration and result. **AC:** status transitions are tested.
 - [ ] **M4-013 — Add cancel job action where supported** [S] — Truthful best-effort semantics. **AC:** unsupported cancellation is disabled and explained.
