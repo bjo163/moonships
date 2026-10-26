@@ -141,6 +141,8 @@ M4-007 adds a native read-only system inventory DTO. It reports the compiled OS 
 
 M4-008 adds a no-argument `list_process_inventory` command backed by a Windows Tool Help process snapshot. The adapter reports only executable name, process ID, parent ID and thread count, caps output at 4,096 records, closes its snapshot handle, and returns explicit unavailable/permission-denied/partial states. It does not open process handles, read command lines/paths or expose mutation commands. The Processes page reads only on mount or an explicit refresh; there is no background polling.
 
+M4-009 adds a no-argument `list_service_inventory` command backed by the local Windows Service Control Manager. It requests only `SC_MANAGER_ENUMERATE_SERVICE`, reads service/display names and current state into a 2,048-record-bounded result, closes the manager handle, and distinguishes permission denial, unavailability and partial results. It never opens individual services or exposes start/stop/configuration commands. The Services page reads once on mount and refreshes only on explicit user action.
+
 ## 5. Command and event flow
 
 1. UI or workflow requests a registered tool by ID with typed arguments.

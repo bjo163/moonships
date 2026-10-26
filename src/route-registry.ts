@@ -29,6 +29,11 @@ export const ROUTE_REGISTRY = {
     label: "Processes",
     hash: "#/processes",
   },
+  services: {
+    id: "services",
+    label: "Services",
+    hash: "#/services",
+  },
 } as const;
 
 export type RouteId = keyof typeof ROUTE_REGISTRY;
@@ -70,6 +75,7 @@ export function resolveRoute(input: string): RouteResolution {
   if (normalized === "cleaner") return { kind: "page", id: "cleaner" };
   if (normalized === "devtools") return { kind: "page", id: "devtools" };
   if (normalized === "processes") return { kind: "page", id: "processes" };
+  if (normalized === "services") return { kind: "page", id: "services" };
 
   return { kind: "not-found", requested: input };
 }

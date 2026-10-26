@@ -470,3 +470,7 @@ On first launch, offer six local workspace profiles: Developer, Network / NOC, S
 ## Process inventory (M4-008)
 
 The Processes page is a user-requested, read-only snapshot with an explicit **Refresh snapshot** action; it does not poll in the background. Show executable name, process ID, parent process ID, thread count and snapshot time in a semantic, horizontally scrollable table. Do not show a kill/terminate action, command line or executable path. Loading, adapter failure, permission denied, unsupported, empty and partial/capped snapshots have distinct text states. A permission denial never offers elevation. Use the shared page/table tokens and keyboard-visible focus styles from [Design System](DESIGN_SYSTEM.md).
+
+## Windows service inventory (M4-009)
+
+The Services page is a local, read-only snapshot with an explicit **Refresh snapshot** action; it does not poll. Show display name, service name, state and snapshot time in a semantic table. Do not show start, stop, restart, configuration or elevation actions. Permission denied, manager unavailable, unsupported, empty and partial results have distinct messages, while a successful empty list remains distinguishable from a failed query. Use shared table, loading/error and focus patterns from [Design System](DESIGN_SYSTEM.md).

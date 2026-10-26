@@ -11,6 +11,7 @@ import { ProcessesPage } from "./ProcessesPage";
 import { ProjectOverviewPage } from "./ProjectOverviewPage";
 import { ProjectsPage } from "./ProjectsPage";
 import { type RouteId, type RouteResolution, resolveRoute } from "./route-registry";
+import { ServicesPage } from "./ServicesPage";
 import { TaskCreateDialog } from "./TaskCreateDialog";
 import { TaskDetailPage } from "./TaskDetailPage";
 import { TaskListPage } from "./TaskListPage";
@@ -119,6 +120,13 @@ export function AppShell({
             aria-current={activeRoute === "processes" ? "page" : undefined}
           >
             <span>Processes</span>
+          </a>
+          <a
+            className={`nav-item${activeRoute === "services" ? " nav-item-active" : ""}`}
+            href="#/services"
+            aria-current={activeRoute === "services" ? "page" : undefined}
+          >
+            <span>Services</span>
           </a>
           {plannedNavigationItems.map((label) => (
             <div
@@ -829,6 +837,8 @@ export default function App() {
         <DevToolsPage />
       ) : route.kind === "page" && route.id === "processes" ? (
         <ProcessesPage />
+      ) : route.kind === "page" && route.id === "services" ? (
+        <ServicesPage />
       ) : route.kind === "task-detail" ? (
         <TaskDetailPage taskId={route.taskId} />
       ) : (

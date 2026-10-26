@@ -166,7 +166,7 @@
 - [x] **M4-006 — Add subnet calculator** [S] — Offline arithmetic utility. **AC:** IPv4 cases and invalid CIDR are tested.
 - [x] **M4-007 — Add system inventory read-only adapter** [S] — OS, CPU/RAM/storage metadata available via vetted API. **AC:** unsupported fields are null/status, not fabricated.
 - [x] **M4-008 — Add process inventory view** [S] — Read-only initially. **AC:** no kill action is exposed accidentally.
-- [ ] **M4-009 — Add Windows service inventory view** [S] — Read-only initially. **AC:** user permissions/errors are visible.
+- [x] **M4-009 — Add Windows service inventory view** [S] — Read-only initially. **AC:** user permissions/errors are visible.
 - [ ] **M4-010 — Add event log integration seam** [S] — Read-only and bounded. **AC:** unavailable/denied/log-empty states differ.
 - [ ] **M4-011 — Add allowlisted terminal/SSH/RDP profiles** [S] — Store secret references only. **AC:** secrets never appear in exported profile/log.
 - [ ] **M4-012 — Add Activity Center for long-running jobs** [S] [depends: M1-026] — Display state, progress, duration and result. **AC:** status transitions are tested.

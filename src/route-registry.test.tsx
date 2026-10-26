@@ -14,3 +14,10 @@ describe("Processes route", () => {
     expect(ROUTE_REGISTRY.processes.hash).toBe("#/processes");
   });
 });
+
+describe("Services route", () => {
+  it("resolves its stable page ID and hash", () => {
+    expect(resolveRoute("#/services")).toEqual({ kind: "page", id: "services" });
+    expect(ROUTE_REGISTRY.services.hash).toBe("#/services");
+  });
+});
