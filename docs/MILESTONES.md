@@ -136,7 +136,7 @@ Exit criteria:
 
 ## M3 — Daily Tools
 
-> M3-001 defines a typed native cleanup rule: stable ID/version, category, closed allowed-root identifier, minimum age and per-item size limit. A pure metadata evaluator rejects mismatched roots, invalid rules, non-regular entries, future timestamps, recent files and oversized files. Verification passed: targeted cleaner tests 6/6, full Rust suite 102/102, Clippy with warnings denied, Rust formatting, `npm run check` (repository 8/8, frontend 108/108, typecheck/build), backlog validation and `git diff --check`. CI and issue #69 sync are pending. The task adds no filesystem traversal or deletion; M3-002/003/004 must still prove read-only traversal, containment and link behavior.
+> M3-001 defines a typed native cleanup rule: stable ID/version, category, closed allowed-root identifier, minimum age and per-item size limit. M3-002 adds a test-only metadata traversal helper under a disposable fixture and skips links. Its nested fixture test confirms file bytes are identical before and after scanning. M3-002 local targeted tests passed 7/7 and formatting passed. The helper is compiled only during tests; production traversal awaits M3-003/004 containment and platform link checks. M3 remains in progress.
 
 Deliverables:
 - Narrow safe temporary cleaner with read-only scan/preview/revalidation

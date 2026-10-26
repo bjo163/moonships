@@ -1,3 +1,9 @@
+#[cfg(test)]
+use std::fs;
+#[cfg(test)]
+use std::io;
+#[cfg(test)]
+use std::path::Path;
 use std::time::{Duration, SystemTime};
 
 /// Stable, application-owned locations. These are identifiers, not renderer-provided paths.
@@ -100,6 +106,49 @@ pub enum EligibilityDecision {
     Excluded(EligibilityExclusion),
 }
 
+/// Reads file metadata beneath a trusted, native-resolved root. This is not an IPC
+/// entry point: callers must not pass renderer-controlled paths. It never opens
+/// file contents or mutates the filesystem. Link entries are skipped, and are
+/// never recursed into. Path containment and race-resistant handles are handled
+/// by the later dedicated cleaner tasks.
+#[cfg(test)]
+pub(crate) fn scan_read_only(
+    trusted_root: &Path,
+    root_id: CleanupRoot,
+) -> io::Result<Vec<CleanupCandidateMetadata>> {
+    let mut candidates = Vec::new();
+    scan_directory(trusted_root, root_id, &mut candidates)?;
+    Ok(candidates)
+}
+
+#[cfg(test)]
+fn scan_directory(
+    directory: &Path,
+    root_id: CleanupRoot,
+    candidates: &mut Vec<CleanupCandidateMetadata>,
+) -> io::Result<()> {
+    for entry in fs::read_dir(directory)? {
+        let entry = entry?;
+        let path = entry.path();
+        let metadata = fs::symlink_metadata(&path)?;
+        let file_type = metadata.file_type();
+        if file_type.is_symlink() {
+            continue;
+        }
+        if file_type.is_dir() {
+            scan_directory(&path, root_id, candidates)?;
+        } else if file_type.is_file() {
+            candidates.push(CleanupCandidateMetadata {
+                root: root_id,
+                kind: CleanupFileKind::RegularFile,
+                modified_at: metadata.modified()?,
+                size_bytes: metadata.len(),
+            });
+        }
+    }
+    Ok(())
+}
+
 /// Evaluates a rule against already-observed metadata. This function performs no filesystem I/O.
 pub fn evaluate_eligibility(
     rule: &CleanupRule,
@@ -135,6 +184,7 @@ mod tests {
         CleanupRoot, CleanupRule, EligibilityDecision, EligibilityExclusion, RuleValidationError,
     };
     use std::time::{Duration, SystemTime};
+    use std::{fs, io::Write};
 
     const NOW: SystemTime = SystemTime::UNIX_EPOCH;
 
@@ -340,5 +390,40 @@ mod tests {
             ),
             EligibilityDecision::Eligible,
         );
+    }
+
+    #[test]
+    fn read_only_scan_leaves_fixture_files_byte_identical() {
+        let fixture =
+            std::env::temp_dir().join(format!("moonships-cleaner-{}", uuid::Uuid::new_v4()));
+        fs::create_dir(&fixture).expect("create disposable scan fixture");
+        let nested = fixture.join("nested");
+        fs::create_dir(&nested).expect("create nested fixture directory");
+        let first_path = fixture.join("first.bin");
+        let nested_path = nested.join("second.bin");
+        let first_bytes = [0, 1, 2, 0xFE, 0xFF];
+        let second_bytes = b"fixture remains unchanged";
+        fs::File::create(&first_path)
+            .expect("create first fixture")
+            .write_all(&first_bytes)
+            .expect("write first fixture");
+        fs::File::create(&nested_path)
+            .expect("create second fixture")
+            .write_all(second_bytes)
+            .expect("write second fixture");
+
+        let before_first = fs::read(&first_path).expect("read first fixture before scan");
+        let before_nested = fs::read(&nested_path).expect("read second fixture before scan");
+        let candidates = super::scan_read_only(&fixture, CleanupRoot::AppTemporary)
+            .expect("scan disposable fixture");
+
+        assert_eq!(candidates.len(), 2);
+        assert!(candidates.iter().all(|candidate| {
+            candidate.root == CleanupRoot::AppTemporary
+                && candidate.kind == CleanupFileKind::RegularFile
+        }));
+        assert_eq!(fs::read(&first_path).unwrap(), before_first);
+        assert_eq!(fs::read(&nested_path).unwrap(), before_nested);
+        fs::remove_dir_all(fixture).expect("remove disposable scan fixture");
     }
 }

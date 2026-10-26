@@ -131,7 +131,7 @@
 
 ### Cleaner safety
 - [x] **M3-001 — Define cleanup rule contract** [S] [depends: M1-027,M1-028] — Category, allowed root, eligibility rules. **AC:** rule can be unit tested without deleting files.
-- [ ] **M3-002 — Implement read-only traversal on a test directory** [S] [depends: M3-001] — Do not call delete. **AC:** fixture files remain byte-identical after scan.
+- [x] **M3-002 — Implement read-only traversal on a test directory** [S] [depends: M3-001] — Do not call delete. **AC:** fixture files remain byte-identical after scan.
 - [ ] **M3-003 — Implement protected-path and path-containment checks** [S] [depends: M3-001] — Reject traversal/outside root. **AC:** malicious path fixtures are denied.
 - [ ] **M3-004 — Add symlink/junction handling policy** [S] [depends: M3-003] — Do not follow links outside allowed root. **AC:** Windows-capable test or documented platform test proves escape is rejected.
 - [ ] **M3-005 — Define cleanup candidate identity** [S] [depends: M3-002] — ID plus metadata needed for revalidation. **AC:** candidate is not identified only by display path text.
