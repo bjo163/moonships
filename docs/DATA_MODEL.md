@@ -179,6 +179,9 @@ Persisted fields: run_id, workflow_id, workflow_version, status, started_at, fin
 ### WorkflowSchedule
 Fields: schedule_id, workflow_id, workflow_version, interval_minutes, enabled, next_run_at?, last_claimed_at?. Schedules are disabled by default and require an explicit enable action. Cadence is bounded from 5 minutes through 30 days. Due-claim queries return only enabled schedules and atomically advance their next time; pausing clears the due time. This prototype has no timer, production runner connection or automatic execution.
 
+### AiProviderConfig
+Version-1 strict config fields: enabled, provider kind, model ID, optional HTTPS endpoint and optional opaque credential reference. It contains no credential value and defaults to disabled. Local providers cannot declare a remote endpoint or credential reference. The interface and schema are in-memory contracts; provider settings are not yet persisted or exposed in the UI.
+
 ### ResearchCollection / Note
 Collection fields: id, workspace_id, name, description?, created_at, updated_at.
 Note fields: id, workspace_id, collection_id?, title, body, created_at, updated_at.
