@@ -611,3 +611,9 @@ Verification passed: workflow schema tests 6/6; workflow runner tests 5/5; full 
 Extended `ToolDefinition` with explicit idempotency class (`idempotent`, `non_idempotent`, `unknown`) and a closed retry policy. Missing metadata defaults to `unknown` and `never`. The validator permits 1–5 transient-failure retries only for explicitly idempotent tools; automatic retry is rejected for destructive, privileged and remote risk classes. Tool registration validates the declaration. This is contract metadata only: no retry loop or automatic retry behavior is introduced.
 
 Verification passed: focused domain tests 6/6; full Rust library suite 283/283; `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`; `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`; backlog validation (152/238 checked); and `git diff --check`.
+
+## M7-006 Bounded redacted workflow run history — 2026-10-26
+
+Added transactional local SQLite persistence for workflow run and step status, timestamps, duration and correlation ID. Successful step outputs are never stored; history contains only the literal `[REDACTED]`, with inputs omitted and failures represented by a closed error code. Retention is capped at 500 runs and native list responses at 200 summaries. Read-only native list/detail commands are available. There is no history UI, production workflow handler or execution IPC entry point, so this does not claim end-user-visible workflow execution.
+
+Verification passed: workflow history tests 2/2; workflow runner tests 6/6; full Rust library suite 286/286; `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`; `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`; backlog validation (154/238 checked); and `git diff --check`. Backlog before this task: 153/238 checked (64.3%); after this task: 154/238 checked (64.7%), with M2-035 intentionally left open pending the required observed desktop session.

@@ -171,11 +171,10 @@ M5-012 stores validated `IntelligenceItem` JSON with source ID, category and nor
 ### WorkflowDefinition
 Fields: id, workspace_id, name, version, definition_json, enabled, permissions_json, created_at, updated_at.
 Definitions must be schema-validated and versioned. M7-001 defines strict schema version 1 with workflow ID/name/version and steps; each step records a stable step ID, registered tool ID/version, dependencies and a map of explicitly typed JSON values (string, integer, number, boolean, null, array or object). Unknown fields and value types are rejected, identifiers and nested inputs are bounded, and documents are limited to 1 MiB. M7-002 caps definitions at 128 steps, requires unique step IDs, validates dependency references and rejects cycles. M7-004 schema version 2 adds a required bounded per-step timeout and explicit stop/continue error policy; version 1 remains parseable but is not executable by the runner because it has no explicit policy. Registry matching and execution remain separate tasks.
-M7-003 adds an in-memory sequential run result with workflow identity/version and per-step identity, exact tool version, typed output or closed error/skipped outcome. M7-004 applies each step's timeout and error policy; timeouts are cooperative at the handler boundary. Results are ephemeral; no run history or persistence is added.
+M7-003 adds an in-memory sequential run result with workflow identity/version and per-step identity, exact tool version, typed output or closed error/skipped outcome. M7-004 applies each step's timeout and error policy; timeouts are cooperative at the handler boundary. M7-006 adds generated run and correlation IDs, timestamps and measured durations, plus transactional SQLite persistence of summary and step statuses. Successful output is represented only by a fixed `[REDACTED]` marker; output values are not persisted. Retention is capped at 500 runs and list queries at 200 summaries. Native read commands expose list and detail; no user-facing history UI or production executor is connected yet.
 
 ### WorkflowRun
-Fields: id, workflow_id, workflow_version, status, started_at?, finished_at?, trigger_type, result_summary?, error_code?, correlation_id, created_at.
-Each step execution records the tool ID/version, input redaction, approval, result status and duration.
+Persisted fields: run_id, workflow_id, workflow_version, status, started_at, finished_at, duration_ms, correlation_id. Each persisted step records ordinal, step_id, tool_id/version, status, duration_ms, a fixed redacted output summary for success, or a closed error code. Inputs and output values are omitted.
 
 ### ResearchCollection / Note
 Collection fields: id, workspace_id, name, description?, created_at, updated_at.

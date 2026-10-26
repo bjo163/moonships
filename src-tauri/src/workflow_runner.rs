@@ -5,6 +5,7 @@ use crate::workflow_schema::{
     workflow_execution_order, WorkflowDefinition, WorkflowErrorPolicy, WorkflowStep,
     WorkflowValidationError, WorkflowValue, WORKFLOW_SCHEMA_VERSION,
 };
+use rusqlite::Connection;
 use std::{
     collections::{BTreeMap, BTreeSet},
     time::Instant,
@@ -84,14 +85,20 @@ pub struct WorkflowStepResult {
     pub step_id: String,
     pub tool_id: String,
     pub tool_version: String,
+    pub duration_ms: u64,
     pub outcome: WorkflowStepOutcome,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct WorkflowRunResult {
+    pub run_id: String,
+    pub correlation_id: String,
     pub workflow_id: String,
     pub workflow_version: u32,
     pub status: WorkflowRunStatus,
+    pub started_at: String,
+    pub finished_at: String,
+    pub duration_ms: u64,
     pub steps: Vec<WorkflowStepResult>,
 }
 
@@ -99,6 +106,23 @@ pub struct WorkflowRunResult {
 pub enum WorkflowRunError {
     InvalidWorkflow(WorkflowValidationError),
     ExecutionPolicyRequired,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum WorkflowRunAndRecordError {
+    Run(WorkflowRunError),
+    History(String),
+}
+
+pub fn run_workflow_and_record(
+    connection: &mut Connection,
+    workflow: &WorkflowDefinition,
+    registry: &mut WorkflowToolRegistry,
+) -> Result<WorkflowRunResult, WorkflowRunAndRecordError> {
+    let result = run_workflow(workflow, registry).map_err(WorkflowRunAndRecordError::Run)?;
+    crate::workflow_run_history::record(connection, &result)
+        .map_err(WorkflowRunAndRecordError::History)?;
+    Ok(result)
 }
 
 pub fn run_workflow(
@@ -109,12 +133,18 @@ pub fn run_workflow(
         return Err(WorkflowRunError::ExecutionPolicyRequired);
     }
     let order = workflow_execution_order(workflow).map_err(WorkflowRunError::InvalidWorkflow)?;
+    let run_started = Instant::now();
+    let started_at = chrono::DateTime::<chrono::Utc>::from(std::time::SystemTime::now())
+        .to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
+    let run_id = uuid::Uuid::new_v4().to_string();
+    let correlation_id = uuid::Uuid::new_v4().to_string();
     let mut results = Vec::with_capacity(workflow.steps.len());
     let mut failed_steps = BTreeSet::new();
     let mut stopped_after: Option<String> = None;
     let mut has_failure = false;
 
     for index in order {
+        let step_started = Instant::now();
         let step = &workflow.steps[index];
         let outcome = if let Some(failed_id) = &stopped_after {
             WorkflowStepOutcome::Skipped {
@@ -148,11 +178,14 @@ pub fn run_workflow(
             step_id: step.id.clone(),
             tool_id: step.tool_id.clone(),
             tool_version: step.tool_version.clone(),
+            duration_ms: step_started.elapsed().as_millis().min(u64::MAX as u128) as u64,
             outcome,
         });
     }
 
     Ok(WorkflowRunResult {
+        run_id,
+        correlation_id,
         workflow_id: workflow.id.clone(),
         workflow_version: workflow.version,
         status: if has_failure {
@@ -160,6 +193,10 @@ pub fn run_workflow(
         } else {
             WorkflowRunStatus::Succeeded
         },
+        started_at,
+        finished_at: chrono::DateTime::<chrono::Utc>::from(std::time::SystemTime::now())
+            .to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
+        duration_ms: run_started.elapsed().as_millis().min(u64::MAX as u128) as u64,
         steps: results,
     })
 }
@@ -201,8 +238,8 @@ fn valid_version(version: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        run_workflow, RegistryError, WorkflowRunStatus, WorkflowStepOutcome, WorkflowToolError,
-        WorkflowToolHandler, WorkflowToolRegistry,
+        run_workflow, run_workflow_and_record, RegistryError, WorkflowRunStatus,
+        WorkflowStepOutcome, WorkflowToolError, WorkflowToolHandler, WorkflowToolRegistry,
     };
     use crate::workflow_schema::{WorkflowDefinition, WorkflowErrorPolicy, WorkflowValue};
     use std::{cell::RefCell, collections::BTreeMap, time::Instant};
@@ -503,5 +540,51 @@ mod tests {
             registry.register("fixture.echo", "1.0.0", handler()),
             Err(RegistryError::DuplicateToolVersion)
         );
+    }
+
+    #[test]
+    fn run_and_record_persists_correlation_status_duration_and_redacted_output() {
+        let mut connection = rusqlite::Connection::open_in_memory().unwrap();
+        crate::run_migrations(&mut connection).unwrap();
+        let calls = std::rc::Rc::new(RefCell::new(Vec::new()));
+        let deadlines = std::rc::Rc::new(RefCell::new(Vec::new()));
+        let mut registry = WorkflowToolRegistry::default();
+        registry
+            .register(
+                "fixture.echo",
+                "1.0.0",
+                FixtureHandler {
+                    label: "echo".to_owned(),
+                    calls: calls.clone(),
+                    failure: None,
+                    deadlines: deadlines.clone(),
+                    delay: std::time::Duration::ZERO,
+                },
+            )
+            .unwrap();
+        registry
+            .register(
+                "fixture.other",
+                "2.0.0",
+                FixtureHandler {
+                    label: "other".to_owned(),
+                    calls,
+                    failure: None,
+                    deadlines,
+                    delay: std::time::Duration::ZERO,
+                },
+            )
+            .unwrap();
+
+        let result = run_workflow_and_record(&mut connection, &workflow(), &mut registry).unwrap();
+        let detail = crate::workflow_run_history::get(&connection, &result.run_id).unwrap();
+        assert_eq!(detail.run.status, "succeeded");
+        assert_eq!(detail.run.correlation_id, result.correlation_id);
+        assert_eq!(detail.run.duration_ms, result.duration_ms);
+        assert_eq!(
+            detail.steps[0].output_summary.as_deref(),
+            Some("[REDACTED]")
+        );
+        assert!(!serde_json::to_string(&detail).unwrap().contains("one"));
     }
 }
