@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Base64DevToolsPanel } from "./Base64DevToolsPanel";
+import { Sha256DevToolsPanel } from "./Sha256DevToolsPanel";
 import { formatJsonInput, MAX_JSON_INPUT_BYTES } from "./json-formatter";
 import { UrlDevToolsPanel } from "./UrlDevToolsPanel";
 import { UuidDevToolsPanel } from "./UuidDevToolsPanel";
@@ -7,7 +8,9 @@ import { Button } from "./ui-primitives";
 import { YamlDevToolsPanel } from "./YamlDevToolsPanel";
 
 export function DevToolsPage() {
-  const [activeTool, setActiveTool] = useState<"json" | "yaml" | "base64" | "url" | "uuid">("json");
+  const [activeTool, setActiveTool] = useState<
+    "json" | "yaml" | "base64" | "url" | "uuid" | "sha256"
+  >("json");
 
   return (
     <section className="json-devtools" aria-labelledby="devtools-title">
@@ -57,6 +60,13 @@ export function DevToolsPage() {
         >
           UUID
         </Button>
+        <Button
+          variant={activeTool === "sha256" ? "primary" : "secondary"}
+          aria-pressed={activeTool === "sha256"}
+          onClick={() => setActiveTool("sha256")}
+        >
+          SHA-256
+        </Button>
       </fieldset>
       {activeTool === "json" ? (
         <JsonFormatterPanel />
@@ -66,8 +76,10 @@ export function DevToolsPage() {
         <Base64DevToolsPanel />
       ) : activeTool === "url" ? (
         <UrlDevToolsPanel />
-      ) : (
+      ) : activeTool === "uuid" ? (
         <UuidDevToolsPanel />
+      ) : (
+        <Sha256DevToolsPanel />
       )}
     </section>
   );

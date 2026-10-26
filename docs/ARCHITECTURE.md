@@ -194,6 +194,8 @@ M3-018 distinguishes standalone URL components from absolute full URLs. Componen
 
 M3-019 adds a local UUID v4 generator using the browser's Web Crypto `randomUUID()` API, which is specified to use cryptographically secure randomness. It fails closed if the API is unavailable, throws, or returns a malformed value; there is no weak-randomness fallback. The validator accepts canonical UUID versions 1–8 using the RFC variant, plus the Nil UUID. Both operations run in memory without network, provider or filesystem access.
 
+M3-020 provides local SHA-256 text and file hashing with the exact-pinned RustCrypto `sha2` crate. Text is capped at 1 MiB; file selection happens in a native Windows picker and the native reader streams 64 KiB chunks up to 2 GiB, so memory use does not grow with file size. Only the selected leaf filename, byte count and digest return to the UI. Cancellation returns no digest; permission/read errors are reported without disclosing the full path. File hashing is currently unsupported outside Windows, matching the available native picker.
+
 ## 7. Error model
 
 Use stable error codes/categories:

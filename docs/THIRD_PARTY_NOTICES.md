@@ -1,5 +1,14 @@
 # Third-party notices
 
+## sha2 0.10.9
+
+The native SHA-256 DevTools use the exact-pinned RustCrypto `sha2` crate and its incremental `Digest` API to hash file streams in bounded memory.
+
+- Source: [RustCrypto/hashes](https://github.com/RustCrypto/hashes)
+- Crate documentation: [sha2 on docs.rs](https://docs.rs/sha2/0.10.9/sha2/)
+- License: Apache-2.0 or MIT, at the user's option
+- Purpose: local SHA-256 text and selected-file hashing (M3-020)
+
 ## yaml 2.9.1
 
 The YAML formatter uses `yaml` by Eemeli Aro, pinned to version 2.9.1. The upstream project documents YAML 1.1/1.2 support, browser compatibility, no external runtime dependencies and the ISC license:

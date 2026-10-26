@@ -3,6 +3,7 @@ pub mod cleaner;
 pub mod cleanup_reports;
 pub mod config;
 pub mod domain;
+pub mod hash_tools;
 pub mod home_dashboard;
 pub mod labels;
 pub mod local_logging;
@@ -143,6 +144,84 @@ struct ProjectTaskImportPreviewDto {
     activity_event_count: usize,
     project_names: Vec<String>,
     task_titles: Vec<String>,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Sha256FileResultDto {
+    cancelled: bool,
+    file_name: Option<String>,
+    bytes_hashed: u64,
+    sha256: Option<String>,
+}
+
+#[tauri::command]
+fn hash_sha256_text(text: String) -> Result<String, String> {
+    hash_tools::sha256_text(&text).map_err(|code| match code {
+        "text_too_large" => "VALIDATION_FAILED: text exceeds the 1 MiB size limit".to_string(),
+        _ => "INTERNAL_ERROR: text could not be hashed".to_string(),
+    })
+}
+
+#[tauri::command]
+async fn hash_sha256_selected_file(app: AppHandle) -> Result<Sha256FileResultDto, String> {
+    #[cfg(not(windows))]
+    {
+        let _ = app;
+        Err("UNSUPPORTED: file hashing is currently available on Windows".to_string())
+    }
+
+    #[cfg(windows)]
+    {
+        tauri::async_runtime::spawn_blocking(move || {
+            let window = app
+                .get_webview_window("main")
+                .ok_or_else(|| "IO_ERROR: main window is unavailable".to_string())?;
+            let Some(path) = rfd::FileDialog::new()
+                .set_parent(&window)
+                .set_title("Select a file to calculate its SHA-256 hash")
+                .pick_file()
+            else {
+                return Ok(Sha256FileResultDto {
+                    cancelled: true,
+                    file_name: None,
+                    bytes_hashed: 0,
+                    sha256: None,
+                });
+            };
+
+            let file = std::fs::File::open(&path)
+                .map_err(|_| "IO_ERROR: could not read the selected file".to_string())?;
+            let metadata = file
+                .metadata()
+                .map_err(|_| "IO_ERROR: could not inspect the selected file".to_string())?;
+            if !metadata.is_file() {
+                return Err("VALIDATION_FAILED: selected target is not a regular file".to_string());
+            }
+            if metadata.len() > hash_tools::MAX_FILE_BYTES {
+                return Err("VALIDATION_FAILED: file exceeds the 2 GiB size limit".to_string());
+            }
+            let (sha256, bytes_hashed) =
+                hash_tools::sha256_reader(file, hash_tools::MAX_FILE_BYTES).map_err(|error| {
+                    if error.kind() == std::io::ErrorKind::InvalidData {
+                        "VALIDATION_FAILED: file exceeds the 2 GiB size limit".to_string()
+                    } else {
+                        "IO_ERROR: could not read the selected file".to_string()
+                    }
+                })?;
+
+            Ok(Sha256FileResultDto {
+                cancelled: false,
+                file_name: path
+                    .file_name()
+                    .map(|name| name.to_string_lossy().into_owned()),
+                bytes_hashed,
+                sha256: Some(sha256),
+            })
+        })
+        .await
+        .map_err(|_| "IO_ERROR: file hashing did not complete".to_string())?
+    }
 }
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
@@ -1167,7 +1246,9 @@ pub fn run() {
             create_milestone,
             associate_milestone_task,
             update_milestone,
-            list_cleanup_reports
+            list_cleanup_reports,
+            hash_sha256_text,
+            hash_sha256_selected_file
         ])
         .setup(|app| {
             let app_data_dir = app.path().app_data_dir()?;
