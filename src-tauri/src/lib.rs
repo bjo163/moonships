@@ -701,10 +701,15 @@ mod tests {
                 |row| row.get(0),
             )
             .expect("schema inspection");
-        assert_eq!(projects_table_count, 0, "partial CREATE TABLE must roll back");
+        assert_eq!(
+            projects_table_count, 0,
+            "partial CREATE TABLE must roll back"
+        );
 
         let version: i64 = connection
-            .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| row.get(0))
+            .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| {
+                row.get(0)
+            })
             .expect("schema version");
         assert_eq!(version, 2, "failed migration must not record version 3");
 
@@ -803,13 +808,7 @@ mod tests {
                     .execute(
                         "INSERT INTO tasks (id, workspace_id, title, status, priority)
                          VALUES (?1, ?2, ?3, ?4, ?5)",
-                        rusqlite::params![
-                            id,
-                            PERSONAL_WORKSPACE_ID,
-                            title,
-                            status,
-                            priority
-                        ],
+                        rusqlite::params![id, PERSONAL_WORKSPACE_ID, title, status, priority],
                     )
                     .is_err(),
                 "invalid task {id} must be rejected"
@@ -817,7 +816,11 @@ mod tests {
         }
         for (id, workspace_id, project_id) in [
             ("bad-workspace", "missing-workspace", None),
-            ("bad-project", PERSONAL_WORKSPACE_ID, Some("missing-project")),
+            (
+                "bad-project",
+                PERSONAL_WORKSPACE_ID,
+                Some("missing-project"),
+            ),
             ("cross-workspace", PERSONAL_WORKSPACE_ID, Some("project-b")),
         ] {
             assert!(
@@ -914,7 +917,9 @@ mod tests {
             .unwrap();
         assert_eq!(workspaces, 1);
         let schema: i64 = connection
-            .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| row.get(0))
+            .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| {
+                row.get(0)
+            })
             .unwrap();
         assert_eq!(schema, CURRENT_SCHEMA_VERSION);
 
@@ -958,7 +963,9 @@ mod tests {
             .expect("schema index check");
         assert_eq!(index_count, 0);
         let version: i64 = connection
-            .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| row.get(0))
+            .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| {
+                row.get(0)
+            })
             .expect("schema version");
         assert_eq!(version, 3);
         let saved: String = connection
