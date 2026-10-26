@@ -313,3 +313,7 @@ The read-only fixture test now creates a Windows directory junction pointing out
 ## M3-005 Cleanup candidate identity — 2026-10-26
 
 Added `CleanupCandidateIdentity` with a per-scan UUID, validated relative path locator and immutable cleanup metadata snapshot (root, kind, modified time and size). Empty, absolute and parent-traversal locators are rejected. Tests show identical display locators from separate scans receive distinct IDs and preserve metadata. This is a contract only; mutation still requires fresh metadata and platform identity checks. Targeted cleaner tests passed 11/11; full Rust suite passed 107/107; format, Clippy with warnings denied and `git diff --check` passed. **Next task:** M3-006 scan progress and cancellation contract.
+
+## M3-006 Scan progress and cancellation contract — 2026-10-26
+
+Added serializable cleaner scan progress and terminal event DTOs keyed by the shared job UUID. Progress carries a stable stage, observed counters, and best-effort/unsupported cancellation capability; it does not invent percentages without a known total. Terminal outcomes map to the shared job statuses and use a closed error-code enum. The contract contains no paths or file contents. A `cancelled` terminal state means work stopped, not merely that cancellation was requested. This task does not wire a UI or implement scan execution. Full Rust tests passed 108/108; the final test-only correction passed targeted cleaner tests 12/12. Clippy with warnings denied, Rust formatting and `git diff --check` passed. **Next task:** M3-007 preview DTO and UI.

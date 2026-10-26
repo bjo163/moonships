@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 #[cfg(test)]
 use std::fs;
 #[cfg(test)]
@@ -124,6 +125,80 @@ impl CleanupCandidateIdentity {
             metadata,
         })
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CleanupScanStage {
+    Enumerating,
+    Evaluating,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CleanupCancellationSupport {
+    BestEffort,
+    Unsupported,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CleanupScanTerminalStatus {
+    Succeeded,
+    Partial,
+    Failed,
+    Cancelled,
+    TimedOut,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum CleanupScanErrorCode {
+    PermissionDenied,
+    IoFailure,
+    RootUnavailable,
+    InternalError,
+}
+
+impl From<CleanupScanTerminalStatus> for crate::domain::JobStatus {
+    fn from(status: CleanupScanTerminalStatus) -> Self {
+        match status {
+            CleanupScanTerminalStatus::Succeeded => Self::Succeeded,
+            CleanupScanTerminalStatus::Partial => Self::Partial,
+            CleanupScanTerminalStatus::Failed => Self::Failed,
+            CleanupScanTerminalStatus::Cancelled => Self::Cancelled,
+            CleanupScanTerminalStatus::TimedOut => Self::TimedOut,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CleanupScanProgress {
+    pub job_id: uuid::Uuid,
+    pub stage: CleanupScanStage,
+    pub visited_entries: u64,
+    pub eligible_candidates: u64,
+    pub skipped_entries: u64,
+    pub cancellation_support: CleanupCancellationSupport,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CleanupScanTerminal {
+    pub job_id: uuid::Uuid,
+    pub status: CleanupScanTerminalStatus,
+    pub visited_entries: u64,
+    pub eligible_candidates: u64,
+    pub skipped_entries: u64,
+    pub error_code: Option<CleanupScanErrorCode>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "type", content = "data", rename_all = "snake_case")]
+pub enum CleanupScanEvent {
+    Progress(CleanupScanProgress),
+    Terminal(CleanupScanTerminal),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -613,6 +688,49 @@ mod tests {
         assert_eq!(
             super::CleanupCandidateIdentity::new(PathBuf::from("/outside.bin"), metadata),
             Err(super::CandidateIdentityError::InvalidRelativePath),
+        );
+    }
+
+    #[test]
+    fn scan_events_serialize_progress_and_truthful_terminal_states() {
+        let job_id = uuid::Uuid::new_v4();
+        let progress = super::CleanupScanEvent::Progress(super::CleanupScanProgress {
+            job_id,
+            stage: super::CleanupScanStage::Enumerating,
+            visited_entries: 8,
+            eligible_candidates: 3,
+            skipped_entries: 2,
+            cancellation_support: super::CleanupCancellationSupport::BestEffort,
+        });
+        let progress_json = serde_json::to_value(&progress).expect("serialize progress event");
+        assert_eq!(progress_json["type"], "progress");
+        assert_eq!(progress_json["data"]["stage"], "enumerating");
+        assert_eq!(progress_json["data"]["cancellationSupport"], "best_effort");
+        assert_eq!(
+            serde_json::from_value::<super::CleanupScanEvent>(progress_json).unwrap(),
+            progress,
+        );
+
+        let terminal = super::CleanupScanTerminal {
+            job_id,
+            status: super::CleanupScanTerminalStatus::Cancelled,
+            visited_entries: 8,
+            eligible_candidates: 3,
+            skipped_entries: 2,
+            error_code: None,
+        };
+        let terminal_json =
+            serde_json::to_value(super::CleanupScanEvent::Terminal(terminal.clone()))
+                .expect("serialize terminal event");
+        assert_eq!(terminal_json["type"], "terminal");
+        assert_eq!(terminal_json["data"]["status"], "cancelled");
+        assert_eq!(
+            crate::domain::JobStatus::from(terminal.status),
+            crate::domain::JobStatus::Cancelled,
+        );
+        assert_eq!(
+            serde_json::from_value::<super::CleanupScanEvent>(terminal_json).unwrap(),
+            super::CleanupScanEvent::Terminal(terminal),
         );
     }
 

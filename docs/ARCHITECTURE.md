@@ -168,6 +168,8 @@ Rules:
 - Persist enough state to recover from app restart; do not falsely mark an interrupted job as success.
 - No automatic retry for destructive or non-idempotent actions without policy.
 
+M3-006 defines cleaner scan updates as serialized progress and terminal events keyed by the Activity Center job UUID. Progress reports stage and observed counts, plus whether cancellation is best-effort or unsupported; it does not invent a percentage when the total is unknown. A terminal event carries one terminal outcome (`succeeded`, `partial`, `failed`, `cancelled` or `timed_out`), final counts and a closed error code. A `cancelled` outcome is emitted only after work actually stops; a cancellation request alone is not completion. This is a DTO contract, not a wired UI or running scan executor.
+
 ## 7. Error model
 
 Use stable error codes/categories:
