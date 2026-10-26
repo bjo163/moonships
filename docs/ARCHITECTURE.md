@@ -305,6 +305,8 @@ M5-002 adds a strict normalized `IntelligenceItem` DTO with source identity/URL,
 
 M5-003 adds a native RSS 2.0 adapter callable for one explicitly enabled user source. It enforces the declared per-source minimum interval in-process, timeout, response and item caps; rejects redirects, proxy use, private/reserved DNS results and unsafe item URLs; parses RSS with a bounded XML parser; and returns stable errors for timeout, transport, HTTP, size and parse failures. Because the HTTP client is blocking, future IPC callers must dispatch it to a bounded blocking worker. The reviewed example source is JPL's documented public CNEOS RSS feed (`https://cneos.jpl.nasa.gov/feed/news.xml`); it is test metadata only and is never enabled or fetched automatically. The adapter has no scheduler, IPC/UI wiring or persistence; those remain follow-up tasks.
 
+M5-004 adds in-memory transient-failure backoff to the RSS request boundary. Retry eligibility is the later of the user-declared minimum poll interval and an exponential delay that starts at 60 seconds and caps at one hour; no automatic retry is performed. Successful fetches reset the failure count, and timeout/oversize errors remain stable typed outcomes. Backoff state is process-local until source state persistence is implemented.
+
 ## 11. AI adapter boundary
 
 AI consumes a limited context assembled by Moonships and can request only registered tools. Keep provider request/response types behind an internal interface. Persist prompt/output only when configured and necessary; redact secrets and minimize sensitive data.

@@ -114,6 +114,8 @@ M5-002 implements the item shape as a strict typed DTO. It keeps `source_id`, so
 
 M5-003 reads one user-enabled RSS 2.0 feed on an explicit native call and returns normalized `IntelligenceItem` values in memory. The feed's stable connector ID and source URL remain attached; RSS `pubDate` is normalized to UTC when valid, `observed_at` is recorded separately, and event time is left absent. No feed or item is stored, scheduled, or enabled by default. The process-local rate limiter is reset when the app restarts; durable last-attempt state and source settings are later work.
 
+M5-004 tracks per-connector failure count and retry eligibility in memory. After a failed fetch, retry is blocked until both the declared minimum poll interval and an exponential delay have elapsed; delay starts at 60 seconds and caps at one hour. Success clears the failure count. No retry is started automatically, and the state resets on app restart until connector persistence is added.
+
 ### Connection profile contract (M4-011)
 Profiles have a UUID ID, bounded display name and one tagged allowlisted transport: a known local terminal enum, SSH or RDP. Remote transports use a strict single host, nonzero port, optional username and optional opaque UUID secret reference. No password, private key, command line or arbitrary executable path field exists. The dedicated export DTO omits secret references; the safe log projection omits user content and target details. M4-011 defines the contract only: saved profile persistence, OS secret-store integration and transport execution remain future reviewed work.
 

@@ -22,12 +22,15 @@ use uuid::Uuid;
 const MAX_XML_EVENTS: usize = 100_000;
 const MAX_TRACKED_CONNECTORS: usize = 256;
 const MAX_RESOLVED_ADDRESSES: usize = 32;
+const BACKOFF_BASE_SECONDS: u64 = 60;
+const MAX_BACKOFF_SECONDS: u64 = 60 * 60;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RssFetchError {
     Disabled,
     InvalidConnector,
     RateLimited,
+    BackoffActive,
     ResolverBusy,
     ResolutionFailed,
     UnsafeAddress,
@@ -39,22 +42,63 @@ pub enum RssFetchError {
     InvalidItem,
 }
 
+#[derive(Clone, Copy)]
+struct PollState {
+    last_attempt: Instant,
+    consecutive_failures: u8,
+    retry_after: Option<Instant>,
+}
+
 #[derive(Default)]
 struct PollLimiter {
-    last_attempt: HashMap<String, Instant>,
+    states: HashMap<String, PollState>,
 }
 
 impl PollLimiter {
     fn claim(&mut self, id: &str, interval: Duration, now: Instant) -> Result<(), RssFetchError> {
-        if let Some(previous) = self.last_attempt.get(id) {
-            if now.saturating_duration_since(*previous) < interval {
+        if let Some(state) = self.states.get_mut(id) {
+            if now.saturating_duration_since(state.last_attempt) < interval {
                 return Err(RssFetchError::RateLimited);
             }
-        } else if self.last_attempt.len() >= MAX_TRACKED_CONNECTORS {
+            if state
+                .retry_after
+                .is_some_and(|retry_after| now < retry_after)
+            {
+                return Err(RssFetchError::BackoffActive);
+            }
+            state.last_attempt = now;
+        } else if self.states.len() >= MAX_TRACKED_CONNECTORS {
             return Err(RssFetchError::RateLimited);
+        } else {
+            self.states.insert(
+                id.to_owned(),
+                PollState {
+                    last_attempt: now,
+                    consecutive_failures: 0,
+                    retry_after: None,
+                },
+            );
         }
-        self.last_attempt.insert(id.to_owned(), now);
         Ok(())
+    }
+
+    fn record_failure(&mut self, id: &str, interval: Duration, now: Instant) {
+        if let Some(state) = self.states.get_mut(id) {
+            state.consecutive_failures = state.consecutive_failures.saturating_add(1);
+            let exponent = u32::from(state.consecutive_failures.saturating_sub(1)).min(6);
+            let exponential = BACKOFF_BASE_SECONDS
+                .saturating_mul(2u64.saturating_pow(exponent))
+                .min(MAX_BACKOFF_SECONDS);
+            let delay = interval.max(Duration::from_secs(exponential));
+            state.retry_after = now.checked_add(delay);
+        }
+    }
+
+    fn record_success(&mut self, id: &str) {
+        if let Some(state) = self.states.get_mut(id) {
+            state.consecutive_failures = 0;
+            state.retry_after = None;
+        }
     }
 }
 
@@ -90,7 +134,7 @@ impl RssTransport for HttpRssTransport {
             .resolve_to_addrs(host, &addresses)
             .build()
             .map_err(|_| RssFetchError::NetworkFailure)?;
-        let mut response = client
+        let response = client
             .get(url)
             .header(
                 reqwest::header::ACCEPT,
@@ -109,16 +153,7 @@ impl RssTransport for HttpRssTransport {
         {
             return Err(RssFetchError::ResponseTooLarge);
         }
-        let mut body = Vec::with_capacity(limit.min(64 * 1024) as usize);
-        response
-            .by_ref()
-            .take(limit.saturating_add(1))
-            .read_to_end(&mut body)
-            .map_err(map_io_error)?;
-        if body.len() as u64 > limit {
-            return Err(RssFetchError::ResponseTooLarge);
-        }
-        Ok(body)
+        read_bounded(response, limit)
     }
 }
 
@@ -136,6 +171,18 @@ fn map_io_error(error: std::io::Error) -> RssFetchError {
     } else {
         RssFetchError::NetworkFailure
     }
+}
+
+fn read_bounded(reader: impl Read, limit: u64) -> Result<Vec<u8>, RssFetchError> {
+    let mut body = Vec::with_capacity(limit.min(64 * 1024) as usize);
+    reader
+        .take(limit.saturating_add(1))
+        .read_to_end(&mut body)
+        .map_err(map_io_error)?;
+    if body.len() as u64 > limit {
+        return Err(RssFetchError::ResponseTooLarge);
+    }
+    Ok(body)
 }
 
 fn resolve_public_addresses(
@@ -249,10 +296,26 @@ fn fetch_rss_with_transport(
             Instant::now(),
         )?;
 
-    let bytes = transport.fetch(connector)?;
-    let observed_at = DateTime::<Utc>::from(std::time::SystemTime::now())
-        .to_rfc3339_opts(SecondsFormat::Millis, true);
-    parse_rss(&bytes, connector, &observed_at)
+    let result = transport.fetch(connector).and_then(|bytes| {
+        let observed_at = DateTime::<Utc>::from(std::time::SystemTime::now())
+            .to_rfc3339_opts(SecondsFormat::Millis, true);
+        parse_rss(&bytes, connector, &observed_at)
+    });
+    let mut state = limiter.lock().map_err(|_| RssFetchError::BackoffActive)?;
+    match result {
+        Ok(items) => {
+            state.record_success(&connector.id);
+            Ok(items)
+        }
+        Err(error) => {
+            state.record_failure(
+                &connector.id,
+                Duration::from_secs(connector.minimum_poll_interval_seconds),
+                Instant::now(),
+            );
+            Err(error)
+        }
+    }
 }
 
 #[derive(Default)]
@@ -585,6 +648,30 @@ mod tests {
     }
 
     #[test]
+    fn bounded_http_body_reader_maps_oversize_and_slow_reads() {
+        use std::io::{Cursor, Read};
+
+        assert_eq!(
+            read_bounded(Cursor::new(vec![b'x'; 9]), 8),
+            Err(RssFetchError::ResponseTooLarge)
+        );
+
+        struct TimedOutReader;
+        impl Read for TimedOutReader {
+            fn read(&mut self, _: &mut [u8]) -> std::io::Result<usize> {
+                Err(std::io::Error::new(
+                    std::io::ErrorKind::TimedOut,
+                    "fixture timeout",
+                ))
+            }
+        }
+        assert_eq!(
+            read_bounded(TimedOutReader, 8),
+            Err(RssFetchError::RequestTimedOut)
+        );
+    }
+
+    #[test]
     fn rate_limiter_applies_minimum_interval_and_bounded_connector_count() {
         let start = Instant::now();
         let mut limiter = PollLimiter::default();
@@ -609,12 +696,67 @@ mod tests {
             Ok(())
         );
         for index in 0..MAX_TRACKED_CONNECTORS {
-            limiter.last_attempt.insert(format!("id-{index}"), start);
+            limiter.states.insert(
+                format!("id-{index}"),
+                PollState {
+                    last_attempt: start,
+                    consecutive_failures: 0,
+                    retry_after: None,
+                },
+            );
         }
         assert_eq!(
             limiter.claim("another", Duration::from_secs(60), start),
             Err(RssFetchError::RateLimited)
         );
+    }
+
+    #[test]
+    fn repeated_failures_apply_capped_exponential_backoff() {
+        let start = Instant::now();
+        let mut limiter = PollLimiter::default();
+        let interval = Duration::from_secs(60);
+        limiter.claim("backoff", interval, start).unwrap();
+        let mut now = start;
+        for _ in 0..10 {
+            limiter.record_failure("backoff", interval, now);
+            now = limiter.states["backoff"].retry_after.unwrap();
+            limiter.claim("backoff", interval, now).unwrap();
+        }
+        limiter.record_failure("backoff", interval, now);
+        assert_eq!(
+            limiter.states["backoff"]
+                .retry_after
+                .unwrap()
+                .duration_since(now),
+            Duration::from_secs(MAX_BACKOFF_SECONDS)
+        );
+        limiter.record_success("backoff");
+        assert_eq!(limiter.states["backoff"].consecutive_failures, 0);
+
+        let mut limiter = PollLimiter::default();
+        limiter.claim("backoff", interval, start).unwrap();
+        limiter.record_failure("backoff", interval, start);
+        assert_eq!(
+            limiter.claim("backoff", interval, start + Duration::from_secs(59)),
+            Err(RssFetchError::RateLimited)
+        );
+        limiter
+            .claim("backoff", interval, start + Duration::from_secs(60))
+            .unwrap();
+        limiter.record_failure("backoff", interval, start + Duration::from_secs(60));
+        assert_eq!(
+            limiter.claim("backoff", interval, start + Duration::from_secs(120)),
+            Err(RssFetchError::BackoffActive)
+        );
+        limiter
+            .claim("backoff", interval, start + Duration::from_secs(180))
+            .unwrap();
+        limiter.record_success("backoff");
+        limiter
+            .claim("backoff", interval, start + Duration::from_secs(240))
+            .unwrap();
+        assert_eq!(limiter.states["backoff"].consecutive_failures, 0);
     }
 
     #[test]
