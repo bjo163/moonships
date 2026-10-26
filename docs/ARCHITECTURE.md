@@ -184,6 +184,8 @@ M3-013's default rule registry contains only app-owned scratch files older than 
 
 M3-014 stores only cleanup report summaries in SQLite and exposes a bounded, Personal-workspace read command for the Clean & Storage history. Reports retain outcome counts, estimate, successfully deleted logical file size, completion time and an optional Task ID; the database contains neither candidate paths nor per-file IDs. The native-only `execute_approved_cleanup_and_save` wrapper runs the exact approved executor operation and persists its completed summary; it is not exposed through renderer IPC. The UI loads recent reports with explicit loading, error/retry and empty states and links to a Task only after the user selects the link. The screen still does not start scanning or deletion.
 
+M3-015 adds an in-process JSON formatter/validator with a 1 MiB UTF-8 input limit, 128-level nesting bound and 4 million character formatted-output cap. The built-in JSON parser validates input; formatting changes whitespace only, preserving number and string tokens. It makes no provider, network or filesystem calls and reports empty, invalid, oversized and overly nested input distinctly.
+
 ## 7. Error model
 
 Use stable error codes/categories:

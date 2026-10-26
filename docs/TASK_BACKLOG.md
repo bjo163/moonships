@@ -146,7 +146,7 @@
 - [x] **M3-014 — Add cleanup report and optional task link** [S] [depends: M2-026,M3-011] — Save summary, not sensitive full path list by default. **AC:** result can be inspected after operation.
 
 ### Offline DevTools
-- [ ] **M3-015 — Add JSON formatter/validator** [S] — Pure local transformation. **AC:** valid, invalid and oversized input are tested.
+- [x] **M3-015 — Add JSON formatter/validator** [S] — Pure local transformation. **AC:** valid, invalid and oversized input are tested.
 - [ ] **M3-016 — Add YAML formatter/validator only with vetted parser** [S] — Keep parser selection explicit. **AC:** invalid YAML returns structured error.
 - [ ] **M3-017 — Add Base64 encode/decode** [S] — Handle UTF-8 and binary-vs-text clearly. **AC:** round-trip test passes.
 - [ ] **M3-018 — Add URL encode/decode** [S] — Distinguish components from full URLs. **AC:** reserved-character fixtures pass.

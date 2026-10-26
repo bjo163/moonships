@@ -95,6 +95,8 @@
 
 **Navigation rule:** the IA is a target map, not permission to ship empty pages. Hide unavailable modules or mark them clearly as “Planned”; never present placeholder screens as working tools.
 
+M3-015 exposes the implemented JSON formatter/validator as a DevTools navigation item. It has a labelled input, a single validate-and-format action, an accessible result/error message and a bounded scrollable output. It states that content stays local; other listed DevTools remain planned until implemented.
+
 ## 3. Home dashboard
 
 ### Layout
