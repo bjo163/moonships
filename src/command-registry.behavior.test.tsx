@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import App from "./App";
@@ -15,11 +15,13 @@ afterEach(cleanup);
 
 async function openPalette(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: "Open Command Palette" }));
-  return screen.getByRole("dialog", { name: "Command Palette" });
+  const palette = screen.getByRole("dialog", { name: "Command Palette" });
+  await waitFor(() => expect(within(palette).queryByRole("status")).toBeNull());
+  return palette;
 }
 
 describe("M1-032 registered commands in the running shell", () => {
-  it("lists exactly the registered commands, never arbitrary system actions", async () => {
+  it("lists registered commands and clearly identifies local entity types", async () => {
     const user = userEvent.setup();
     render(<App />);
     const palette = await openPalette(user);
@@ -31,6 +33,7 @@ describe("M1-032 registered commands in the running shell", () => {
     }
     expect(getRegisteredCommand("system.shell")).toBeUndefined();
     expect(within(palette).queryByText(/run shell/i)).toBeNull();
+    expect(within(palette).getAllByText("Command · Navigation").length).toBeGreaterThan(0);
   });
 
   it("navigates to a known route from an unavailable route", async () => {

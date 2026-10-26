@@ -40,7 +40,9 @@ describe("M1-031 Command Palette DOM behaviors", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
     rerender(<CommandPalette open commands={commands} onClose={() => {}} onSelect={onSelect} />);
     const dialog = screen.getByRole("dialog", { name: "Command Palette" });
-    const search = within(dialog).getByRole("searchbox", { name: "Search commands" });
+    const search = within(dialog).getByRole("searchbox", {
+      name: "Search projects, tasks and commands",
+    });
     expect(document.activeElement).toBe(search);
 
     await user.type(search, "project");
@@ -86,7 +88,7 @@ describe("M1-031 Command Palette DOM behaviors", () => {
       <CommandPalette open loading commands={commands} onClose={() => {}} onSelect={onSelect} />,
     );
     const search = screen.getByRole("searchbox");
-    expect(screen.getByRole("status").textContent).toContain("Loading commands");
+    expect(screen.getByRole("status").textContent).toContain("Loading local search");
     expect(search.hasAttribute("aria-activedescendant")).toBe(false);
     expect(screen.queryByRole("option")).toBeNull();
     await user.keyboard("{Enter}");
@@ -96,7 +98,7 @@ describe("M1-031 Command Palette DOM behaviors", () => {
     expect(screen.getByRole("status").textContent).toContain("No commands are registered yet");
     expect(search.hasAttribute("aria-activedescendant")).toBe(false);
     await user.type(search, "missing");
-    expect(screen.getByRole("status").textContent).toContain("No commands match this search");
+    expect(screen.getByRole("status").textContent).toContain("No local results match this search");
     expect(onSelect).not.toHaveBeenCalled();
   });
 
@@ -126,7 +128,7 @@ describe("M1-031 Command Palette DOM behaviors", () => {
       <CommandPalette open commands={commands} onClose={() => {}} onSelect={() => {}} />,
     );
     await user.type(screen.getByRole("searchbox"), "missing");
-    expect(screen.getByRole("status").textContent).toContain("No commands match");
+    expect(screen.getByRole("status").textContent).toContain("No local results match");
 
     rerender(
       <CommandPalette open={false} commands={commands} onClose={() => {}} onSelect={() => {}} />,
@@ -136,5 +138,49 @@ describe("M1-031 Command Palette DOM behaviors", () => {
     expect(search.value).toBe("");
     expect(document.activeElement).toBe(search);
     expect(screen.getAllByRole("option")).toHaveLength(commands.length);
+  });
+
+  it("labels each result entity type and offers retry after a local read failure", async () => {
+    const user = userEvent.setup();
+    const onRetry = vi.fn();
+    const onSelect = vi.fn();
+    const results: PaletteCommand[] = [
+      {
+        ...commands[0],
+        id: "project:p-1",
+        title: "Moon Habitat",
+        category: "Project",
+        entityType: "project",
+        targetId: "p-1",
+      },
+      {
+        ...commands[1],
+        id: "task:t-1",
+        title: "Build the habitat",
+        category: "Task",
+        entityType: "task",
+        targetId: "t-1",
+      },
+      { ...commands[2], category: "Command · Create", entityType: "command" },
+    ];
+    render(
+      <CommandPalette
+        open
+        commands={results}
+        loadError="Some local Task records could not be loaded. Available results remain searchable."
+        onRetry={onRetry}
+        onClose={() => {}}
+        onSelect={onSelect}
+      />,
+    );
+    expect(screen.getByText("Project")).toBeTruthy();
+    expect(screen.getByText("Task")).toBeTruthy();
+    expect(screen.getByText("Command · Create")).toBeTruthy();
+    await user.type(screen.getByRole("searchbox"), "habitat");
+    expect(screen.getAllByRole("option")).toHaveLength(2);
+    await user.keyboard("{ArrowDown}{Enter}");
+    expect(onSelect).toHaveBeenCalledWith(results[1]);
+    await user.click(screen.getByRole("button", { name: "Retry search" }));
+    expect(onRetry).toHaveBeenCalledOnce();
   });
 });

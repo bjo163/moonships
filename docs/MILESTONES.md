@@ -84,6 +84,8 @@ Exit criteria:
 
 > 2026-10-26 follow-up: M2-033 replaces the Home placeholder with a fixed-Personal-workspace, read-only dashboard command. It derives open/overdue/due-soon/blocked counts from active SQLite records, and returns bounded recent Projects, overdue/upcoming Tasks and normal-sensitivity Activity. The UI has honest first-run, empty, loading and retryable error states, links to saved records and refreshes after Task creation; approval work is explicitly unavailable. No polling, synthetic events or fake health metrics were added. Local verification passed Rust 96/96, Clippy, Rust format, `npm run check` (repository 8/8, frontend 105/105, typecheck/build), Windows MSI/NSIS packaging and backlog validation. CI [40291006541](https://github.com/bjo163/moonships/actions/runs/40291006541) passed 5/5 jobs; backlog sync [40291006493](https://github.com/bjo163/moonships/actions/runs/40291006493) passed and closed existing issue [#67](https://github.com/bjo163/moonships/issues/67). M2-034 and M2-035 remain; M2 exit gates remain open. Manual Windows UI verification is not claimed.
 
+> 2026-10-26 follow-up: M2-034 global search combines the registered command catalog with active local Projects and Tasks through the existing Personal-scoped APIs. Typed results open record details, matching includes Project/Task descriptions, keyboard arrows and Enter select every result type, and independent source failures preserve available matches with retry. Local validation passed `npm run check` (8 repository tests, 108 frontend tests, typecheck and production build), `git diff --check`, and backlog validation. Existing issue #68 and CI are pending for this code commit; manual Windows WebView behavior is not claimed. M2-035 usability observations and remaining milestone exit gates remain open.
+
 > 2026-10-26 follow-up: M2-027 adds discoverable `Ctrl+Alt+N` / `⌘+Option+N` access to the shared persisted Task creation dialog. The shortcut ignores editable controls and active dialogs; targeted behavior and App contract tests passed 39/39. CI [40285806600](https://github.com/bjo163/moonships/actions/runs/40285806600) passed 5/5 jobs, including Windows package smoke build; backlog sync [40285806580](https://github.com/bjo163/moonships/actions/runs/40285806580) closed existing issue [#61](https://github.com/bjo163/moonships/issues/61). M2-029 is next and is accepted in the newer checkpoint above; M2 remains open.
 
 > 2026-10-26 follow-up: M2-026 defines safe Project/Task references: validated credential-free HTTP(S), namespaced opaque provider IDs, or opaque app-managed artifact IDs. Renderer paths and unsafe URL schemes are rejected; saving does not open, fetch, download or execute targets. Explicit opening requires a reviewed native adapter. Backlog validator passed; this is a documentation contract, not a shipped UI/storage feature. M2-027 was next at that checkpoint and is accepted in a newer checkpoint; M2 remains open.
@@ -122,7 +124,7 @@ Deliverables:
 Exit criteria:
 - [ ] Create/edit/archive project and task; persist across restart.
 - [x] Home dashboard counts are derived from persisted data and have honest empty/error states.
-- [ ] Global search finds local entities by type and is keyboard-navigable.
+- [x] Global search finds local entities by type and is keyboard-navigable.
 - [ ] Task can exist without project (personal inbox).
 - [ ] Canonical statuses and priorities are consistent across views.
 - [ ] Filters/sorts do not mutate source records accidentally.

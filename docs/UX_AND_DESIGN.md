@@ -198,7 +198,11 @@ Search categories:
 
 Behavior:
 - Show keyboard navigation and selected item.
-- Include tool category and risk indicator.
+- Search active local Project names/descriptions/goals, Task titles/descriptions, and registered command names from this single entry point.
+- Identify each result as a Project, Task or Command; preserve the command category and risk indicator.
+- Project and Task results open their existing detail routes. Arrow keys and Enter work for all result types.
+- Keep registered commands and successful local sources available if another source read fails; show which local source failed and offer retry.
+- Distinguish a successful no-match result from an empty command registry.
 - Do not execute a destructive/high-impact operation directly from a search result; open its preview/confirmation flow.
 - Search result ranking should be deterministic and work offline for local commands.
 - Future AI semantic matching must supplement, never replace, literal search.

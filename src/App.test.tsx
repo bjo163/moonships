@@ -419,7 +419,7 @@ describe("M1-031 Command Palette surface", () => {
     const empty = renderToStaticMarkup(
       <CommandPalette open commands={[]} onClose={() => {}} onSelect={() => {}} />,
     );
-    expect(loading).toContain("Loading commands…");
+    expect(loading).toContain("Loading local search…");
     expect(loading).toContain('aria-busy="true"');
     expect(empty).toContain("No commands are registered yet.");
   });

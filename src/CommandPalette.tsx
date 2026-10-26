@@ -9,12 +9,16 @@ export type PaletteCommand = {
   category: string;
   risk: PaletteRisk;
   keywords?: string[];
+  entityType?: "command" | "project" | "task";
+  targetId?: string;
 };
 
 type CommandPaletteProps = {
   commands: PaletteCommand[];
   open: boolean;
   loading?: boolean;
+  loadError?: string | null;
+  onRetry?: () => void;
   onClose: () => void;
   onSelect: (command: PaletteCommand) => void;
 };
@@ -41,6 +45,8 @@ export function CommandPalette({
   commands,
   open,
   loading = false,
+  loadError = null,
+  onRetry,
   onClose,
   onSelect,
 }: CommandPaletteProps) {
@@ -120,14 +126,14 @@ export function CommandPalette({
           </button>
         </div>
         <label className="command-palette-search-label" htmlFor="command-palette-search">
-          Search commands
+          Search projects, tasks and commands
         </label>
         <input
           ref={searchRef}
           id="command-palette-search"
           className="command-palette-search"
           type="search"
-          placeholder="Search pages and registered commands…"
+          placeholder="Search project names, task titles and descriptions…"
           value={query}
           onChange={(event) => {
             setQuery(event.target.value);
@@ -147,16 +153,18 @@ export function CommandPalette({
           id="command-palette-results"
           className="command-palette-results"
           role="listbox"
-          aria-label="Command results"
+          aria-label="Global search results"
           aria-busy={loading}
         >
           {loading ? (
             <p className="command-palette-state" role="status">
-              Loading commands…
+              Loading local search…
             </p>
           ) : results.length === 0 ? (
             <p className="command-palette-state" role="status">
-              {query.trim() ? "No commands match this search." : "No commands are registered yet."}
+              {query.trim()
+                ? "No local results match this search."
+                : "No commands are registered yet."}
             </p>
           ) : (
             results.map((command, index) => (
@@ -184,8 +192,18 @@ export function CommandPalette({
             ))
           )}
         </div>
+        {loadError ? (
+          <div className="command-palette-load-error" role="alert">
+            <span>{loadError}</span>
+            {onRetry ? (
+              <button className="button-secondary" type="button" onClick={onRetry}>
+                Retry search
+              </button>
+            ) : null}
+          </div>
+        ) : null}
         <div className="command-palette-footer">
-          <span>LOCAL-FIRST · DETERMINISTIC SEARCH</span>
+          <span>LOCAL PROJECTS, TASKS AND REGISTERED COMMANDS</span>
           <span>Esc to close</span>
         </div>
       </section>

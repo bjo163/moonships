@@ -9,8 +9,9 @@ import { TaskDetailPage } from "./TaskDetailPage";
 import { TaskCreateDialog } from "./TaskCreateDialog";
 import { HomeDashboardPage } from "./HomeDashboardPage";
 import { Button } from "./ui-primitives";
-import { CommandPalette } from "./CommandPalette";
+import { CommandPalette, type PaletteCommand } from "./CommandPalette";
 import { getPaletteCommands, getRegisteredCommand } from "./command-registry";
+import { loadGlobalSearch, type GlobalSearchResult } from "./global-search";
 import {
   getWorkspaceProfile,
   readWorkspaceProfile,
@@ -498,6 +499,16 @@ export default function App() {
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [searchResults, setSearchResults] = useState<GlobalSearchResult[]>(() =>
+    getPaletteCommands().map((command) => ({
+      ...command,
+      category: `Command · ${command.category}`,
+      entityType: "command",
+    })),
+  );
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchLoadError, setSearchLoadError] = useState<string | null>(null);
+  const searchRequestRef = useRef(0);
   const [profileId, setProfileId] = useState<WorkspaceProfileId>(
     () => readWorkspaceProfile(getBrowserStorage()) ?? "developer",
   );
@@ -516,6 +527,27 @@ export default function App() {
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
   const [createTaskProjectId, setCreateTaskProjectId] = useState<string | null>(null);
   const [homeRefreshSignal, setHomeRefreshSignal] = useState(0);
+
+  const refreshGlobalSearch = useCallback(() => {
+    const requestId = ++searchRequestRef.current;
+    setSearchLoading(true);
+    setSearchLoadError(null);
+    void loadGlobalSearch().then(({ results, failedAdapters }) => {
+      if (requestId !== searchRequestRef.current) return;
+      setSearchResults(results);
+      setSearchLoadError(
+        failedAdapters.length
+          ? `Some local ${failedAdapters.join(" and ")} records could not be loaded. Available results remain searchable.`
+          : null,
+      );
+      setSearchLoading(false);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (commandPaletteOpen) refreshGlobalSearch();
+    else searchRequestRef.current += 1;
+  }, [commandPaletteOpen, refreshGlobalSearch]);
 
   const openTaskCreation = useCallback((projectId?: string) => {
     setCreateTaskProjectId(projectId ?? null);
@@ -626,6 +658,20 @@ export default function App() {
         command.entity +
         ". Local persistence is not implemented yet, so no data has been created. This preview does not grant permissions or execute a tool.",
     });
+  };
+
+  const selectGlobalSearchResult = (result: PaletteCommand) => {
+    if (result.entityType === "project" && result.targetId) {
+      setCommandPaletteOpen(false);
+      window.location.hash = `#/projects/${encodeURIComponent(result.targetId)}`;
+      return;
+    }
+    if (result.entityType === "task" && result.targetId) {
+      setCommandPaletteOpen(false);
+      window.location.hash = `#/tasks/${encodeURIComponent(result.targetId)}`;
+      return;
+    }
+    selectPaletteCommand(result.id);
   };
 
   const toggleTheme = () => {
@@ -760,9 +806,12 @@ export default function App() {
       )}
       <CommandPalette
         open={commandPaletteOpen}
-        commands={getPaletteCommands()}
+        commands={searchResults}
+        loading={searchLoading}
+        loadError={searchLoadError}
+        onRetry={refreshGlobalSearch}
         onClose={() => setCommandPaletteOpen(false)}
-        onSelect={(command) => selectPaletteCommand(command.id)}
+        onSelect={selectGlobalSearchResult}
       />
       <TaskCreateDialog
         open={createTaskOpen}
