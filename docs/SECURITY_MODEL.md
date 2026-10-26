@@ -75,6 +75,12 @@ Use named capabilities instead of one broad “admin” permission. Examples (ex
 
 A capability describes authority; it does not by itself authorize every target or argument. Scope, risk, user consent and environment constraints are checked separately.
 
+### External adapter manifest contract (M6-001)
+
+- A manifest is bounded descriptive metadata with a stable ID, three-part numeric version, name, description, closed adapter-kind enum and a unique list of closed capability labels. Unknown JSON fields and unbounded values are rejected.
+- Capability labels are documentation only and never grant a Tauri command, filesystem/network/process permission or approval. Health (`available`, `degraded`, `unavailable`, `disabled`, `unsupported`) and bounded optional diagnostic/time are reported separately from manifest identity.
+- This contract does not enumerate installed files, trust a manifest as executable authority, download/update code, load a dynamic library, start a process or create an adapter runtime. Future execution requires a separately scoped task for signature/provenance, isolation, permission mediation, lifecycle and failure handling.
+
 ### Risk classes
 - **R0 Read-only/local:** local metadata, format conversion, task searches.
 - **R1 Network/read-only:** DNS, GET/status checks or source fetch. Still subject to host/provider rules and limits.

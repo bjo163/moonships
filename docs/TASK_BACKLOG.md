@@ -197,7 +197,7 @@
 
 ## M6 — Specialist workflows
 
-- [ ] **M6-001 — Define external adapter manifest and health state** [S] — No dynamic plugin execution yet. **AC:** adapter metadata/version/availability is testable.
+- [x] **M6-001 — Define external adapter manifest and health state** [S] — No dynamic plugin execution yet. **AC:** adapter metadata/version/availability is testable. Added bounded typed manifest and health DTOs with closed kind/capability/availability enums, strict JSON shape and tests for identity/version/text/capability and timestamp validation. Capability labels grant no authority; no persistence, discovery or dynamic execution is added.
 - [ ] **M6-002 — Add HTTP request/response inspection tool** [S] — Safe defaults and redaction. **AC:** auth/cookie headers are redacted from saved history.
 - [ ] **M6-003 — Add OpenAPI document viewer/validator** [S] — Validate local/imported schema. **AC:** oversized/malformed document is safely rejected.
 - [ ] **M6-004 — Add API result-to-task artifact link** [S] [depends: M2-026] — Save redacted request/response metadata. **AC:** payload size and secret controls apply.

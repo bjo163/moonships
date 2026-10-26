@@ -14,6 +14,9 @@
 
 ## 2. Core entities
 
+### External adapter manifest (M6-001)
+`AdapterManifest` is a data-only contract: stable ID, name, numeric `major.minor.patch` version, closed kind, bounded description and unique closed capability labels. `AdapterHealth` associates an adapter ID with explicit availability, optional RFC 3339 check time and bounded diagnostic text. Neither object is persisted or executable in this task; capabilities are descriptive and grant no authority. Future install/runtime lifecycle remains separate.
+
 ### Workspace
 Purpose: local grouping of projects, settings and views.
 Fields: id, name, description?, profile_type?, created_at, updated_at, archived_at?.

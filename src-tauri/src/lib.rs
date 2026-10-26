@@ -1,4 +1,5 @@
 pub mod activity;
+pub mod adapter_manifest;
 pub mod cleaner;
 pub mod cleanup_reports;
 pub mod config;
