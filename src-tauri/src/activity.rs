@@ -21,11 +21,17 @@ pub enum ActivityAction {
 impl ActivityAction {
     fn values(self, kind: ActivityEntityKind) -> (&'static str, &'static str, &'static str) {
         match (kind, self) {
-            (ActivityEntityKind::Project, Self::Created) => ("project", "created", "Project created"),
+            (ActivityEntityKind::Project, Self::Created) => {
+                ("project", "created", "Project created")
+            }
             (ActivityEntityKind::Task, Self::Created) => ("task", "created", "Task created"),
-            (ActivityEntityKind::Project, Self::Updated) => ("project", "updated", "Project updated"),
+            (ActivityEntityKind::Project, Self::Updated) => {
+                ("project", "updated", "Project updated")
+            }
             (ActivityEntityKind::Task, Self::Updated) => ("task", "updated", "Task updated"),
-            (ActivityEntityKind::Project, Self::Archived) => ("project", "archived", "Project archived"),
+            (ActivityEntityKind::Project, Self::Archived) => {
+                ("project", "archived", "Project archived")
+            }
             (ActivityEntityKind::Task, Self::Archived) => ("task", "archived", "Task archived"),
         }
     }
@@ -38,7 +44,13 @@ pub fn record_creation(
     kind: ActivityEntityKind,
     entity_id: &str,
 ) -> Result<(), String> {
-    record_change(transaction, workspace_id, kind, entity_id, ActivityAction::Created)
+    record_change(
+        transaction,
+        workspace_id,
+        kind,
+        entity_id,
+        ActivityAction::Created,
+    )
 }
 
 pub fn record_change(

@@ -148,7 +148,6 @@ pub fn create_project(
     Ok(created)
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UpdateProject {
@@ -187,17 +186,29 @@ fn read_project(connection: &Connection, workspace_id: &str, id: &str) -> Result
         .ok_or_else(|| "NOT_FOUND: project is not available in this workspace".to_string())
 }
 
-pub fn update_project(connection: &mut Connection, request: UpdateProject) -> Result<Project, String> {
+pub fn update_project(
+    connection: &mut Connection,
+    request: UpdateProject,
+) -> Result<Project, String> {
     let workspace_id = request.workspace_id.trim();
     let id = request.id.trim();
     let name = request.name.trim();
-    if workspace_id.is_empty() || id.is_empty() || name.is_empty()
+    if workspace_id.is_empty()
+        || id.is_empty()
+        || name.is_empty()
         || name.chars().count() > MAX_NAME_CHARS
     {
-        return Err("VALIDATION_FAILED: project and workspace IDs and name are required".to_string());
+        return Err(
+            "VALIDATION_FAILED: project and workspace IDs and name are required".to_string(),
+        );
     }
-    if !matches!(request.status.as_str(), "planned" | "active" | "paused" | "completed") {
-        return Err("VALIDATION_FAILED: update status must not bypass archive operation".to_string());
+    if !matches!(
+        request.status.as_str(),
+        "planned" | "active" | "paused" | "completed"
+    ) {
+        return Err(
+            "VALIDATION_FAILED: update status must not bypass archive operation".to_string(),
+        );
     }
     let description = nonempty_optional(request.description, MAX_DESCRIPTION_CHARS)?;
     let goal = nonempty_optional(request.goal, MAX_GOAL_CHARS)?;
@@ -428,9 +439,11 @@ mod tests {
         assert_eq!(archived.status, "archived");
         assert!(archived.archived_at.is_some());
         let linked_task: String = connection
-            .query_row("SELECT title FROM tasks WHERE id = 'linked-task'", [], |row| {
-                row.get(0)
-            })
+            .query_row(
+                "SELECT title FROM tasks WHERE id = 'linked-task'",
+                [],
+                |row| row.get(0),
+            )
             .expect("linked task retained");
         assert_eq!(linked_task, "Keep task");
         assert!(archive_project(&mut connection, PERSONAL, &created.id).is_err());
@@ -503,5 +516,4 @@ mod tests {
             .unwrap();
         assert_eq!(event_count, 1);
     }
-
 }
