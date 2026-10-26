@@ -1,4 +1,5 @@
 pub mod activity;
+pub mod cleaner;
 pub mod config;
 pub mod domain;
 pub mod home_dashboard;

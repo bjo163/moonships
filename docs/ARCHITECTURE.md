@@ -201,6 +201,10 @@ Human-facing messages should explain the next safe step. Technical details go to
 - Handle locked files, access denied, races and long paths without crashing.
 - Core project management and offline DevTools must not depend on elevated privileges.
 
+### Cleaner rule contract (M3-001)
+
+The native cleaner contract is declarative: a rule has a stable ID/version, category, closed root identifier, minimum age and per-item byte ceiling. Roots are app-managed temporary storage, app cache, or the current user's OS-resolved temporary directory; no rule or renderer supplies an absolute path. The native platform adapter must resolve the root and later verify containment before scanning. Eligibility is a pure function over candidate metadata and a caller-supplied observation time. It accepts only regular files in the rule's bound root that meet the age and size limits; invalid rules, links/directories, future timestamps, mismatched roots, recent files and oversized files are excluded. It performs no filesystem I/O and has no deletion operation. Traversal, containment, link handling, candidate identity and mutation remain separate later tasks.
+
 ## 9. Persistence and transactions
 
 - Store app-owned data under an OS-appropriate per-user application data directory.

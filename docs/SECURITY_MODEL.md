@@ -95,6 +95,7 @@ Risk class is separate from task priority, vulnerability severity and business i
 
 ## 5. Cleaner-specific safety
 
+- M3-001 defines rules as typed metadata with closed root IDs only: app-managed temporary storage, app cache, or an OS-resolved user temporary directory. Rules and renderer inputs cannot supply arbitrary paths. The pure eligibility evaluator accepts metadata only and never reads or deletes files; platform root resolution, path containment and link checks are separate required gates before traversal.
 - Scan is read-only.
 - Candidate set comes from registered cleanup rules, never arbitrary UI-provided paths.
 - Default targets are narrow and documented; no broad recursive deletion of a user profile.
