@@ -123,6 +123,8 @@ M4-014 adds a NetOps page for one bounded DNS or TCP diagnostic. It displays the
 
 M6-002 adds **HTTP Inspector** under Toolbox. The user submits one public HTTPS URL and explicitly starts a GET; the page shows status, bounded response headers/body and observation time. It clearly states the 10-second timeout, 256 KiB cap, redirect/private-target rejection, absence of auth/cookie inputs, and that response body remains in memory. The local history shows only status, size, redacted URL and redacted headers, with distinct loading, empty, unavailable and request failure states.
 
+M6-003 adds **OpenAPI Viewer** under Toolbox. A user selects a local JSON/YAML file through the native picker. Loading, cancellation, parse/validation failure and a valid summary are distinct. The screen displays spec version, title, API version and path count, then offers the source text in a collapsed, escaped-text viewer. It states the 1 MiB limit and that validation is structural/local, does not resolve references and never contacts API servers.
+
 ## 4. Project & task UX
 
 ### Projects list — M2-014 initial slice

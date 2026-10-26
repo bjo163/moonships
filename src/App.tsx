@@ -13,6 +13,7 @@ import { HttpInspectorPage } from "./HttpInspectorPage";
 import { IntelligencePage } from "./IntelligencePage";
 import { IntelligenceSourcesPage } from "./IntelligenceSourcesPage";
 import { NetOpsPage } from "./NetOpsPage";
+import { OpenApiDocumentPage } from "./OpenApiDocumentPage";
 import { ProcessesPage } from "./ProcessesPage";
 import { ProjectOverviewPage } from "./ProjectOverviewPage";
 import { ProjectsPage } from "./ProjectsPage";
@@ -169,6 +170,13 @@ export function AppShell({
             aria-current={activeRoute === "http-inspector" ? "page" : undefined}
           >
             <span>HTTP Inspector</span>
+          </a>
+          <a
+            className={`nav-item${activeRoute === "openapi" ? " nav-item-active" : ""}`}
+            href="#/openapi"
+            aria-current={activeRoute === "openapi" ? "page" : undefined}
+          >
+            <span>OpenAPI Viewer</span>
           </a>
           <a
             className={`nav-item${activeRoute === "intelligence-sources" ? " nav-item-active" : ""}`}
@@ -979,6 +987,8 @@ export default function App() {
         <NetOpsPage />
       ) : route.kind === "page" && route.id === "http-inspector" ? (
         <HttpInspectorPage />
+      ) : route.kind === "page" && route.id === "openapi" ? (
+        <OpenApiDocumentPage />
       ) : route.kind === "page" && route.id === "intelligence-sources" ? (
         <IntelligenceSourcesPage />
       ) : route.kind === "page" && route.id === "watchlists" ? (

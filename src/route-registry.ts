@@ -37,6 +37,7 @@ export const ROUTE_REGISTRY = {
   activity: { id: "activity", label: "Activity Center", hash: "#/activity" },
   netops: { id: "netops", label: "NetOps", hash: "#/netops" },
   "http-inspector": { id: "http-inspector", label: "HTTP Inspector", hash: "#/http-inspector" },
+  openapi: { id: "openapi", label: "OpenAPI Viewer", hash: "#/openapi" },
   "intelligence-sources": {
     id: "intelligence-sources",
     label: "Intelligence Sources",

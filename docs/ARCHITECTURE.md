@@ -337,6 +337,8 @@ M6-001 defines typed `AdapterManifest` metadata and `AdapterHealth` states for f
 
 M6-002 provides an explicit one-shot HTTPS GET Inspector on port 443 only. The target must be a public DNS/IP address; DNS is resolved once and pinned, private/reserved answers are rejected, redirects and proxies are disabled, the timeout is 10 seconds, response bytes are capped at 256 KiB, and a process-local gate allows only one active request and at least five seconds between starts. No credentials/cookies/custom headers are sent. Response content is returned to the open UI in memory; saved history retains only status, size, safe request/response headers, observation time and a URL with common credential query keys redacted. History is local, capped at 200, and stores no response body.
 
+M6-003 adds a local OpenAPI document viewer. A native file chooser reads at most 1 MiB of UTF-8 text and returns no path; parsing/validation runs locally with YAML 1.2 duplicate-key rejection and aliases disabled. The validator checks OpenAPI 3.0/3.1 version, `info.title`, `info.version` and a bounded `paths` object. The original file text is shown as escaped text only. It neither resolves `$ref`, loads remote schemas, nor contacts API servers; this is a bounded structural validator, not full OpenAPI conformance.
+
 ## 11. AI adapter boundary
 
 AI consumes a limited context assembled by Moonships and can request only registered tools. Keep provider request/response types behind an internal interface. Persist prompt/output only when configured and necessary; redact secrets and minimize sensitive data.

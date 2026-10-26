@@ -87,6 +87,12 @@ A capability describes authority; it does not by itself authorize every target o
 - One request is active at a time, with a process-local minimum five-second interval, 10-second total request timeout and 256 KiB response cap. No automatic retry, route-open request or background fetch occurs.
 - The response body is shown only in the current UI result and is not saved to history. History is capped at 200 and stores status, byte count, UTC observation time and bounded request/response headers only after case-insensitive redaction of authorization, proxy authorization, cookie, set-cookie, token, API-key, secret and password headers. Sensitive URL query keys (token, API key, key, secret, password, auth, signature) are redacted in history; the original query is still sent only because the user explicitly submitted the URL. Unknown headers/paths are not assumed safe when exported in a future task.
 
+### OpenAPI document viewer (M6-003)
+
+- A user action opens the native Windows file picker; renderer code cannot supply a path. Native code reads at most 1 MiB, rejects non-UTF-8 and oversized files, and returns only the filename plus bounded text. No database persistence or network access is performed.
+- The pinned local `yaml@2.9.1` parser uses YAML 1.2, strict duplicate keys and `maxAliasCount: 0`; parser exceptions are caught, and diagnostics expose stable parser codes rather than source excerpts. Input is capped before parsing. The viewer displays source as escaped text, not HTML.
+- Validation only checks a top-level object, OpenAPI 3.0/3.1 version, required `info.title`/`info.version`, and bounded `paths`. It does not dereference `$ref`, access API servers, fetch external schemas or claim full specification conformance. Imported descriptions/examples are untrusted text.
+
 ### Risk classes
 - **R0 Read-only/local:** local metadata, format conversion, task searches.
 - **R1 Network/read-only:** DNS, GET/status checks or source fetch. Still subject to host/provider rules and limits.

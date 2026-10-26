@@ -511,6 +511,13 @@ struct InspectHttpRequestDto {
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct OpenApiDocumentDto {
+    file_name: String,
+    content: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct FetchIntelligenceResultDto {
     source_id: String,
     fetched_count: usize,
@@ -717,6 +724,57 @@ async fn inspect_http_response(
     })
     .await
     .map_err(|_| "HTTP_INSPECTION_ERROR: request worker did not complete".to_owned())?
+}
+
+#[tauri::command]
+async fn select_openapi_document(app: AppHandle) -> Result<Option<OpenApiDocumentDto>, String> {
+    #[cfg(not(windows))]
+    {
+        let _ = app;
+        Err("UNSUPPORTED: OpenAPI file selection is currently available on Windows".to_owned())
+    }
+    #[cfg(windows)]
+    {
+        tauri::async_runtime::spawn_blocking(move || {
+            let window = app
+                .get_webview_window("main")
+                .ok_or_else(|| "IO_ERROR: main window is unavailable".to_owned())?;
+            let Some(path) = rfd::FileDialog::new()
+                .set_parent(&window)
+                .set_title("Open OpenAPI Document")
+                .add_filter("OpenAPI document", &["json", "yaml", "yml"])
+                .pick_file()
+            else {
+                return Ok(None);
+            };
+            let file = std::fs::File::open(&path)
+                .map_err(|_| "IO_ERROR: selected OpenAPI document could not be read".to_owned())?;
+            if file
+                .metadata()
+                .map(|metadata| metadata.len() > 1024 * 1024)
+                .unwrap_or(true)
+            {
+                return Err("LIMIT_REACHED: OpenAPI document exceeds the 1 MiB limit".to_owned());
+            }
+            use std::io::Read;
+            let mut bytes = Vec::new();
+            file.take(1024 * 1024 + 1)
+                .read_to_end(&mut bytes)
+                .map_err(|_| "IO_ERROR: selected OpenAPI document could not be read".to_owned())?;
+            if bytes.len() > 1024 * 1024 {
+                return Err("LIMIT_REACHED: OpenAPI document exceeds the 1 MiB limit".to_owned());
+            }
+            let content = String::from_utf8(bytes)
+                .map_err(|_| "VALIDATION_ERROR: OpenAPI document must be UTF-8 text".to_owned())?;
+            let file_name = path
+                .file_name()
+                .map(|name| name.to_string_lossy().chars().take(255).collect())
+                .unwrap_or_else(|| "OpenAPI document".to_owned());
+            Ok(Some(OpenApiDocumentDto { file_name, content }))
+        })
+        .await
+        .map_err(|_| "IO_ERROR: OpenAPI selection worker did not complete".to_owned())?
+    }
 }
 
 #[tauri::command]
@@ -1865,6 +1923,7 @@ pub fn run() {
             export_intelligence_source,
             inspect_http_response,
             list_http_inspection_history,
+            select_openapi_document,
             set_intelligence_source_enabled,
             list_intelligence_watchlists,
             save_intelligence_watchlist,

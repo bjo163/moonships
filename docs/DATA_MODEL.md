@@ -19,6 +19,8 @@
 
 M6-002 schema v16 adds a bounded local HTTP inspection history of at most 200 rows. Each versionless strict JSON row contains an ID, observation time, redacted URL, status, byte count, fixed request-header metadata, redacted response headers and an optional stable error code. Persistence redacts sensitive header names again at the storage boundary and redacts common credential query keys. Response bodies and request credentials/cookies are never persisted. The current GET adapter does not accept custom request headers, non-GET methods or non-443 ports.
 
+M6-003 creates no database records. A native picker returns a bounded UTF-8 document and leaf filename for the current view only. The parsed OpenAPI metadata and original text are in-memory UI state and are discarded when the page is left; no paths, source contents or resolved references are persisted.
+
 ### Workspace
 Purpose: local grouping of projects, settings and views.
 Fields: id, name, description?, profile_type?, created_at, updated_at, archived_at?.
