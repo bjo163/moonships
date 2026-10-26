@@ -227,6 +227,60 @@ describe("M2-018 persisted Task List", () => {
     expect(tasks.find((task) => task.id === "task-z")?.status).toBe("done");
   });
 
+  it("searches titles and descriptions case-insensitively and clears distinct no-results state", async () => {
+    const user = userEvent.setup();
+    mockResponses([
+      ...sampleTasks,
+      makeTask({
+        id: "task-description",
+        title: "Migration notes",
+        description: "Prepare the MOONSHIPS handoff",
+      }),
+    ]);
+    render(<TaskListPage onCreateTask={() => undefined} onOpenTask={() => undefined} />);
+
+    const search = await screen.findByRole("searchbox", { name: "Search tasks" });
+    await user.type(search, "zEtA");
+    await screen.findByText("1 of 4 active tasks");
+    expect(screen.getAllByRole("rowheader").map((row) => row.textContent?.trim())).toEqual([
+      "Zeta task",
+    ]);
+    expect(screen.queryByText("Alpha task")).toBeNull();
+    expect(screen.getByText("1 of 4 active tasks")).toBeTruthy();
+
+    await user.clear(search);
+    await user.type(search, "moonships");
+    await screen.findByText("Prepare the MOONSHIPS handoff");
+    expect(screen.getAllByRole("rowheader").map((row) => row.textContent?.trim())).toEqual([
+      "Migration notesPrepare the MOONSHIPS handoff",
+    ]);
+    expect(screen.getByText("Prepare the MOONSHIPS handoff")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Board" }));
+    expect(
+      within(screen.getByRole("region", { name: "Todo" })).getByRole("button", {
+        name: "Migration notes",
+      }),
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Alpha task" })).toBeNull();
+
+    await user.clear(search);
+    await user.type(search, "not present");
+    expect(
+      await screen.findByRole("heading", { name: "No tasks match “not present”" }),
+    ).toBeTruthy();
+    expect(screen.getByText("0 of 4 active tasks")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Clear search" }));
+    await screen.findByText("4 active tasks");
+    await user.click(screen.getByRole("button", { name: "List" }));
+    expect(screen.getAllByRole("rowheader").map((row) => row.textContent?.trim())).toEqual([
+      "Alpha task",
+      "alpha task",
+      "Migration notesPrepare the MOONSHIPS handoff",
+      "Zeta task",
+    ]);
+    expect(screen.queryByText("No tasks match “not present”")).toBeNull();
+  });
+
   it("distinguishes an empty persisted list from an unavailable list and retries", async () => {
     const user = userEvent.setup();
     let taskAttempt = 0;
@@ -245,6 +299,9 @@ describe("M2-018 persisted Task List", () => {
     expect(await screen.findByText("Tasks are unavailable")).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Try again" }));
     expect(await screen.findByText("No active tasks yet")).toBeTruthy();
+    await user.type(screen.getByRole("searchbox", { name: "Search tasks" }), "missing");
+    expect(await screen.findByRole("heading", { name: "No tasks match “missing”" })).toBeTruthy();
+    expect(screen.queryByText("Tasks are unavailable")).toBeNull();
   });
 
   it("keeps persisted tasks visible when optional project names cannot be read", async () => {

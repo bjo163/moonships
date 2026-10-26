@@ -50,6 +50,8 @@ export function TaskListPage({
   const [sortKey, setSortKey] = useState<TaskSortKey>("title");
   const [sortDirection, setSortDirection] = useState<SortDirection>("ascending");
   const [view, setView] = useState<"list" | "board">("list");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [normalizedQuery, setNormalizedQuery] = useState("");
   const [updatingTaskIds, setUpdatingTaskIds] = useState<Set<string>>(() => new Set());
   const updatingTaskIdsRef = useRef(new Set<string>());
   const [statusMessage, setStatusMessage] = useState("");
@@ -79,13 +81,28 @@ export function TaskListPage({
     void reload();
   }, [reload]);
 
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setNormalizedQuery(searchQuery.trim().toLowerCase());
+    }, 150);
+    return () => window.clearTimeout(timeoutId);
+  }, [searchQuery]);
+
   const projectNames = useMemo(
     () => new Map(projects.map((project) => [project.id, project.name])),
     [projects],
   );
+  const matchingTasks = useMemo(() => {
+    if (!normalizedQuery) return tasks;
+    return tasks.filter(
+      (task) =>
+        task.title.toLowerCase().includes(normalizedQuery) ||
+        (task.description?.toLowerCase().includes(normalizedQuery) ?? false),
+    );
+  }, [tasks, normalizedQuery]);
   const sortedTasks = useMemo(
-    () => sortTasks(tasks, sortKey, sortDirection, projectNames),
-    [tasks, sortKey, sortDirection, projectNames],
+    () => sortTasks(matchingTasks, sortKey, sortDirection, projectNames),
+    [matchingTasks, sortKey, sortDirection, projectNames],
   );
 
   const changeSort = (key: TaskSortKey) => {
@@ -151,8 +168,34 @@ export function TaskListPage({
         <span className="muted" aria-live="polite">
           {loading
             ? "Loading tasks…"
-            : `${tasks.length} active ${tasks.length === 1 ? "task" : "tasks"}`}
+            : normalizedQuery
+              ? `${sortedTasks.length} of ${tasks.length} active ${tasks.length === 1 ? "task" : "tasks"}`
+              : `${tasks.length} active ${tasks.length === 1 ? "task" : "tasks"}`}
         </span>
+        <div className="tasks-search">
+          <label className="tasks-search__label" htmlFor="task-search">
+            Search tasks
+          </label>
+          <input
+            id="task-search"
+            className="ms-input tasks-search__input"
+            type="search"
+            value={searchQuery}
+            placeholder="Title or description"
+            disabled={loading || Boolean(loadError)}
+            onChange={(event) => setSearchQuery(event.target.value)}
+          />
+          {searchQuery ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label="Clear task search"
+              onClick={() => setSearchQuery("")}
+            >
+              Clear
+            </Button>
+          ) : null}
+        </div>
         <div className="tasks-page__toolbar-actions">
           <fieldset className="tasks-view-toggle">
             <legend className="visually-hidden">Task view</legend>
@@ -200,11 +243,22 @@ export function TaskListPage({
           onRetry={() => void reload()}
         />
       ) : null}
-      {!loading && !loadError && tasks.length === 0 ? (
+      {!loading && !loadError && tasks.length === 0 && !normalizedQuery ? (
         <EmptyState
           title="No active tasks yet"
           description="Create a task in your Personal inbox or attach it to an active project."
           action={<Button onClick={onCreateTask}>Create your first task</Button>}
+        />
+      ) : null}
+      {!loading && !loadError && tasks.length === 0 && normalizedQuery ? (
+        <EmptyState
+          title={`No tasks match “${searchQuery.trim()}”`}
+          description="Try a different title or description, or clear the search to see all active tasks."
+          action={
+            <Button variant="secondary" onClick={() => setSearchQuery("")}>
+              Clear search
+            </Button>
+          }
         />
       ) : null}
       {!loading && !loadError && tasks.length > 0 ? (
@@ -215,7 +269,17 @@ export function TaskListPage({
               names again.
             </p>
           ) : null}
-          {view === "list" ? (
+          {sortedTasks.length === 0 ? (
+            <EmptyState
+              title={`No tasks match “${searchQuery.trim()}”`}
+              description="Try a different title or description, or clear the search to see all active tasks."
+              action={
+                <Button variant="secondary" onClick={() => setSearchQuery("")}>
+                  Clear search
+                </Button>
+              }
+            />
+          ) : view === "list" ? (
             <div className="tasks-table-wrap">
               <table className="tasks-table">
                 <caption className="visually-hidden">
