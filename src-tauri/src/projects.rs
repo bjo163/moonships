@@ -471,7 +471,10 @@ mod tests {
                 |row| row.get(0),
             )
             .expect("event count");
-        assert_eq!(events, 1, "unchanged project must not create updated activity");
+        assert_eq!(
+            events, 1,
+            "unchanged project must not create updated activity"
+        );
 
         connection
             .execute(
