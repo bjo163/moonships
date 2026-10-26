@@ -1,5 +1,11 @@
 # Moonships — Engineering Continuity & Foundation Evidence
 
+## M2-025 Task Activity history — 2026-10-26
+
+Task updates now record explicit `status_changed` and `priority_changed` events; meaningful title, description, due-date or Project edits use a generic `updated` event. Applicable events commit atomically with the Task update and no-op saves add none. A typed Task-ID-only command returns up to 50 newest records for an active Task in the fixed Personal workspace. Task detail shows real persisted summaries and timestamps, a separate empty/error state, and retries history without resetting unsaved form edits. Summaries stay fixed trusted text and do not expose Task content or credentials.
+
+**Verification passed:** `cargo test --manifest-path src-tauri/Cargo.toml --all-targets` (89/89); `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`; Rust format check; `npm run check` (repository tests 8/8, frontend 97/97, typecheck and production build); targeted Task detail behavior tests (7/7); and Windows `npm run tauri -- build` (MSI and NSIS produced). Biome reports the existing CLI/schema mismatch and deprecated config notices plus preexisting Task List test non-null warnings. M2-025 CI and issue sync remain to verify. M2 exit gates remain open.
+
 ## M2-024 Project Milestones — 2026-10-26
 
 Migration v8 adds Project-scoped milestones and task associations enforced by composite SQLite foreign keys. The native list/create/associate/update commands use typed DTOs, derive Personal workspace scope, validate milestone dates and statuses, and reject cross-Project or archived Task links. Project Overview can create dated milestones, display saved status and associated active tasks, associate Project tasks, and update milestone status with distinct read/error feedback. These actions do not mutate Task status. Legacy migration fixtures now explicitly remove v8 additions when reconstructing earlier schema versions.

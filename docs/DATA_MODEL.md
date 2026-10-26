@@ -64,6 +64,8 @@ Keep audit/activity distinct from verbose debug logs. Sanitize metadata and neve
 
 Implemented subset (M2-006, migration v5): `activity_events` stores workspace-scoped entity type/ID, one project or task foreign key, `created` action, UTC timestamp, trusted fixed summary, actor type and sensitivity. Project/task create services append the event in the same transaction as the entity write; events are not fabricated for preexisting records. The additional optional actor ID/correlation ID/metadata fields described above are not persisted by this MVP subset and must be explicitly migrated before future usage. Never place user-supplied descriptions, credentials or arbitrary metadata into event summaries.
 
+M2-025 extends Task update events without changing the schema: status changes use `status_changed`, priority changes use `priority_changed`, and meaningful title/description/due-date/Project edits use `updated`. A single edit may record multiple applicable event types within the Task update transaction; no-op saves create none. Task history reads are workspace-scoped to an active Task, ordered newest-first with stable insertion ordering for tied timestamps, and bounded to 50 events. Summaries are fixed trusted text and never copy Task titles, descriptions, credentials or arbitrary user data.
+
 ### Artifact / Reference
 Fields: id, workspace_id, project_id?, task_id?, artifact_type, title, uri_or_relative_path, media_type?, content_hash?, source_id?, created_at, sensitivity, metadata_json?.
 For external references save canonical URL/provider ID. For local artifacts validate path against app-owned storage. Avoid arbitrary file embedding by default.
