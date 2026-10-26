@@ -134,7 +134,7 @@
 - [x] **M3-002 — Implement read-only traversal on a test directory** [S] [depends: M3-001] — Do not call delete. **AC:** fixture files remain byte-identical after scan.
 - [x] **M3-003 — Implement protected-path and path-containment checks** [S] [depends: M3-001] — Reject traversal/outside root. **AC:** malicious path fixtures are denied.
 - [x] **M3-004 — Add symlink/junction handling policy** [S] [depends: M3-003] — Do not follow links outside allowed root. **AC:** Windows-capable test or documented platform test proves escape is rejected.
-- [ ] **M3-005 — Define cleanup candidate identity** [S] [depends: M3-002] — ID plus metadata needed for revalidation. **AC:** candidate is not identified only by display path text.
+- [x] **M3-005 — Define cleanup candidate identity** [S] [depends: M3-002] — ID plus metadata needed for revalidation. **AC:** candidate is not identified only by display path text.
 - [ ] **M3-006 — Add scan progress and cancellation contract** [S] [depends: M1-026,M3-002] — Honest cancellation semantics. **AC:** UI receives progress and terminal state.
 - [ ] **M3-007 — Add preview DTO and UI** [S] [depends: M3-005] — Category/count/size/skips. **AC:** preview performs no mutation.
 - [ ] **M3-008 — Add explicit clean approval flow** [S] [depends: M3-007,M1-028] — Summary before action. **AC:** no execution begins before approval.

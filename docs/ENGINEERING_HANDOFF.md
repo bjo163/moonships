@@ -309,3 +309,7 @@ Added `validate_cleanup_path`: canonicalizes an existing allowed root, candidate
 ## M3-004 Cleaner junction policy — 2026-10-26
 
 The read-only fixture test now creates a Windows directory junction pointing outside the allowlisted root. Path canonicalization rejects the junction target as outside-root, and traversal sees no candidates because it skips the junction rather than recursing. The external fixture file remains byte-identical. This Windows junction test passed locally. The test uses a fixed `mklink /J` invocation with generated disposable paths; no product code launches a process. Broader checks and backlog validation are being rerun. **Next task:** M3-005 candidate identity contract.
+
+## M3-005 Cleanup candidate identity — 2026-10-26
+
+Added `CleanupCandidateIdentity` with a per-scan UUID, validated relative path locator and immutable cleanup metadata snapshot (root, kind, modified time and size). Empty, absolute and parent-traversal locators are rejected. Tests show identical display locators from separate scans receive distinct IDs and preserve metadata. This is a contract only; mutation still requires fresh metadata and platform identity checks. Targeted cleaner tests passed 11/11; full Rust suite passed 107/107; format, Clippy with warnings denied and `git diff --check` passed. **Next task:** M3-006 scan progress and cancellation contract.

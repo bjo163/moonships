@@ -89,6 +89,43 @@ pub struct CleanupCandidateMetadata {
     pub size_bytes: u64,
 }
 
+/// A per-scan identity and immutable metadata snapshot. `relative_path` is an
+/// internal locator under the allowlisted root, never a display-only identity.
+/// Revalidation must compare the saved metadata with a fresh observation before
+/// any later mutation; this contract itself has no deletion operation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CleanupCandidateIdentity {
+    pub id: uuid::Uuid,
+    pub relative_path: PathBuf,
+    pub metadata: CleanupCandidateMetadata,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CandidateIdentityError {
+    InvalidRelativePath,
+}
+
+impl CleanupCandidateIdentity {
+    pub fn new(
+        relative_path: impl Into<PathBuf>,
+        metadata: CleanupCandidateMetadata,
+    ) -> Result<Self, CandidateIdentityError> {
+        let relative_path = relative_path.into();
+        if relative_path.as_os_str().is_empty()
+            || !relative_path
+                .components()
+                .all(|component| matches!(component, std::path::Component::Normal(_)))
+        {
+            return Err(CandidateIdentityError::InvalidRelativePath);
+        }
+        Ok(Self {
+            id: uuid::Uuid::new_v4(),
+            relative_path,
+            metadata,
+        })
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EligibilityExclusion {
     InvalidRule,
@@ -224,7 +261,7 @@ mod tests {
         CleanupRoot, CleanupRule, EligibilityDecision, EligibilityExclusion, RuleValidationError,
     };
     use std::time::{Duration, SystemTime};
-    use std::{fs, io, io::Write, path::Path};
+    use std::{fs, io, io::Write, path::Path, path::PathBuf};
 
     const NOW: SystemTime = SystemTime::UNIX_EPOCH;
 
@@ -551,6 +588,32 @@ mod tests {
         );
 
         fs::remove_dir_all(fixture).expect("remove disposable link fixture");
+    }
+
+    #[test]
+    fn candidate_identity_binds_scan_id_to_relative_locator_and_metadata() {
+        let metadata = candidate(
+            CleanupRoot::AppTemporary,
+            CleanupFileKind::RegularFile,
+            300,
+            12,
+        );
+        let first = super::CleanupCandidateIdentity::new("nested/cache.bin", metadata)
+            .expect("valid relative candidate locator");
+        let second = super::CleanupCandidateIdentity::new("nested/cache.bin", metadata)
+            .expect("second scan identity");
+
+        assert_ne!(first.id, second.id);
+        assert_eq!(first.relative_path, PathBuf::from("nested/cache.bin"));
+        assert_eq!(first.metadata, metadata);
+        assert_eq!(
+            super::CleanupCandidateIdentity::new("../outside.bin", metadata),
+            Err(super::CandidateIdentityError::InvalidRelativePath),
+        );
+        assert_eq!(
+            super::CleanupCandidateIdentity::new(PathBuf::from("/outside.bin"), metadata),
+            Err(super::CandidateIdentityError::InvalidRelativePath),
+        );
     }
 
     #[cfg(windows)]
