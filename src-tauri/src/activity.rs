@@ -16,6 +16,7 @@ pub enum ActivityAction {
     Created,
     Updated,
     Archived,
+    Restored,
 }
 
 impl ActivityAction {
@@ -33,6 +34,10 @@ impl ActivityAction {
                 ("project", "archived", "Project archived")
             }
             (ActivityEntityKind::Task, Self::Archived) => ("task", "archived", "Task archived"),
+            (ActivityEntityKind::Task, Self::Restored) => ("task", "restored", "Task restored"),
+            (ActivityEntityKind::Project, Self::Restored) => {
+                ("project", "restored", "Project restored")
+            }
         }
     }
 }

@@ -1,5 +1,13 @@
 # Moonships — Engineering Continuity & Foundation Evidence
 
+## M2-011 Task archive/restore — 2026-10-26
+
+`src-tauri/src/tasks.rs` now provides soft archive and restore through `archived_at`, idempotent repeats, transactional safe activity summaries, and deterministic active/archived/all list filtering. Existing status, priority and creation metadata persist. Restore is rejected while a linked project is archived. Regression tests cover archive/restore, no-ops, missing and wrong-workspace records, metadata and history, activity failure rollback, archived-project consistency, filtering, and file-backed state after reopening.
+
+**Local verification passed:** `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`; targeted task tests (12/12); `cargo test --manifest-path src-tauri/Cargo.toml --all-targets` (54 passed, 0 failed); and `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`. `npm run check` exited 0 (8 repository tests, 67 frontend tests, typecheck and production build); Biome reports that its 2.6.3 CLI reads a 2.2.0 config schema, and npm reports 3 advisories while installing the unlocked declared dependency ranges. `npm ci` cannot run because the repository has no package lock; dependencies were installed with `npm install --package-lock=false`, and no lockfile is included. `git diff --check` passed.
+
+The checkout and fetched `origin/main` were `main` at `0337cf757063977b8d2fa58767cee7408540f491` before these changes. M2-011 is ready for its implementation commit and backlog status update; GitHub issue sync and CI evidence remain pending push.
+
 ## Current checkpoint — M2-010 Task update and M2-012 status policy (2026-10-26)
 
 **Canonical branch:** `main`. **Accepted implementation SHA:** [63816b2](https://github.com/bjo163/moonships/commit/63816b29a2d1d103f2e504855a7746c68b84ff59). **Complete CI:** [40254246931](https://github.com/bjo163/moonships/actions/runs/40254246931) — **SUCCESS 5/5 jobs**: Rust formatting and Clippy (warnings denied), **49/49 Rust tests**, frontend production build, backlog sync regression and Windows installer package smoke build. Windows package construction is not actual installer execution or user testing.

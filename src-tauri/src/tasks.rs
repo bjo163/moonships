@@ -5,6 +5,13 @@ use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TaskArchiveFilter {
+    Active,
+    Archived,
+    All,
+}
+
 const MAX_TITLE_CHARS: usize = 200;
 const MAX_DESCRIPTION_CHARS: usize = 10_000;
 
@@ -31,6 +38,120 @@ pub struct Task {
     pub priority: String,
     pub created_at: String,
     pub updated_at: String,
+    pub archived_at: Option<String>,
+}
+
+fn task_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Task> {
+    Ok(Task {
+        id: row.get(0)?,
+        workspace_id: row.get(1)?,
+        project_id: row.get(2)?,
+        title: row.get(3)?,
+        description: row.get(4)?,
+        status: row.get(5)?,
+        priority: row.get(6)?,
+        created_at: row.get(7)?,
+        updated_at: row.get(8)?,
+        archived_at: row.get(9)?,
+    })
+}
+
+/// Return persisted tasks with an explicit active/archived filter and stable ordering.
+pub fn list_tasks(
+    connection: &Connection,
+    workspace_id: &str,
+    filter: TaskArchiveFilter,
+) -> Result<Vec<Task>, String> {
+    if workspace_id.trim().is_empty() {
+        return Err("VALIDATION_FAILED: workspace required".to_string());
+    }
+    let archive_clause = match filter {
+        TaskArchiveFilter::Active => "AND archived_at IS NULL",
+        TaskArchiveFilter::Archived => "AND archived_at IS NOT NULL",
+        TaskArchiveFilter::All => "",
+    };
+    let sql = format!("SELECT id, workspace_id, project_id, title, description, status, priority, created_at, updated_at, archived_at FROM tasks WHERE workspace_id = ?1 {archive_clause} ORDER BY created_at, id");
+    let mut statement = connection
+        .prepare(&sql)
+        .map_err(|_| "IO_ERROR: could not prepare task list".to_string())?;
+    let rows = statement
+        .query_map(params![workspace_id.trim()], task_from_row)
+        .map_err(|_| "IO_ERROR: could not list tasks".to_string())?;
+    rows.collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(|_| "IO_ERROR: could not read task list".to_string())
+}
+
+fn mutate_archive(
+    connection: &mut Connection,
+    workspace_id: &str,
+    id: &str,
+    archive: bool,
+) -> Result<Task, String> {
+    let workspace_id = workspace_id.trim();
+    let id = id.trim();
+    if workspace_id.is_empty() || id.is_empty() {
+        return Err("VALIDATION_FAILED: task and workspace required".to_string());
+    }
+    let transaction = connection
+        .transaction()
+        .map_err(|_| "IO_ERROR: could not begin task archive transaction".to_string())?;
+    let (existing, archived_at) = read_task(&transaction, workspace_id, id)?;
+    if archive == archived_at.is_some() {
+        return Ok(existing);
+    }
+    let workspace_active: Option<i64> = transaction
+        .query_row(
+            "SELECT 1 FROM workspaces WHERE id = ?1 AND archived_at IS NULL",
+            params![workspace_id],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|_| "IO_ERROR: could not read task workspace".to_string())?;
+    if workspace_active.is_none() {
+        return Err("NOT_FOUND: workspace is archived or unavailable".to_string());
+    }
+    if !archive {
+        if let Some(project_id) = existing.project_id.as_deref() {
+            let project_active: Option<i64> = transaction.query_row("SELECT 1 FROM projects WHERE id = ?1 AND workspace_id = ?2 AND archived_at IS NULL AND status != 'archived'", params![project_id, workspace_id], |row| row.get(0)).optional().map_err(|_| "IO_ERROR: could not read task project".to_string())?;
+            if project_active.is_none() {
+                return Err(
+                    "CONFLICT: restore the task's project before restoring this task".to_string(),
+                );
+            }
+        }
+    }
+    transaction.execute("UPDATE tasks SET archived_at = CASE WHEN ?1 THEN strftime('%Y-%m-%dT%H:%M:%fZ', 'now') ELSE NULL END, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ?2 AND workspace_id = ?3 AND archived_at IS ?4", params![archive, id, workspace_id, archived_at]).map_err(|_| "IO_ERROR: could not change task archive state".to_string())?;
+    crate::activity::record_change(
+        &transaction,
+        workspace_id,
+        crate::activity::ActivityEntityKind::Task,
+        id,
+        if archive {
+            crate::activity::ActivityAction::Archived
+        } else {
+            crate::activity::ActivityAction::Restored
+        },
+    )?;
+    let task = transaction.query_row("SELECT id, workspace_id, project_id, title, description, status, priority, created_at, updated_at, archived_at FROM tasks WHERE id = ?1 AND workspace_id = ?2", params![id, workspace_id], task_from_row).map_err(|_| "IO_ERROR: could not read changed task".to_string())?;
+    transaction
+        .commit()
+        .map_err(|_| "IO_ERROR: could not commit task archive state".to_string())?;
+    Ok(task)
+}
+
+pub fn archive_task(
+    connection: &mut Connection,
+    workspace_id: &str,
+    id: &str,
+) -> Result<Task, String> {
+    mutate_archive(connection, workspace_id, id, true)
+}
+pub fn restore_task(
+    connection: &mut Connection,
+    workspace_id: &str,
+    id: &str,
+) -> Result<Task, String> {
+    mutate_archive(connection, workspace_id, id, false)
 }
 
 pub fn create_task(connection: &mut Connection, request: CreateTask) -> Result<Task, String> {
@@ -118,7 +239,7 @@ pub fn create_task(connection: &mut Connection, request: CreateTask) -> Result<T
     let created = transaction
         .query_row(
             "SELECT id, workspace_id, project_id, title, description,
-                    status, priority, created_at, updated_at
+                    status, priority, created_at, updated_at, archived_at
              FROM tasks WHERE id = ?1 AND workspace_id = ?2",
             params![id, workspace_id],
             |row| {
@@ -132,6 +253,7 @@ pub fn create_task(connection: &mut Connection, request: CreateTask) -> Result<T
                     priority: row.get(6)?,
                     created_at: row.get(7)?,
                     updated_at: row.get(8)?,
+                    archived_at: row.get(9)?,
                 })
             },
         )
@@ -177,6 +299,7 @@ fn read_task(
                         priority: row.get(6)?,
                         created_at: row.get(7)?,
                         updated_at: row.get(8)?,
+                        archived_at: row.get(9)?,
                     },
                     row.get(9)?,
                 ))
@@ -557,5 +680,150 @@ mod tests {
             .query_row("SELECT COUNT(*) FROM activity_events", [], |row| row.get(0))
             .expect("activity count");
         assert_eq!(events, 1);
+    }
+
+    #[test]
+    fn archive_restore_are_idempotent_preserve_data_and_filter_records() {
+        let mut connection = fixture();
+        let mut request = request();
+        request.description = Some("private description remains on task".to_string());
+        request.status = Some("in_progress".to_string());
+        request.priority = Some("p1".to_string());
+        let created = create_task(&mut connection, request).expect("task");
+        let archived = archive_task(&mut connection, PERSONAL, &created.id).expect("archive");
+        assert!(archived.archived_at.is_some());
+        assert_eq!(archived.status, created.status);
+        assert_eq!(archived.priority, created.priority);
+        assert_eq!(archived.created_at, created.created_at);
+        assert_eq!(archived.description, created.description);
+        let repeated =
+            archive_task(&mut connection, PERSONAL, &created.id).expect("idempotent archive");
+        assert_eq!(repeated, archived);
+        assert!(list_tasks(&connection, PERSONAL, TaskArchiveFilter::Active)
+            .unwrap()
+            .is_empty());
+        assert_eq!(
+            list_tasks(&connection, PERSONAL, TaskArchiveFilter::Archived).unwrap(),
+            vec![archived.clone()]
+        );
+        let restored = restore_task(&mut connection, PERSONAL, &created.id).expect("restore");
+        assert!(restored.archived_at.is_none());
+        assert_eq!(restored.status, created.status);
+        assert_eq!(restored.priority, created.priority);
+        assert_eq!(restored.created_at, created.created_at);
+        assert_eq!(restored.description, created.description);
+        assert_eq!(
+            restore_task(&mut connection, PERSONAL, &created.id).unwrap(),
+            restored
+        );
+        assert_eq!(
+            list_tasks(&connection, PERSONAL, TaskArchiveFilter::Active).unwrap(),
+            vec![restored.clone()]
+        );
+        assert!(
+            list_tasks(&connection, PERSONAL, TaskArchiveFilter::Archived)
+                .unwrap()
+                .is_empty()
+        );
+        let history: Vec<(String, String)> = connection.prepare("SELECT action, summary FROM activity_events WHERE task_id = ?1 ORDER BY occurred_at, rowid").unwrap().query_map(params![created.id], |row| Ok((row.get(0)?, row.get(1)?))).unwrap().map(Result::unwrap).collect();
+        assert_eq!(
+            history
+                .iter()
+                .map(|event| event.0.as_str())
+                .collect::<Vec<_>>(),
+            vec!["created", "archived", "restored"]
+        );
+        assert_eq!(history[1].1, "Task archived");
+        assert_eq!(history[2].1, "Task restored");
+        assert!(!history
+            .iter()
+            .any(|event| event.1.contains("private description")));
+    }
+
+    #[test]
+    fn archive_restore_reject_missing_and_wrong_workspace_without_writes() {
+        let mut connection = fixture();
+        let created = create_task(&mut connection, request()).unwrap();
+        for result in [
+            archive_task(&mut connection, PERSONAL, "missing"),
+            restore_task(&mut connection, PERSONAL, "missing"),
+            archive_task(&mut connection, "wrong-workspace", &created.id),
+            restore_task(&mut connection, "wrong-workspace", &created.id),
+        ] {
+            assert!(result.unwrap_err().starts_with("NOT_FOUND:"));
+        }
+        assert_eq!(
+            list_tasks(&connection, PERSONAL, TaskArchiveFilter::All).unwrap(),
+            vec![created]
+        );
+    }
+
+    #[test]
+    fn restore_waits_for_archived_project_to_be_restored() {
+        let mut connection = fixture();
+        connection.execute("INSERT INTO projects (id, workspace_id, name) VALUES ('archived-project', ?1, 'Project')", params![PERSONAL]).unwrap();
+        let mut request = request();
+        request.project_id = Some("archived-project".into());
+        let task = create_task(&mut connection, request).unwrap();
+        crate::projects::archive_project(&mut connection, PERSONAL, "archived-project").unwrap();
+        archive_task(&mut connection, PERSONAL, &task.id).unwrap();
+        let error = restore_task(&mut connection, PERSONAL, &task.id).unwrap_err();
+        assert!(error.starts_with("CONFLICT:"));
+        assert!(read_task(&connection, PERSONAL, &task.id)
+            .unwrap()
+            .1
+            .is_some());
+    }
+
+    #[test]
+    fn failed_archive_activity_rolls_back_and_task_survives_reopen() {
+        let mut connection = fixture();
+        let created = create_task(&mut connection, request()).unwrap();
+        connection.execute_batch("CREATE TRIGGER reject_task_archive BEFORE INSERT ON activity_events WHEN NEW.action = 'archived' BEGIN SELECT RAISE(ABORT, 'synthetic activity failure'); END;").unwrap();
+        assert!(archive_task(&mut connection, PERSONAL, &created.id)
+            .unwrap_err()
+            .starts_with("IO_ERROR:"));
+        let (_, archived_at) = read_task(&connection, PERSONAL, &created.id).unwrap();
+        assert!(archived_at.is_none());
+        drop(connection);
+        let mut path = std::env::temp_dir();
+        path.push(format!("moonships-m2-011-{}.sqlite", Uuid::new_v4()));
+        let mut disk = Connection::open(&path).unwrap();
+        disk.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
+        crate::run_migrations(&mut disk).unwrap();
+        let disk_task = create_task(&mut disk, request()).unwrap();
+        archive_task(&mut disk, PERSONAL, &disk_task.id).unwrap();
+        drop(disk);
+        let reopened = Connection::open(&path).unwrap();
+        let stored = list_tasks(&reopened, PERSONAL, TaskArchiveFilter::Archived).unwrap();
+        assert_eq!(stored.len(), 1);
+        assert_eq!(stored[0].id, disk_task.id);
+        let events: i64 = reopened
+            .query_row(
+                "SELECT COUNT(*) FROM activity_events WHERE task_id = ?1",
+                params![disk_task.id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(events, 2);
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn restore_of_active_task_is_a_no_op() {
+        let mut connection = fixture();
+        let task = create_task(&mut connection, request()).unwrap();
+        assert_eq!(
+            restore_task(&mut connection, PERSONAL, &task.id).unwrap(),
+            task
+        );
+        let count: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM activity_events WHERE task_id = ?1",
+                params![task.id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 1);
     }
 }
