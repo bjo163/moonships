@@ -1,5 +1,11 @@
 # Moonships — Engineering Continuity & Foundation Evidence
 
+## M2-023 one-level Task subtasks — 2026-10-26
+
+Task create and response records now carry the existing nullable `parent_task_id` through the typed native DTO and frontend API. The validated transactional service allows only active top-level parents in the same workspace and with the same Project/inbox association, preventing cycles and deeper nesting. Active children appear on the parent Task detail page; each child links back to its parent. Root details can create subtasks and show only the native returned saved record. Children cannot create nested tasks. Failed relationship reads are reported separately and can be retried while the detail form remains usable. Archiving a parent with active children, restoring a child before its parent, and Project changes that would break a relationship return conflicts.
+
+**Verification passed:** `npm run check` (repo tests 8/8, frontend tests 94/94, typecheck and production build); targeted Task detail/List tests 14/14; `cargo test --manifest-path src-tauri/Cargo.toml --all-targets` (82/82); `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`; Rust format check; and `git diff --check`. Biome retains the existing CLI/schema mismatch and deprecated config notices, plus existing non-null assertion test warnings. Manual desktop UI restart, Windows runtime/accessibility and M2 milestone exit gates remain open. Existing issue #57 is pending backlog sync from this documentation update. **Next task:** M2-024 — milestones.
+
 ## M2-022 due-date and priority indicators — 2026-10-26
 
 Task List rows and Board cards now show labelled priority badges and local due dates, with an Overdue badge only when an unfinished Task's UTC due instant precedes the current instant. Done/Cancelled, missing and invalid due values do not appear overdue. Date formatting uses the user's local timezone while persistence remains an RFC 3339 UTC instant.

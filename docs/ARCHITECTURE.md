@@ -107,6 +107,8 @@ Every frontend-to-native command must use an explicit, named request/response co
 
 The hide-to-tray preference command is the first reference implementation: both read and write return `HideToTrayPreferenceDto { enabled: bool }`; writes accept it under the `request` argument.
 
+M2-023 applies this boundary to Task relationships: `CreateTaskRequestDto` may include an optional `parentTaskId`, and `TaskDto` returns the persisted parent ID. The command continues to derive the workspace from the fixed Personal workspace rather than accepting renderer scope. The transactional native Task service checks that parent and child share workspace and nullable Project association, and that the parent is active and top-level; relationship integrity is never entrusted to UI-only checks.
+
 ## 4. Tool contract
 
 A registered tool defines:
