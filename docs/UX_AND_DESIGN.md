@@ -449,6 +449,10 @@ The implemented route is **Intelligence Sources** (`#/intelligence-sources`). It
 
 The interval is not a background schedule. The page does not fetch when opened, and it offers no automatic polling until a later task adds a separately reviewed opt-in scheduler. Enabled means eligible for an explicit manual fetch only. Do not imply fresh/live data without the typed freshness view.
 
+### Topic Watchlists (M5-009)
+
+The **Topic Watchlists** page saves named keyword/category filters with distinct active, paused, empty and unavailable states. Keywords match literal text in an item's title or summary without case sensitivity. Category IDs match exactly; alternatives within a filter group are OR, while populated keyword and category groups combine with AND. Either group can be omitted, but a watchlist must contain at least one filter. Pause stops matching while preserving the saved filter. Delete requires confirmation and removes only the watchlist record. The page states that items, fetches and notifications are not connected yet.
+
 ### Settings
 
 ```text

@@ -43,6 +43,16 @@ export type RegisteredCommand =
       keywords: string[];
     }
   | {
+      id: "navigation.watchlists";
+      kind: "navigate";
+      route: RouteId;
+      title: string;
+      description: string;
+      category: string;
+      risk: "read-only";
+      keywords: string[];
+    }
+  | {
       id: "settings.open";
       kind: "settings";
       title: string;
@@ -120,6 +130,16 @@ export const COMMAND_REGISTRY: readonly RegisteredCommand[] = [
     category: "Navigation",
     risk: "read-only",
     keywords: ["intelligence", "sources", "rss", "feeds"],
+  },
+  {
+    id: "navigation.watchlists",
+    kind: "navigate",
+    route: "watchlists",
+    title: "Open Topic Watchlists",
+    description: "Manage saved keyword and category filters",
+    category: "Navigation",
+    risk: "read-only",
+    keywords: ["watchlist", "topic", "keywords", "categories"],
   },
   {
     id: "settings.open",

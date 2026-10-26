@@ -15,6 +15,7 @@ pub mod intelligence_dedupe;
 pub mod intelligence_identity;
 pub mod intelligence_items;
 pub mod intelligence_sources;
+pub mod intelligence_watchlists;
 pub mod jobs;
 pub mod labels;
 pub mod local_logging;
@@ -77,7 +78,7 @@ fn open_database_in(app_data_dir: &Path) -> Result<Connection, String> {
     Ok(connection)
 }
 
-const CURRENT_SCHEMA_VERSION: i64 = 11;
+const CURRENT_SCHEMA_VERSION: i64 = 12;
 const PERSONAL_WORKSPACE_ID: &str = "00000000-0000-4000-8000-000000000001";
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
@@ -537,6 +538,71 @@ fn set_intelligence_source_enabled(
         .map(connector_source_dto)
 }
 
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct SaveTopicWatchlistDto {
+    id: Option<String>,
+    name: String,
+    keywords: Vec<String>,
+    categories: Vec<String>,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct TopicWatchlistIdDto {
+    id: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct SetTopicWatchlistPausedDto {
+    id: String,
+    paused: bool,
+}
+
+#[tauri::command]
+fn list_intelligence_watchlists(
+    app: AppHandle,
+) -> Result<Vec<intelligence_watchlists::TopicWatchlist>, String> {
+    let connection = open_personal_workspace_database(&app)?;
+    intelligence_watchlists::list(&connection)
+}
+
+#[tauri::command]
+fn save_intelligence_watchlist(
+    app: AppHandle,
+    request: SaveTopicWatchlistDto,
+) -> Result<intelligence_watchlists::TopicWatchlist, String> {
+    let mut connection = open_personal_workspace_database(&app)?;
+    intelligence_watchlists::save(
+        &mut connection,
+        intelligence_watchlists::SaveTopicWatchlist {
+            id: request.id,
+            name: request.name,
+            keywords: request.keywords,
+            categories: request.categories,
+        },
+    )
+}
+
+#[tauri::command]
+fn set_intelligence_watchlist_paused(
+    app: AppHandle,
+    request: SetTopicWatchlistPausedDto,
+) -> Result<intelligence_watchlists::TopicWatchlist, String> {
+    let mut connection = open_personal_workspace_database(&app)?;
+    intelligence_watchlists::set_paused(&mut connection, &request.id, request.paused)
+}
+
+#[tauri::command]
+fn delete_intelligence_watchlist(
+    app: AppHandle,
+    request: TopicWatchlistIdDto,
+) -> Result<bool, String> {
+    let mut connection = open_personal_workspace_database(&app)?;
+    intelligence_watchlists::delete(&mut connection, &request.id)
+}
+
 impl From<tasks::Task> for TaskDto {
     fn from(task: tasks::Task) -> Self {
         Self {
@@ -891,6 +957,20 @@ pub(crate) fn run_migrations(connection: &mut Connection) -> Result<(), String> 
             .map_err(|error| {
                 format!("Could not apply intelligence connector migration: {error}")
             })?;
+    }
+
+    if current_version < 12 {
+        transaction
+            .execute_batch(
+                "CREATE TABLE IF NOT EXISTS intelligence_watchlists (
+                    id TEXT PRIMARY KEY NOT NULL CHECK (length(id) BETWEEN 1 AND 64),
+                    definition_json TEXT NOT NULL CHECK (length(definition_json) BETWEEN 2 AND 65536),
+                    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+                    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+                );
+                INSERT OR IGNORE INTO schema_migrations (version) VALUES (12);",
+            )
+            .map_err(|error| format!("Could not apply intelligence watchlist migration: {error}"))?;
     }
 
     transaction
@@ -1430,6 +1510,10 @@ pub fn run() {
             list_intelligence_sources,
             save_intelligence_source,
             set_intelligence_source_enabled,
+            list_intelligence_watchlists,
+            save_intelligence_watchlist,
+            set_intelligence_watchlist_paused,
+            delete_intelligence_watchlist,
             hash_sha256_text,
             hash_sha256_selected_file
         ])
@@ -1520,8 +1604,9 @@ mod tests {
         ListMilestonesRequestDto, ListProjectsRequestDto, ListTasksRequestDto, MilestoneDto,
         MilestoneListResponseDto, ProjectActivityDto, ProjectDto, ProjectListResponseDto,
         ProjectOverviewRequestDto, ProjectOverviewResponseDto, SaveConnectorSettingsDto,
-        SetConnectorEnabledDto, TaskActivityDto, TaskActivityListResponseDto, TaskDto,
-        TaskListResponseDto, TaskRequestDto, UpdateTaskRequestDto, CURRENT_SCHEMA_VERSION,
+        SaveTopicWatchlistDto, SetConnectorEnabledDto, SetTopicWatchlistPausedDto, TaskActivityDto,
+        TaskActivityListResponseDto, TaskDto, TaskListResponseDto, TaskRequestDto,
+        TopicWatchlistIdDto, UpdateTaskRequestDto, CURRENT_SCHEMA_VERSION,
         DATABASE_BUSY_TIMEOUT_MS, DATABASE_FILE_NAME, PERSONAL_WORKSPACE_ID,
     };
     use std::{
@@ -1691,6 +1776,39 @@ mod tests {
         assert_eq!(json["connector"]["minimumPollIntervalSeconds"], 900);
         assert_eq!(json["freshness"]["status"], "disabled");
         assert_eq!(json["freshness"]["isLive"], false);
+    }
+
+    #[test]
+    fn intelligence_watchlist_ipc_is_strict_and_serializes_a_paused_filter() {
+        let request: SaveTopicWatchlistDto = serde_json::from_str(
+            r#"{"id":null,"name":"Space","keywords":["Artemis"],"categories":["general"]}"#,
+        )
+        .expect("typed watchlist request");
+        assert_eq!(request.keywords, ["Artemis"]);
+        assert!(serde_json::from_str::<SaveTopicWatchlistDto>(
+            r#"{"id":null,"name":"Space","keywords":["Artemis"],"categories":["general"],"path":"C:/data"}"#
+        )
+        .is_err());
+        let pause: SetTopicWatchlistPausedDto =
+            serde_json::from_str(r#"{"id":"watch-space","paused":true}"#)
+                .expect("typed pause request");
+        assert!(pause.paused);
+        assert!(serde_json::from_str::<TopicWatchlistIdDto>(
+            r#"{"id":"watch-space","workspaceId":"other"}"#
+        )
+        .is_err());
+
+        let response = crate::intelligence_watchlists::TopicWatchlist {
+            id: "watch-space".to_owned(),
+            name: "Space".to_owned(),
+            keywords: vec!["Artemis".to_owned()],
+            categories: vec!["general".to_owned()],
+            paused: true,
+        };
+        let json = serde_json::to_value(response).expect("serialize watchlist");
+        assert_eq!(json["paused"], true);
+        assert_eq!(json["keywords"][0], "Artemis");
+        assert!(json.get("workspace_id").is_none());
     }
 
     #[test]

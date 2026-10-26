@@ -1,8 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
-import { CleanerPreviewPage } from "./CleanerPreviewPage";
 import { ActivityCenterPage } from "./ActivityCenterPage";
+import { CleanerPreviewPage } from "./CleanerPreviewPage";
 import { CommandPalette, type PaletteCommand } from "./CommandPalette";
 import { getPaletteCommands, getRegisteredCommand } from "./command-registry";
 import { DevToolsPage } from "./DevToolsPage";
@@ -18,6 +18,7 @@ import { ServicesPage } from "./ServicesPage";
 import { TaskCreateDialog } from "./TaskCreateDialog";
 import { TaskDetailPage } from "./TaskDetailPage";
 import { TaskListPage } from "./TaskListPage";
+import { TopicWatchlistsPage } from "./TopicWatchlistsPage";
 import {
   applyThemePreference,
   readThemePreference,
@@ -150,6 +151,13 @@ export function AppShell({
             aria-current={activeRoute === "intelligence-sources" ? "page" : undefined}
           >
             <span>Intelligence Sources</span>
+          </a>
+          <a
+            className={`nav-item${activeRoute === "watchlists" ? " nav-item-active" : ""}`}
+            href="#/watchlists"
+            aria-current={activeRoute === "watchlists" ? "page" : undefined}
+          >
+            <span>Topic Watchlists</span>
           </a>
           {plannedNavigationItems.map((label) => (
             <div
@@ -868,6 +876,8 @@ export default function App() {
         <NetOpsPage />
       ) : route.kind === "page" && route.id === "intelligence-sources" ? (
         <IntelligenceSourcesPage />
+      ) : route.kind === "page" && route.id === "watchlists" ? (
+        <TopicWatchlistsPage />
       ) : route.kind === "task-detail" ? (
         <TaskDetailPage taskId={route.taskId} />
       ) : (

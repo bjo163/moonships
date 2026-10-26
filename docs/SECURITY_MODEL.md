@@ -152,6 +152,12 @@ Risk class is separate from task priority, vulnerability severity and business i
 - The displayed polling interval is a minimum-cadence setting, not a scheduler. This milestone adds no startup fetch, page-open fetch, timer, background polling or automatic retry. Any future scheduler requires a separate explicit opt-in and review. A disabled declaration cannot pass the RSS fetch boundary.
 - The renderer displays source URLs and terms notes as text and links only to validated HTTPS URLs. Failure to read persisted settings is shown as unavailable rather than as an empty list.
 
+### Topic watchlists (M5-009)
+
+- Watchlists and filter values are stored in the app-owned database, with strict DTOs, 128-list and per-filter count/length caps, normalized category IDs, and literal keyword matching. The renderer cannot submit SQL or storage paths.
+- Keywords and categories are filter data only. They are never interpreted as instructions, executable expressions, regular expressions or source URLs. Retrieved item content remains untrusted and is not stored by this task.
+- Pause disables matching without deleting the filter. Delete is an explicit confirmation and removes only the selected watchlist. No scheduler, automatic fetch or notification is introduced.
+
 ### Read-only system inventory (M4-007)
 
 - Inventory reads only OS family/process architecture, available logical processors, physical memory counters and capacity/free bytes on the volume containing the Windows directory.

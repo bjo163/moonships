@@ -124,6 +124,11 @@ M5-007 exposes a `ConnectorFreshnessView` with status, normalized `lastSuccessAt
 
 M5-008 persists user-configured RSS source declarations in the app-owned SQLite database. Each source has a stable generated ID, bounded HTTPS URL/terms metadata, user-declared terms review, minimum polling interval, and bounded request limits. New sources start disabled; enabling requires reviewed terms. Editing a source URL disables it and clears previous freshness. The source list reads a typed connector/freshness view. Settings persistence is local; item records and fetch results are not persisted by this task. The cadence is a declared minimum interval only: there is no background scheduler, startup fetch, or fetch when the source screen opens. The RSS adapter still rejects disabled connectors on any future manual fetch path.
 
+M5-009 persists up to 128 local topic watchlists. Each bounded watchlist requires at least one keyword or category filter; up to 20 of each can be saved. Keywords match case-insensitively as literal substrings in title or summary; categories match exact normalized category IDs. When both groups are populated, a match must satisfy at least one value in each group. Paused watchlists never match. Deletion removes only the saved filter. No intelligence item records, fetches, schedules or notifications are added by this task.
+
+### TopicWatchlist
+Fields: id, name, keywords[], categories[], paused, created_at, updated_at. IDs are generated locally; filter counts and string lengths are bounded. The record contains no connector credentials, source content, or executable matching expression.
+
 ### Connection profile contract (M4-011)
 Profiles have a UUID ID, bounded display name and one tagged allowlisted transport: a known local terminal enum, SSH or RDP. Remote transports use a strict single host, nonzero port, optional username and optional opaque UUID secret reference. No password, private key, command line or arbitrary executable path field exists. The dedicated export DTO omits secret references; the safe log projection omits user content and target details. M4-011 defines the contract only: saved profile persistence, OS secret-store integration and transport execution remain future reviewed work.
 

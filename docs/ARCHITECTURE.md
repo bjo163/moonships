@@ -94,6 +94,8 @@ M2-004 migration v6 adds `labels` with a workspace-scoped normalized-name unique
 
 M2-005 migration v7 adds a directed `task_dependencies` relation with composite workspace foreign keys to both Tasks, a database/service self-dependency guard, and one canonical `blocked_by` row per edge. The reverse `blocks` relation is derived. Dependency edges are not used for scheduling yet; cycle rejection is required before a future scheduler consumes them.
 
+M5-008 and M5-009 add forward-only migrations v11 and v12 for locally persisted connector declarations and topic watchlists, respectively. Both tables retain bounded JSON contracts alongside database-managed creation/update timestamps.
+
 M2-024 migration v8 adds `milestones` and `milestone_tasks`. Composite workspace/Project foreign keys scope each Milestone and association to the same Project; an active-task service check also prevents associating archived Tasks. Typed list/create/update/associate commands accept only a Project ID or named Milestone/task fields and derive the Personal workspace natively. Due dates must be valid calendar dates in `YYYY-MM-DD`; Milestone status is metadata (`planned`, `active`, `completed`). These operations do not change Task status.
 
 M2-025 adds the typed `list_task_activity` command using only a Task ID request; the native service derives Personal workspace scope, verifies that the Task is active, and returns at most 50 newest trusted summaries. The Task update service records `status_changed`, `priority_changed`, and generic `updated` events according to the fields that actually changed, in the same transaction as the Task update. No-op updates create no event; activity summaries contain no Task content or credentials. Task detail presents a retryable history read independently from the saved form.
@@ -314,6 +316,8 @@ M5-006 groups a bounded in-memory batch of at most 2,000 items when they share a
 M5-007 derives a serializable freshness view from connector enablement, health, last-success time and its declared freshness threshold. Only `fresh` sets `isLive`; stale, failed, blocked, rate-limited, disabled, missing, invalid and future timestamps never claim live data. RSS attempts update the caller's in-memory last-attempt/last-success timestamps and health.
 
 M5-008 adds a versioned SQLite table for bounded, user-configured RSS declarations and narrow native list/save/enable commands. The renderer cannot supply storage paths or SQL. New sources are disabled, must be explicitly marked terms-reviewed before enablement, and are reset to disabled when the feed URL changes. The Intelligence Sources page displays persisted settings and freshness, provides cadence and terms controls, and does not fetch on open. Poll cadence is configuration metadata only; there is no background scheduler or startup request, and disabled sources are rejected by the RSS adapter.
+
+M5-009 adds a v12 SQLite table for bounded topic watchlists, with native list/save/pause/delete commands. Keyword and category filters are normalized and bounded; a paused list cannot match an item. Keyword matching uses case-insensitive literal substrings in title/summary, categories are exact IDs, and populated groups combine with AND while alternatives within each group combine with OR. The Topic Watchlists page is explicitly a saved-filter manager: it stores no items and starts no fetch, polling or notification behavior.
 
 ## 11. AI adapter boundary
 

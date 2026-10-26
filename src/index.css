@@ -108,6 +108,21 @@
   gap: var(--space-6);
 }
 
+.topic-watchlists-page {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.topic-watchlists-page .page-header h2,
+.topic-watchlists-page .section-heading h3 {
+  margin: 0;
+}
+
+.topic-watchlists-page .page-description {
+  color: var(--color-text-muted);
+  line-height: var(--line-height-body);
+}
+
 .intelligence-sources-page .page-header h2,
 .intelligence-sources-page .section-heading h3 {
   margin: 0;
@@ -258,6 +273,104 @@
   justify-content: flex-start;
 }
 
+.watchlist-list,
+.watchlist-cards,
+.watchlist-card {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.watchlist-cards {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+}
+
+.watchlist-card {
+  background: var(--color-surface);
+  border: var(--border-width-default) solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: var(--space-5);
+}
+
+.watchlist-card-heading {
+  align-items: flex-start;
+  display: flex;
+  gap: var(--space-3);
+  justify-content: space-between;
+}
+
+.watchlist-card-heading h4,
+.watchlist-card-heading p {
+  margin: 0 0 var(--space-2);
+}
+
+.watchlist-state {
+  border-radius: var(--radius-pill);
+  flex: 0 0 auto;
+  font-size: var(--text-xs);
+  padding: var(--space-1) var(--space-3);
+}
+
+.watchlist-state-active {
+  background: var(--color-status-info-surface);
+  color: var(--color-status-info-text);
+}
+
+.watchlist-state-paused {
+  background: var(--color-status-warning-surface);
+  color: var(--color-status-warning-text);
+}
+
+.watchlist-details {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  margin: 0;
+}
+
+.watchlist-details dt {
+  color: var(--color-text-subtle);
+  font-size: var(--text-xs);
+  margin-bottom: var(--space-1);
+}
+
+.watchlist-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.watchlist-form {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.watchlist-form label {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.watchlist-form input {
+  background: var(--color-canvas);
+  border: var(--border-width-default) solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  font: inherit;
+  min-height: 2.5rem;
+  padding: var(--space-2) var(--space-3);
+  width: 100%;
+}
+
+.watchlist-form > .field-help,
+.watchlist-form > .source-form-actions {
+  grid-column: 1 / -1;
+}
+
+.watchlist-delete-confirmation {
+  display: grid;
+  gap: var(--space-4);
+  justify-items: start;
+}
+
 .inline-alert,
 .inline-status {
   align-items: center;
@@ -283,6 +396,12 @@
   }
   .source-card-heading {
     align-items: flex-start;
+  }
+  .watchlist-form {
+    grid-template-columns: 1fr;
+  }
+  .watchlist-form > * {
+    grid-column: 1 / -1;
   }
 }
 

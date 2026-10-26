@@ -41,6 +41,7 @@ export const ROUTE_REGISTRY = {
     label: "Intelligence Sources",
     hash: "#/intelligence-sources",
   },
+  watchlists: { id: "watchlists", label: "Topic Watchlists", hash: "#/watchlists" },
 } as const;
 
 export type RouteId = keyof typeof ROUTE_REGISTRY;
@@ -86,6 +87,7 @@ export function resolveRoute(input: string): RouteResolution {
   if (normalized === "activity") return { kind: "page", id: "activity" };
   if (normalized === "netops") return { kind: "page", id: "netops" };
   if (normalized === "intelligence-sources") return { kind: "page", id: "intelligence-sources" };
+  if (normalized === "watchlists") return { kind: "page", id: "watchlists" };
 
   return { kind: "not-found", requested: input };
 }
