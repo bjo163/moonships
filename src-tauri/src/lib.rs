@@ -2,6 +2,7 @@ pub mod config;
 pub mod domain;
 pub mod local_logging;
 pub mod projects;
+pub mod tasks;
 
 use std::{
     fs,
