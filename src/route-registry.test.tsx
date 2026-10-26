@@ -45,4 +45,11 @@ describe("Intelligence routes", () => {
     });
     expect(ROUTE_REGISTRY.intelligence.hash).toBe("#/intelligence");
   });
+  it("resolves research desk list and note details", () => {
+    expect(resolveRoute("#/research")).toEqual({ kind: "page", id: "research" });
+    expect(resolveRoute("#/research/notes/note-42")).toEqual({
+      kind: "research-note",
+      noteId: "note-42",
+    });
+  });
 });

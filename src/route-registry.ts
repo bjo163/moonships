@@ -43,6 +43,7 @@ export const ROUTE_REGISTRY = {
   },
   watchlists: { id: "watchlists", label: "Topic Watchlists", hash: "#/watchlists" },
   intelligence: { id: "intelligence", label: "Intelligence", hash: "#/intelligence" },
+  research: { id: "research", label: "Research Desk", hash: "#/research" },
 } as const;
 
 export type RouteId = keyof typeof ROUTE_REGISTRY;
@@ -52,6 +53,7 @@ export type RouteResolution =
   | { kind: "project-overview"; projectId: string }
   | { kind: "task-detail"; taskId: string }
   | { kind: "intelligence-item"; itemId: string }
+  | { kind: "research-note"; noteId: string }
   | { kind: "not-found"; requested: string };
 
 export function resolveRoute(input: string): RouteResolution {
@@ -83,6 +85,15 @@ export function resolveRoute(input: string): RouteResolution {
       return { kind: "not-found", requested: input };
     }
   }
+  const researchNoteMatch = path.match(/^research\/notes\/([^/]+)$/i);
+  if (researchNoteMatch) {
+    try {
+      const noteId = decodeURIComponent(researchNoteMatch[1]);
+      if (noteId && noteId.length <= 64) return { kind: "research-note", noteId };
+    } catch {
+      return { kind: "not-found", requested: input };
+    }
+  }
   const normalized = input.trim().replace(/^#/, "").replace(/^\/+/, "").toLowerCase();
 
   // Keep the existing home anchor compatible while establishing stable route IDs.
@@ -100,6 +111,7 @@ export function resolveRoute(input: string): RouteResolution {
   if (normalized === "intelligence-sources") return { kind: "page", id: "intelligence-sources" };
   if (normalized === "watchlists") return { kind: "page", id: "watchlists" };
   if (normalized === "intelligence") return { kind: "page", id: "intelligence" };
+  if (normalized === "research") return { kind: "page", id: "research" };
   if (normalized === "intelligence") return { kind: "page", id: "intelligence" };
 
   return { kind: "not-found", requested: input };

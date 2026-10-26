@@ -323,6 +323,8 @@ Trend calculation is pure and in memory over a bounded batch of validated items 
 
 M5-012 persists only complete successful results of explicit user-triggered fetches in a bounded app-owned table. Item queries accept only bounded source/category/search filters and a capped page size; item detail reads by validated ID. The Intelligence list exposes source/category/time/freshness metadata and links to validated HTTPS source and original item URLs. No fetch or polling occurs on route load; saved source runtime health is updated after each manual attempt.
 
+M5-013 adds app-owned local research notes with a typed one-to-one intelligence item reference and a source attribution snapshot. Save is idempotent per item and does not duplicate source content. A version-1 JSON export uses a native user-selected save dialog and fails if the chosen path already exists. Notes survive item retention; exports state whether the referenced item is still available. This does not implement general-purpose Notes or Collections CRUD.
+
 ## 11. AI adapter boundary
 
 AI consumes a limited context assembled by Moonships and can request only registered tools. Keep provider request/response types behind an internal interface. Persist prompt/output only when configured and necessary; redact secrets and minimize sensitive data.

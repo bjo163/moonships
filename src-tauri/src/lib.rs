@@ -26,6 +26,7 @@ pub mod ping_adapter;
 pub mod process_inventory;
 pub mod project_task_export;
 pub mod projects;
+pub mod research_notes;
 pub mod rss_connector;
 pub mod service_inventory;
 pub mod subnet_calculator;
@@ -80,7 +81,7 @@ fn open_database_in(app_data_dir: &Path) -> Result<Connection, String> {
     Ok(connection)
 }
 
-const CURRENT_SCHEMA_VERSION: i64 = 13;
+const CURRENT_SCHEMA_VERSION: i64 = 14;
 const PERSONAL_WORKSPACE_ID: &str = "00000000-0000-4000-8000-000000000001";
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
@@ -568,6 +569,85 @@ fn get_intelligence_item(
 }
 
 #[tauri::command]
+fn save_intelligence_item_to_research(
+    app: AppHandle,
+    request: GetIntelligenceItemDto,
+) -> Result<research_notes::ResearchNote, String> {
+    let mut connection = open_personal_workspace_database(&app)?;
+    research_notes::save_for_item(&mut connection, &request.id)
+        .map_err(|error| format!("RESEARCH_ERROR: {error:?}"))
+}
+
+#[tauri::command]
+fn list_research_notes(app: AppHandle) -> Result<Vec<research_notes::ResearchNote>, String> {
+    let connection = open_personal_workspace_database(&app)?;
+    research_notes::list(&connection).map_err(|error| format!("RESEARCH_ERROR: {error:?}"))
+}
+
+#[tauri::command]
+fn get_research_note(
+    app: AppHandle,
+    request: GetIntelligenceItemDto,
+) -> Result<Option<research_notes::ResearchExport>, String> {
+    let connection = open_personal_workspace_database(&app)?;
+    research_notes::get(&connection, &request.id)
+        .map_err(|error| format!("RESEARCH_ERROR: {error:?}"))
+}
+
+#[tauri::command]
+async fn export_research_note(
+    app: AppHandle,
+    request: GetIntelligenceItemDto,
+) -> Result<Option<String>, String> {
+    #[cfg(not(windows))]
+    {
+        let _ = (app, request);
+        Err("UNSUPPORTED: Research export is currently available on Windows".to_owned())
+    }
+    #[cfg(windows)]
+    {
+        tauri::async_runtime::spawn_blocking(move || {
+            let connection = open_personal_workspace_database(&app)?;
+            let document = research_notes::export(&connection, &request.id)
+                .map_err(|error| format!("RESEARCH_ERROR: {error:?}"))?;
+            let json = serde_json::to_string_pretty(&document)
+                .map_err(|_| "DATA_ERROR: could not encode research export".to_owned())?;
+            let window = app
+                .get_webview_window("main")
+                .ok_or_else(|| "IO_ERROR: main window is unavailable".to_owned())?;
+            let Some(path) = rfd::FileDialog::new()
+                .set_parent(&window)
+                .set_title("Export Research Note")
+                .set_file_name("moonships-research-note.json")
+                .add_filter("JSON", &["json"])
+                .save_file()
+            else {
+                return Ok(None);
+            };
+            use std::io::Write;
+            let mut file = std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&path)
+                .map_err(|error| {
+                    if error.kind() == std::io::ErrorKind::AlreadyExists {
+                        "CONFLICT: selected export file already exists".to_owned()
+                    } else {
+                        "IO_ERROR: could not save the selected research export".to_owned()
+                    }
+                })?;
+            file.write_all(json.as_bytes())
+                .map_err(|_| "IO_ERROR: could not save the selected research export".to_owned())?;
+            Ok(path
+                .file_name()
+                .map(|name| name.to_string_lossy().into_owned()))
+        })
+        .await
+        .map_err(|_| "IO_ERROR: research export did not complete".to_owned())?
+    }
+}
+
+#[tauri::command]
 fn save_intelligence_source(
     app: AppHandle,
     request: SaveConnectorSettingsDto,
@@ -1050,6 +1130,30 @@ pub(crate) fn run_migrations(connection: &mut Connection) -> Result<(), String> 
             INSERT OR IGNORE INTO schema_migrations (version) VALUES (13);",
             )
             .map_err(|error| format!("Could not apply intelligence item migration: {error}"))?;
+    }
+
+    if current_version < 14 {
+        transaction.execute_batch(
+            "CREATE TABLE IF NOT EXISTS research_notes (
+                id TEXT PRIMARY KEY NOT NULL CHECK (length(id) = 36),
+                title TEXT NOT NULL CHECK (length(trim(title)) BETWEEN 1 AND 640),
+                body TEXT NOT NULL CHECK (length(body) <= 32000),
+                item_id TEXT NOT NULL UNIQUE,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS research_note_references (
+                note_id TEXT PRIMARY KEY NOT NULL REFERENCES research_notes(id) ON DELETE CASCADE,
+                item_id TEXT NOT NULL UNIQUE,
+                source_id TEXT NOT NULL CHECK (length(source_id) BETWEEN 1 AND 64),
+                source_url TEXT NOT NULL CHECK (length(source_url) <= 2048),
+                original_url TEXT NOT NULL CHECK (length(original_url) <= 2048),
+                published_at TEXT,
+                observed_at TEXT NOT NULL,
+                verification_state TEXT NOT NULL CHECK (verification_state IN ('unverified','source_attributed','independently_verified'))
+            );
+            INSERT OR IGNORE INTO schema_migrations (version) VALUES (14);"
+        ).map_err(|error| format!("Could not apply research notes migration: {error}"))?;
     }
 
     transaction
@@ -1590,6 +1694,10 @@ pub fn run() {
             fetch_intelligence_source,
             list_intelligence_items,
             get_intelligence_item,
+            save_intelligence_item_to_research,
+            list_research_notes,
+            get_research_note,
+            export_research_note,
             save_intelligence_source,
             set_intelligence_source_enabled,
             list_intelligence_watchlists,
@@ -1881,6 +1989,10 @@ mod tests {
         .is_err());
         assert!(serde_json::from_str::<GetIntelligenceItemDto>(
             r#"{"id":"item","workspaceId":"other"}"#
+        )
+        .is_err());
+        assert!(serde_json::from_str::<GetIntelligenceItemDto>(
+            r#"{"id":"note-42","path":"C:/output.json"}"#
         )
         .is_err());
     }

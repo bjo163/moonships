@@ -42,6 +42,8 @@ export function IntelligencePage({ itemId }: { itemId?: string }) {
   const [busySource, setBusySource] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [researchSaving, setResearchSaving] = useState(false);
+  const [researchExporting, setResearchExporting] = useState(false);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -108,6 +110,54 @@ export function IntelligencePage({ itemId }: { itemId?: string }) {
     row.freshnessState === "fresh" ? "Fresh at observation" : row.freshnessState;
   const sourceName = (sourceId: string) =>
     sources.find((source) => source.connector.id === sourceId)?.connector.displayName ?? sourceId;
+
+  const saveToResearch = async (currentItem: Item) => {
+    setResearchSaving(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const note = await invoke<{ id: string }>("save_intelligence_item_to_research", {
+        request: { id: currentItem.id },
+      });
+      setNotice("Saved to Research Desk with its source reference.");
+      window.location.hash = `#/research/notes/${encodeURIComponent(note.id)}`;
+    } catch (reason) {
+      setError(
+        typeof reason === "string"
+          ? reason
+          : reason instanceof Error
+            ? reason.message
+            : "Could not save this item to Research Desk.",
+      );
+    } finally {
+      setResearchSaving(false);
+    }
+  };
+
+  const exportFromDetail = async (currentItem: Item) => {
+    setResearchExporting(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const note = await invoke<{ id: string }>("save_intelligence_item_to_research", {
+        request: { id: currentItem.id },
+      });
+      const fileName = await invoke<string | null>("export_research_note", {
+        request: { id: note.id },
+      });
+      setNotice(fileName ? `Research note exported as ${fileName}.` : "Export cancelled.");
+    } catch (reason) {
+      setError(
+        typeof reason === "string"
+          ? reason
+          : reason instanceof Error
+            ? reason.message
+            : "Research note could not be exported.",
+      );
+    } finally {
+      setResearchExporting(false);
+    }
+  };
 
   return (
     <section className="page intelligence-page" aria-labelledby="intelligence-title">
@@ -189,6 +239,25 @@ export function IntelligencePage({ itemId }: { itemId?: string }) {
                 Open original item
               </a>
             </p>
+            <div className="intelligence-detail-actions">
+              <Button
+                loading={researchSaving}
+                loadingLabel="Saving…"
+                disabled={researchExporting}
+                onClick={() => void saveToResearch(item)}
+              >
+                Save to Research
+              </Button>
+              <Button
+                variant="secondary"
+                loading={researchExporting}
+                loadingLabel="Exporting…"
+                disabled={researchSaving}
+                onClick={() => void exportFromDetail(item)}
+              >
+                Export Research Note
+              </Button>
+            </div>
             <a href="#/intelligence">Back to Intelligence list</a>
           </article>
         )

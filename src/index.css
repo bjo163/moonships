@@ -1135,6 +1135,12 @@ h1 { font-size: var(--text-xl); letter-spacing: -.035em; margin: .45rem 0 0; }
 .intelligence-table tbody th span { display: block; max-width: 32rem; margin-top: var(--space-1); color: var(--color-text-muted); font-size: var(--text-sm); font-weight: var(--weight-regular); overflow-wrap: anywhere; }
 .intelligence-table tbody td { color: var(--color-text-muted); font-size: var(--text-sm); white-space: nowrap; }
 .intelligence-detail { max-width: 64rem; padding: var(--space-5); border: 1px solid var(--color-border); border-radius: var(--radius-card); background: var(--color-surface); }
+.intelligence-detail-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-4) 0; }
+.research-notes-list { display: grid; gap: var(--space-3); max-width: 64rem; }
+.research-note-card { padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-card); background: var(--color-surface); }
+.research-note-card h3 { margin-top: 0; }
+.research-note-card p { color: var(--color-text-muted); overflow-wrap: anywhere; }
+.research-note-card a { color: var(--color-link); text-underline-offset: .15em; }
 .intelligence-detail h3 { margin: var(--space-2) 0; font-size: var(--text-xl); }
 .intelligence-detail > p { line-height: var(--line-height-body); overflow-wrap: anywhere; }
 .intelligence-metadata { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); margin: var(--space-5) 0; }

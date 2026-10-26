@@ -95,6 +95,34 @@ describe("M5-012 Intelligence list and item detail", () => {
     expect(screen.getByText("Observed")).toBeTruthy();
   });
 
+  it("saves a typed research reference and exports the linked note on explicit action", async () => {
+    let exportRequested = false;
+    invokeMock.mockImplementation((command: string) => {
+      if (command === "list_intelligence_sources") return Promise.resolve([source]);
+      if (command === "get_intelligence_item") return Promise.resolve(item);
+      if (command === "save_intelligence_item_to_research")
+        return Promise.resolve({ id: "note-1" });
+      if (command === "export_research_note") {
+        exportRequested = true;
+        return Promise.resolve("moonships-research-note.json");
+      }
+      return Promise.resolve(null);
+    });
+    render(<IntelligencePage itemId="item-1" />);
+    fireEvent.click(await screen.findByRole("button", { name: "Save to Research" }));
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith("save_intelligence_item_to_research", {
+        request: { id: "item-1" },
+      }),
+    );
+    expect(window.location.hash).toBe("#/research/notes/note-1");
+    fireEvent.click(screen.getByRole("button", { name: "Export Research Note" }));
+    await waitFor(() => expect(exportRequested).toBe(true));
+    expect(invokeMock).toHaveBeenCalledWith("export_research_note", {
+      request: { id: "note-1" },
+    });
+  });
+
   it("only fetches an explicitly enabled source and reports failures", async () => {
     invokeMock.mockImplementation((command: string) => {
       if (command === "list_intelligence_sources") return Promise.resolve([source]);

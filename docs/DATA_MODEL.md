@@ -158,6 +158,8 @@ Collection fields: id, workspace_id, name, description?, created_at, updated_at.
 Note fields: id, workspace_id, collection_id?, title, body, created_at, updated_at.
 Link notes to sources/artifacts through a join table to preserve provenance.
 
+M5-013 adds a bounded local ResearchNote linked to one IntelligenceItem ID and a typed reference snapshot of source ID, source/original URLs, publication/observation times and verification state. The note does not copy the item body. Version-1 research export contains the note plus that attribution snapshot; an `itemAvailable` flag reflects retention without deleting the note/reference. Collections and general Notes CRUD remain future M10 work.
+
 ## 3. Relationship summary
 
 - Workspace 1:N Projects, Tasks, SavedViews, Notes, Settings (app-wide settings may be separate).

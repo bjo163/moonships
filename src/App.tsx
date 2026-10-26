@@ -14,6 +14,7 @@ import { NetOpsPage } from "./NetOpsPage";
 import { ProcessesPage } from "./ProcessesPage";
 import { ProjectOverviewPage } from "./ProjectOverviewPage";
 import { ProjectsPage } from "./ProjectsPage";
+import { ResearchDeskPage } from "./ResearchDeskPage";
 import { type RouteId, type RouteResolution, resolveRoute } from "./route-registry";
 import { ServicesPage } from "./ServicesPage";
 import { TaskCreateDialog } from "./TaskCreateDialog";
@@ -96,6 +97,13 @@ export function AppShell({
             aria-current={activeRoute === "intelligence" ? "page" : undefined}
           >
             <span>Intelligence</span>
+          </a>
+          <a
+            className={`nav-item${activeRoute === "research" ? " nav-item-active" : ""}`}
+            href="#/research"
+            aria-current={activeRoute === "research" ? "page" : undefined}
+          >
+            <span>Research Desk</span>
           </a>
           <a
             className={`nav-item${activeRoute === "projects" ? " nav-item-active" : ""}`}
@@ -822,9 +830,11 @@ export default function App() {
             ? "projects"
             : route.kind === "intelligence-item"
               ? "intelligence"
-              : route.kind === "task-detail"
-                ? "tasks"
-                : "overview"
+              : route.kind === "research-note"
+                ? "research"
+                : route.kind === "task-detail"
+                  ? "tasks"
+                  : "overview"
       }
       onToggleTheme={toggleTheme}
       onOpenCommandPalette={() => {
@@ -892,6 +902,10 @@ export default function App() {
         <IntelligencePage />
       ) : route.kind === "intelligence-item" ? (
         <IntelligencePage itemId={route.itemId} />
+      ) : route.kind === "page" && route.id === "research" ? (
+        <ResearchDeskPage />
+      ) : route.kind === "research-note" ? (
+        <ResearchDeskPage noteId={route.noteId} />
       ) : route.kind === "task-detail" ? (
         <TaskDetailPage taskId={route.taskId} />
       ) : (

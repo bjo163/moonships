@@ -170,6 +170,11 @@ Risk class is separate from task priority, vulnerability severity and business i
 - Results are validated and persisted atomically only after the complete RSS document parses successfully. Storage retention is bounded to 10,000 records; native reads cap pages at 200, and source/category/search and item ID inputs are validated. Runtime source health is persisted after attempts so errors cannot leave an old success presented as live.
 - Feed title/summary are rendered only as text. URLs are validated HTTPS item/source links opened externally with a safe `rel`; page routes use item IDs and never accept arbitrary paths or SQL. Opening list/detail routes performs no network activity.
 
+### Research note/source linking (M5-013)
+
+- Save accepts only a validated stored item ID; the native service creates an app-generated note ID and a typed source-attribution snapshot. The note body does not duplicate fetched item text, source content remains untrusted, and saves are idempotent per item.
+- Export serializes a bounded versioned note/reference document and opens only a native save dialog. The renderer supplies a note ID, never a path. Cancellation writes nothing; an existing selected destination is rejected rather than overwritten. The reference snapshot remains if the bounded item store later evicts its item, and export declares item availability.
+
 ### Read-only system inventory (M4-007)
 
 - Inventory reads only OS family/process architecture, available logical processors, physical memory counters and capacity/free bytes on the volume containing the Windows directory.
