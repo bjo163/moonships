@@ -168,7 +168,7 @@
 - [x] **M4-008 — Add process inventory view** [S] — Read-only initially. **AC:** no kill action is exposed accidentally.
 - [x] **M4-009 — Add Windows service inventory view** [S] — Read-only initially. **AC:** user permissions/errors are visible.
 - [x] **M4-010 — Add event log integration seam** [S] — Read-only and bounded. **AC:** unavailable/denied/log-empty states differ.
-- [ ] **M4-011 — Add allowlisted terminal/SSH/RDP profiles** [S] — Store secret references only. **AC:** secrets never appear in exported profile/log.
+- [x] **M4-011 — Add allowlisted terminal/SSH/RDP profiles** [S] — Store secret references only. **AC:** secrets never appear in exported profile/log.
 - [ ] **M4-012 — Add Activity Center for long-running jobs** [S] [depends: M1-026] — Display state, progress, duration and result. **AC:** status transitions are tested.
 - [ ] **M4-013 — Add cancel job action where supported** [S] — Truthful best-effort semantics. **AC:** unsupported cancellation is disabled and explained.
 - [ ] **M4-014 — Add task creation from diagnostic result** [S] [depends: M2-016] — Attach redacted summary. **AC:** target/result/time are linked without secret data.

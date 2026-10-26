@@ -102,6 +102,9 @@ Approval must be bound to the exact action/arguments/target. If target or argume
 Fields: id, kind, display_name, enabled, config_reference?, polling_interval_seconds?, last_attempt_at?, last_success_at?, freshness_threshold_seconds?, health_status, terms_url?, created_at, updated_at.
 Secrets are referenced, not embedded in config JSON.
 
+### Connection profile contract (M4-011)
+Profiles have a UUID ID, bounded display name and one tagged allowlisted transport: a known local terminal enum, SSH or RDP. Remote transports use a strict single host, nonzero port, optional username and optional opaque UUID secret reference. No password, private key, command line or arbitrary executable path field exists. The dedicated export DTO omits secret references; the safe log projection omits user content and target details. M4-011 defines the contract only: saved profile persistence, OS secret-store integration and transport execution remain future reviewed work.
+
 ### IntelligenceItem
 Fields: id, source_id, external_id?, canonical_url, title, summary?, published_at?, observed_at, event_time?, category, content_hash?, normalized_metadata_json?, freshness_state, verification_state.
 Preserve source attribution and collection time. Keep the raw payload only when the source terms and privacy policy permit.

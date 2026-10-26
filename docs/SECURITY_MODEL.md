@@ -129,6 +129,12 @@ Risk class is separate from task priority, vulnerability severity and business i
 - Only event ID, provider name, level, optional timestamp and record ID are represented; raw event messages and payloads are not returned.
 - Empty, permission-denied, timed-out, unavailable, unsupported and partial states are distinct. The current seam has no OS provider, IPC command or UI and performs no event-log read.
 
+### Connection profiles (M4-011)
+
+- Profiles accept only an allowlisted local terminal enum or a strict single-host SSH/RDP target with a nonzero port. No shell command string, arbitrary executable path or free-form process arguments are part of the model.
+- Credential slots contain only UUID secret references. Deserialization rejects unknown fields, including plaintext password/key fields; the profile export DTO omits the reference, and safe log metadata omits profile name, host, username and reference.
+- Profile metadata is inert: this task adds no persistence, OS credential-store access, process launch or network connection.
+
 ## 5. Cleaner-specific safety
 
 - M3-001 defines rules as typed metadata with closed root IDs only: app-managed temporary storage, app cache, or an OS-resolved user temporary directory. Rules and renderer inputs cannot supply arbitrary paths. The pure eligibility evaluator accepts metadata only and never reads or deletes files. M3-002's test-only traversal helper reads metadata recursively under a disposable fixture, skips links, and performs no content reads or mutations; it is compiled only for tests and is not an IPC entry point. M3-003 canonicalizes the native-resolved allowed root, existing candidate and native-policy protected paths, then rejects candidates equal to/outside the root, beneath a protected path, or any unresolved input. Protected paths must be assembled by native policy, not supplied by renderer data. M3-004 tests a Windows directory junction aimed outside the root: canonical path validation rejects the target and read-only traversal skips the junction. This check does not close time-of-check/time-of-use races; immediate identity revalidation remains required before production mutation.

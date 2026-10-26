@@ -425,3 +425,7 @@ Added a local Service Control Manager snapshot and a Services page with user-tri
 ## M4-010 Event log provider seam — 2026-10-26
 
 Added a fixed-channel, 100-record-bounded provider contract with a 100–5,000 ms requested deadline and privacy-minimized event summary DTO. Empty, permission-denied, timed-out, unavailable, unsupported and partial states map distinctly; event message text and payload are omitted. This task deliberately wires no OS provider, IPC command or UI, so it does not read event logs. Verification passed: Rust suite 149/149; Clippy with warnings denied; Rust formatting; backlog validation; and `git diff --check`.
+
+## M4-011 Allowlisted connection profile contract — 2026-10-26
+
+Added tagged Terminal/SSH/RDP profile types, strict host/port/name validation, and allowlisted terminal applications. Credential slots accept only UUID secret references; profile imports reject unknown fields, the export DTO omits references, and the safe log projection omits user content/target details. No secret values, persistence, OS credential store or connection launch are implemented here. Verification passed: Rust suite 154/154; Clippy with warnings denied; Rust formatting; backlog validation; and `git diff --check`.

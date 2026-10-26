@@ -2,6 +2,7 @@ pub mod activity;
 pub mod cleaner;
 pub mod cleanup_reports;
 pub mod config;
+pub mod connection_profiles;
 pub mod dns_adapter;
 pub mod domain;
 pub mod event_log_adapter;
