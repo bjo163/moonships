@@ -1147,6 +1147,7 @@ h1 { font-size: var(--text-xl); letter-spacing: -.035em; margin: .45rem 0 0; }
 .intelligence-metadata div { min-width: 0; padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-control); }
 .intelligence-metadata dt { color: var(--color-text-muted); font-size: var(--text-sm); }
 .intelligence-metadata dd { margin: var(--space-1) 0 0; overflow-wrap: anywhere; }
+.http-inspector-body { max-height: 32rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-surface-raised); }
 @media (max-width: 720px) { .intelligence-filters { grid-template-columns: 1fr; } .intelligence-metadata { grid-template-columns: 1fr; } .intelligence-source-list li { align-items: flex-start; flex-direction: column; } }
 @media (max-width: 960px) {
   .app-frame {

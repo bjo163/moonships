@@ -335,6 +335,8 @@ M5-018 adds a user-confirmed source export and deletion path. Export uses a nati
 
 M6-001 defines typed `AdapterManifest` metadata and `AdapterHealth` states for future specialist adapters. IDs, three-part numeric versions, descriptions, fixed kind/capability enums and optional health timestamps/diagnostics are bounded and validated. Capability labels describe intended needs only; they grant no permission. The contract is data-only: it does not discover, install, load, update or execute external code, and it is not yet wired to persistence or UI.
 
+M6-002 provides an explicit one-shot HTTPS GET Inspector on port 443 only. The target must be a public DNS/IP address; DNS is resolved once and pinned, private/reserved answers are rejected, redirects and proxies are disabled, the timeout is 10 seconds, response bytes are capped at 256 KiB, and a process-local gate allows only one active request and at least five seconds between starts. No credentials/cookies/custom headers are sent. Response content is returned to the open UI in memory; saved history retains only status, size, safe request/response headers, observation time and a URL with common credential query keys redacted. History is local, capped at 200, and stores no response body.
+
 ## 11. AI adapter boundary
 
 AI consumes a limited context assembled by Moonships and can request only registered tools. Keep provider request/response types behind an internal interface. Persist prompt/output only when configured and necessary; redact secrets and minimize sensitive data.

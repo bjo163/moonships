@@ -9,6 +9,7 @@ import { getPaletteCommands, getRegisteredCommand } from "./command-registry";
 import { DevToolsPage } from "./DevToolsPage";
 import { type GlobalSearchResult, loadGlobalSearch } from "./global-search";
 import { HomeDashboardPage } from "./HomeDashboardPage";
+import { HttpInspectorPage } from "./HttpInspectorPage";
 import { IntelligencePage } from "./IntelligencePage";
 import { IntelligenceSourcesPage } from "./IntelligenceSourcesPage";
 import { NetOpsPage } from "./NetOpsPage";
@@ -161,6 +162,13 @@ export function AppShell({
             aria-current={activeRoute === "netops" ? "page" : undefined}
           >
             <span>NetOps</span>
+          </a>
+          <a
+            className={`nav-item${activeRoute === "http-inspector" ? " nav-item-active" : ""}`}
+            href="#/http-inspector"
+            aria-current={activeRoute === "http-inspector" ? "page" : undefined}
+          >
+            <span>HTTP Inspector</span>
           </a>
           <a
             className={`nav-item${activeRoute === "intelligence-sources" ? " nav-item-active" : ""}`}
@@ -969,6 +977,8 @@ export default function App() {
         <ActivityCenterPage />
       ) : route.kind === "page" && route.id === "netops" ? (
         <NetOpsPage />
+      ) : route.kind === "page" && route.id === "http-inspector" ? (
+        <HttpInspectorPage />
       ) : route.kind === "page" && route.id === "intelligence-sources" ? (
         <IntelligenceSourcesPage />
       ) : route.kind === "page" && route.id === "watchlists" ? (

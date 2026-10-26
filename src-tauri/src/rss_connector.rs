@@ -203,15 +203,23 @@ fn read_bounded(reader: impl Read, limit: u64) -> Result<Vec<u8>, RssFetchError>
     Ok(body)
 }
 
-fn resolve_public_addresses(
+pub(crate) fn resolve_public_addresses(
     host: &str,
+    timeout: Duration,
+) -> Result<Vec<SocketAddr>, RssFetchError> {
+    resolve_public_addresses_for_port(host, 443, timeout)
+}
+
+pub(crate) fn resolve_public_addresses_for_port(
+    host: &str,
+    port: u16,
     timeout: Duration,
 ) -> Result<Vec<SocketAddr>, RssFetchError> {
     if let Ok(ip) = host.parse::<IpAddr>() {
         if !is_public_address(ip) {
             return Err(RssFetchError::UnsafeAddress);
         }
-        return Ok(vec![SocketAddr::new(ip, 443)]);
+        return Ok(vec![SocketAddr::new(ip, port)]);
     }
 
     if DNS_WORKER_BUSY.swap(true, Ordering::AcqRel) {
@@ -222,7 +230,7 @@ fn resolve_public_addresses(
     let worker = std::thread::Builder::new()
         .name("rss-dns-resolution".to_owned())
         .spawn(move || {
-            let addresses = (hostname.as_str(), 443)
+            let addresses = (hostname.as_str(), port)
                 .to_socket_addrs()
                 .map(|results| results.take(MAX_RESOLVED_ADDRESSES + 1).collect::<Vec<_>>())
                 .map_err(|_| RssFetchError::ResolutionFailed);

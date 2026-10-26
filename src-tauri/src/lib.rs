@@ -12,6 +12,7 @@ pub mod domain;
 pub mod event_log_adapter;
 pub mod hash_tools;
 pub mod home_dashboard;
+pub mod http_inspection;
 pub mod intelligence_dedupe;
 pub mod intelligence_identity;
 pub mod intelligence_item_store;
@@ -83,7 +84,7 @@ fn open_database_in(app_data_dir: &Path) -> Result<Connection, String> {
     Ok(connection)
 }
 
-const CURRENT_SCHEMA_VERSION: i64 = 15;
+const CURRENT_SCHEMA_VERSION: i64 = 16;
 const PERSONAL_WORKSPACE_ID: &str = "00000000-0000-4000-8000-000000000001";
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
@@ -504,6 +505,12 @@ struct GetIntelligenceItemDto {
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct InspectHttpRequestDto {
+    url: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct FetchIntelligenceResultDto {
     source_id: String,
     fetched_count: usize,
@@ -694,6 +701,30 @@ fn delete_intelligence_source(
 ) -> Result<intelligence_sources::DeletedSourceSummary, String> {
     let mut connection = open_personal_workspace_database(&app)?;
     intelligence_sources::delete_source(&mut connection, &request.id)
+}
+
+#[tauri::command]
+async fn inspect_http_response(
+    app: AppHandle,
+    request: InspectHttpRequestDto,
+) -> Result<http_inspection::InspectionResult, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let result = http_inspection::inspect(http_inspection::InspectRequest { url: request.url })
+            .map_err(|error| format!("HTTP_INSPECTION_ERROR: {error:?}"))?;
+        let connection = open_personal_workspace_database(&app)?;
+        http_inspection::persist_history(&connection, &result.history)?;
+        Ok(result)
+    })
+    .await
+    .map_err(|_| "HTTP_INSPECTION_ERROR: request worker did not complete".to_owned())?
+}
+
+#[tauri::command]
+fn list_http_inspection_history(
+    app: AppHandle,
+) -> Result<Vec<http_inspection::InspectionHistory>, String> {
+    let connection = open_personal_workspace_database(&app)?;
+    http_inspection::list_history(&connection)
 }
 
 #[tauri::command]
@@ -1250,6 +1281,21 @@ pub(crate) fn run_migrations(connection: &mut Connection) -> Result<(), String> 
             .map_err(|error| {
                 format!("Could not apply intelligence source deletion migration: {error}")
             })?;
+    }
+
+    if current_version < 16 {
+        transaction
+            .execute_batch(
+                "CREATE TABLE IF NOT EXISTS http_inspection_history (
+                id TEXT PRIMARY KEY NOT NULL CHECK (length(id) = 36),
+                observed_at TEXT NOT NULL,
+                history_json TEXT NOT NULL CHECK (length(history_json) BETWEEN 2 AND 262144)
+            );
+            CREATE INDEX IF NOT EXISTS idx_http_inspection_history_observed
+                ON http_inspection_history(observed_at DESC,id DESC);
+            INSERT OR IGNORE INTO schema_migrations (version) VALUES (16);",
+            )
+            .map_err(|error| format!("Could not apply HTTP inspection migration: {error}"))?;
     }
 
     transaction
@@ -1817,6 +1863,8 @@ pub fn run() {
             save_intelligence_source,
             delete_intelligence_source,
             export_intelligence_source,
+            inspect_http_response,
+            list_http_inspection_history,
             set_intelligence_source_enabled,
             list_intelligence_watchlists,
             save_intelligence_watchlist,

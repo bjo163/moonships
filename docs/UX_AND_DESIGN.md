@@ -121,6 +121,8 @@ M4-012/013 Activity Center shows persisted job state, reported progress, recorde
 
 M4-014 adds a NetOps page for one bounded DNS or TCP diagnostic. It displays the exact target, fixed two-second timeout, operation, result and observation time. A user can create a Personal inbox Task from the result; the saved summary retains target/result/time while omitting resolved addresses and raw system messages. Validation, rate-limit and unavailable states remain visible.
 
+M6-002 adds **HTTP Inspector** under Toolbox. The user submits one public HTTPS URL and explicitly starts a GET; the page shows status, bounded response headers/body and observation time. It clearly states the 10-second timeout, 256 KiB cap, redirect/private-target rejection, absence of auth/cookie inputs, and that response body remains in memory. The local history shows only status, size, redacted URL and redacted headers, with distinct loading, empty, unavailable and request failure states.
+
 ## 4. Project & task UX
 
 ### Projects list — M2-014 initial slice

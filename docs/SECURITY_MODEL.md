@@ -81,6 +81,12 @@ A capability describes authority; it does not by itself authorize every target o
 - Capability labels are documentation only and never grant a Tauri command, filesystem/network/process permission or approval. Health (`available`, `degraded`, `unavailable`, `disabled`, `unsupported`) and bounded optional diagnostic/time are reported separately from manifest identity.
 - This contract does not enumerate installed files, trust a manifest as executable authority, download/update code, load a dynamic library, start a process or create an adapter runtime. Future execution requires a separately scoped task for signature/provenance, isolation, permission mediation, lifecycle and failure handling.
 
+### HTTP Inspector (M6-002)
+
+- The only method is an explicit user-submitted HTTPS GET to one URL on port 443. Other ports, embedded credentials and fragments are rejected; the user sends no custom headers, authorization or cookies. Each request resolves one host once, rejects any private/local/reserved address and pins the HTTP connection to the accepted public addresses. HTTPS is required; proxies and redirects are disabled.
+- One request is active at a time, with a process-local minimum five-second interval, 10-second total request timeout and 256 KiB response cap. No automatic retry, route-open request or background fetch occurs.
+- The response body is shown only in the current UI result and is not saved to history. History is capped at 200 and stores status, byte count, UTC observation time and bounded request/response headers only after case-insensitive redaction of authorization, proxy authorization, cookie, set-cookie, token, API-key, secret and password headers. Sensitive URL query keys (token, API key, key, secret, password, auth, signature) are redacted in history; the original query is still sent only because the user explicitly submitted the URL. Unknown headers/paths are not assumed safe when exported in a future task.
+
 ### Risk classes
 - **R0 Read-only/local:** local metadata, format conversion, task searches.
 - **R1 Network/read-only:** DNS, GET/status checks or source fetch. Still subject to host/provider rules and limits.
