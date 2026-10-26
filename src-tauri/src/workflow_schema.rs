@@ -4,9 +4,12 @@
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const WORKFLOW_SCHEMA_VERSION: u32 = 1;
+pub const WORKFLOW_SCHEMA_VERSION: u32 = 2;
+pub const MIN_SUPPORTED_WORKFLOW_SCHEMA_VERSION: u32 = 1;
 pub const MAX_WORKFLOW_DOCUMENT_BYTES: usize = 1024 * 1024;
 pub const MAX_WORKFLOW_STEPS: usize = 128;
+pub const MIN_STEP_TIMEOUT_MS: u64 = 100;
+pub const MAX_STEP_TIMEOUT_MS: u64 = 300_000;
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -26,7 +29,18 @@ pub struct WorkflowStep {
     pub tool_version: String,
     #[serde(default)]
     pub depends_on: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timeout_ms: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub on_error: Option<WorkflowErrorPolicy>,
     pub inputs: BTreeMap<String, WorkflowValue>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkflowErrorPolicy {
+    Stop,
+    Continue,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -71,7 +85,9 @@ impl WorkflowDefinition {
     }
 
     pub fn validate_shape(&self) -> Result<(), WorkflowSchemaError> {
-        if self.schema_version != WORKFLOW_SCHEMA_VERSION {
+        if !(MIN_SUPPORTED_WORKFLOW_SCHEMA_VERSION..=WORKFLOW_SCHEMA_VERSION)
+            .contains(&self.schema_version)
+        {
             return Err(WorkflowSchemaError::UnsupportedSchemaVersion);
         }
         if !valid_identifier(&self.id, 128)
@@ -84,9 +100,19 @@ impl WorkflowDefinition {
             return Err(WorkflowSchemaError::InvalidDefinition);
         }
         for step in &self.steps {
+            let execution_policy_valid = match self.schema_version {
+                1 => step.timeout_ms.is_none() && step.on_error.is_none(),
+                2 => {
+                    step.timeout_ms.is_some_and(|timeout| {
+                        (MIN_STEP_TIMEOUT_MS..=MAX_STEP_TIMEOUT_MS).contains(&timeout)
+                    }) && step.on_error.is_some()
+                }
+                _ => false,
+            };
             if !valid_identifier(&step.id, 128)
                 || !valid_identifier(&step.tool_id, 128)
                 || !valid_tool_version(&step.tool_version)
+                || !execution_policy_valid
                 || step.inputs.len() > 128
                 || step.inputs.keys().any(|key| !valid_identifier(key, 128))
             {
@@ -274,7 +300,7 @@ mod tests {
     fn rejects_unsupported_versions_bad_tool_versions_and_unsafe_bounds() {
         assert_eq!(
             WorkflowDefinition::parse_json(
-                &VALID.replace("\"schemaVersion\": 1", "\"schemaVersion\": 2")
+                &VALID.replace("\"schemaVersion\": 1", "\"schemaVersion\": 3")
             ),
             Err(WorkflowSchemaError::UnsupportedSchemaVersion)
         );
@@ -296,6 +322,34 @@ mod tests {
         assert_eq!(
             WorkflowDefinition::parse_json(&oversized),
             Err(WorkflowSchemaError::DocumentTooLarge)
+        );
+    }
+
+    #[test]
+    fn v2_requires_bounded_timeout_and_explicit_error_policy_per_step() {
+        let mut document: serde_json::Value = serde_json::from_str(VALID).unwrap();
+        document["schemaVersion"] = serde_json::json!(2);
+        document["steps"][0]["timeoutMs"] = serde_json::json!(1_000);
+        document["steps"][0]["onError"] = serde_json::json!("continue");
+        assert!(WorkflowDefinition::parse_json(&document.to_string()).is_ok());
+
+        document["steps"][0]["timeoutMs"] = serde_json::json!(0);
+        assert_eq!(
+            WorkflowDefinition::parse_json(&document.to_string()),
+            Err(WorkflowSchemaError::InvalidDefinition)
+        );
+        for invalid_timeout in [99, 300_001] {
+            document["steps"][0]["timeoutMs"] = serde_json::json!(invalid_timeout);
+            assert_eq!(
+                WorkflowDefinition::parse_json(&document.to_string()),
+                Err(WorkflowSchemaError::InvalidDefinition)
+            );
+        }
+        document["steps"][0]["timeoutMs"] = serde_json::json!(1_000);
+        document["steps"][0]["onError"] = serde_json::json!("retry");
+        assert_eq!(
+            WorkflowDefinition::parse_json(&document.to_string()),
+            Err(WorkflowSchemaError::InvalidJson)
         );
     }
 

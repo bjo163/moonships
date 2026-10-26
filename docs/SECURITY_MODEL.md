@@ -387,7 +387,8 @@ Before executing an assessment:
 - If a model is unavailable or returns invalid output, fail closed for that AI-dependent operation while preserving ordinary non-AI tools.
 - M7-001 workflow documents are bounded to 1 MiB, reject unknown fields and value tags, and require explicit tool ID/version plus typed input values. The schema parser does not grant tool authority or perform registry lookup/execution; later workflow validation and the independent policy gate remain mandatory.
 - M7-002 rejects workflow graphs above 128 steps, duplicate IDs, missing/duplicate dependency references and dependency cycles before a future runner can consider execution. DAG validity does not authorize a tool; registry version matching, capability checks, target scope and approval are still required at execution time.
-- M7-003's runner only invokes an exact registered in-process handler version and stops after its first failure; no production handler or IPC workflow entry point is added. A future production handler must check capabilities, target scope and approval independently before consequential work. This runner has no per-step timeout yet.
+- M7-003's runner only invokes an exact registered in-process handler version; no production handler or IPC workflow entry point is added. A future production handler must check capabilities, target scope and approval independently before consequential work.
+- M7-004 requires explicit per-step timeouts and stop/continue policy for executable schema-v2 workflows. A handler receives its deadline, and the runner detects a late return, but a synchronous handler cannot be preempted; only bounded/cooperative handlers may be registered. Continue policy may proceed only to independent steps after a failure; dependent steps are skipped. Policy still cannot override capability, target scope or approval checks.
 
 ## 8. Secrets and privacy
 

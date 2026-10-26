@@ -597,3 +597,11 @@ Verification passed: focused workflow schema/validator tests 5/5; full Rust libr
 Added an in-memory runner over explicitly registered handlers keyed by exact tool ID/version. It follows a deterministic topological order, preferring earlier-declared ready steps, returns typed outputs, and stops on the first handler failure or unavailable version while marking remaining steps skipped. Duplicate registrations are rejected. A fixture verifies expected invocation order and output values, while a mismatched version proves no handler executes and subsequent steps are skipped. No production handler, IPC command, persistence, timeout or approval flow is introduced; future production handlers must enforce policy and M7-004 adds timeout/error policy.
 
 Verification passed: focused runner tests 3/3; full Rust library suite 278/278; `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`; `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`; backlog validation (150/238 checked); and `git diff --check`.
+
+## M7-004 Per-step deadlines and error policy — 2026-10-26
+
+Workflow schema version 2 now requires each step to declare a 100–300,000 ms timeout and an explicit `stop` or `continue` policy; version-1 documents remain parseable but cannot run without that policy. The runner passes a deadline to each handler and treats a handler returning after the deadline as timed out. `stop` skips all later steps; `continue` permits independent steps while dependents of failed/skipped steps stay skipped. Tests cover invalid timeout bounds, explicit policy parsing, timeout outcomes, stop behavior and continuation of independent steps.
+
+Timeout is cooperative: the synchronous runner cannot safely preempt a handler that ignores its deadline. Production handlers must enforce the deadline in their underlying operation and must not be registered if they can block without bound. No production tools or IPC entry point were added.
+
+Verification passed: workflow schema tests 6/6; workflow runner tests 5/5; full Rust library suite 281/281; `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`; `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`; backlog validation (151/238 checked); and `git diff --check`.
