@@ -13,6 +13,16 @@ export type RegisteredCommand =
       keywords: string[];
     }
   | {
+      id: "navigation.projects";
+      kind: "navigate";
+      route: RouteId;
+      title: string;
+      description: string;
+      category: string;
+      risk: "read-only";
+      keywords: string[];
+    }
+  | {
       id: "settings.open";
       kind: "settings";
       title: string;
@@ -22,9 +32,18 @@ export type RegisteredCommand =
       keywords: string[];
     }
   | {
-      id: "project.create" | "task.create" | "note.create";
+      id: "project.create";
+      kind: "create-project";
+      title: string;
+      description: string;
+      category: string;
+      risk: "state-change";
+      keywords: string[];
+    }
+  | {
+      id: "task.create" | "note.create";
       kind: "preview";
-      entity: "project" | "task" | "note";
+      entity: "task" | "note";
       title: string;
       description: string;
       category: string;
@@ -44,6 +63,16 @@ export const COMMAND_REGISTRY: readonly RegisteredCommand[] = [
     keywords: ["home", "overview", "dashboard"],
   },
   {
+    id: "navigation.projects",
+    kind: "navigate",
+    route: "projects",
+    title: "Open Projects",
+    description: "Browse and manage locally stored projects",
+    category: "Navigation",
+    risk: "read-only",
+    keywords: ["projects", "work", "portfolio"],
+  },
+  {
     id: "settings.open",
     kind: "settings",
     title: "Open Settings",
@@ -54,10 +83,9 @@ export const COMMAND_REGISTRY: readonly RegisteredCommand[] = [
   },
   {
     id: "project.create",
-    kind: "preview",
-    entity: "project",
+    kind: "create-project",
     title: "New Project",
-    description: "Preview creating a project (storage is not connected yet)",
+    description: "Create a project in the local workspace",
     category: "Create",
     risk: "state-change",
     keywords: ["project", "new"],

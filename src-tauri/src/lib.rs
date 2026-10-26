@@ -52,6 +52,66 @@ fn open_database_in(app_data_dir: &Path) -> Result<Connection, String> {
 const CURRENT_SCHEMA_VERSION: i64 = 5;
 const PERSONAL_WORKSPACE_ID: &str = "00000000-0000-4000-8000-000000000001";
 
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ListProjectsRequestDto {}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct CreateProjectRequestDto {
+    name: String,
+    description: Option<String>,
+    goal: Option<String>,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct UpdateProjectRequestDto {
+    id: String,
+    name: String,
+    description: Option<String>,
+    goal: Option<String>,
+    status: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ProjectDto {
+    id: String,
+    workspace_id: String,
+    name: String,
+    project_key: Option<String>,
+    description: Option<String>,
+    goal: Option<String>,
+    status: String,
+    archived_at: Option<String>,
+    created_at: String,
+    updated_at: String,
+}
+
+impl From<projects::Project> for ProjectDto {
+    fn from(project: projects::Project) -> Self {
+        Self {
+            id: project.id,
+            workspace_id: project.workspace_id,
+            name: project.name,
+            project_key: project.project_key,
+            description: project.description,
+            goal: project.goal,
+            status: project.status,
+            archived_at: project.archived_at,
+            created_at: project.created_at,
+            updated_at: project.updated_at,
+        }
+    }
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ProjectListResponseDto {
+    projects: Vec<ProjectDto>,
+}
+
 pub(crate) fn run_migrations(connection: &mut Connection) -> Result<(), String> {
     let transaction = connection
         .transaction()
@@ -229,6 +289,64 @@ pub(crate) fn run_migrations(connection: &mut Connection) -> Result<(), String> 
         .map_err(|error| format!("Could not commit schema migration: {error}"))
 }
 
+fn open_personal_workspace_database(app: &AppHandle) -> Result<Connection, String> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|_| "IO_ERROR: could not resolve application data directory".to_string())?;
+    let mut connection = open_database_in(&app_data_dir)?;
+    run_migrations(&mut connection)?;
+    Ok(connection)
+}
+
+#[tauri::command]
+fn list_projects(
+    app: AppHandle,
+    request: ListProjectsRequestDto,
+) -> Result<ProjectListResponseDto, String> {
+    let _ = request;
+    let connection = open_personal_workspace_database(&app)?;
+    let projects = projects::list_projects(&connection, PERSONAL_WORKSPACE_ID)?
+        .into_iter()
+        .map(ProjectDto::from)
+        .collect();
+    Ok(ProjectListResponseDto { projects })
+}
+
+#[tauri::command]
+fn create_project(app: AppHandle, request: CreateProjectRequestDto) -> Result<ProjectDto, String> {
+    let mut connection = open_personal_workspace_database(&app)?;
+    projects::create_project(
+        &mut connection,
+        projects::CreateProject {
+            workspace_id: PERSONAL_WORKSPACE_ID.to_string(),
+            name: request.name,
+            project_key: None,
+            description: request.description,
+            goal: request.goal,
+            status: None,
+        },
+    )
+    .map(ProjectDto::from)
+}
+
+#[tauri::command]
+fn update_project(app: AppHandle, request: UpdateProjectRequestDto) -> Result<ProjectDto, String> {
+    let mut connection = open_personal_workspace_database(&app)?;
+    projects::update_project(
+        &mut connection,
+        projects::UpdateProject {
+            workspace_id: PERSONAL_WORKSPACE_ID.to_string(),
+            id: request.id,
+            name: request.name,
+            description: request.description,
+            goal: request.goal,
+            status: request.status,
+        },
+    )
+    .map(ProjectDto::from)
+}
+
 fn hide_to_tray_path(app: &AppHandle) -> Result<PathBuf, String> {
     app.path()
         .app_config_dir()
@@ -323,7 +441,10 @@ pub fn run() {
             get_hide_to_tray,
             set_hide_to_tray,
             get_app_config,
-            set_app_config
+            set_app_config,
+            list_projects,
+            create_project,
+            update_project
         ])
         .setup(|app| {
             let app_data_dir = app.path().app_data_dir()?;
@@ -407,6 +528,7 @@ pub fn run() {
 mod tests {
     use super::{
         database_path, hide_to_tray_enabled, open_database_in, run_migrations,
+        CreateProjectRequestDto, ListProjectsRequestDto, ProjectDto, ProjectListResponseDto,
         CURRENT_SCHEMA_VERSION, DATABASE_BUSY_TIMEOUT_MS, DATABASE_FILE_NAME,
         PERSONAL_WORKSPACE_ID,
     };
@@ -424,6 +546,38 @@ mod tests {
                 .unwrap()
                 .as_nanos()
         ))
+    }
+
+    #[test]
+    fn project_ipc_dtos_use_camel_case_and_reject_unknown_request_fields() {
+        let request: CreateProjectRequestDto =
+            serde_json::from_str(r#"{"name":"Moonships","description":null,"goal":null}"#)
+                .expect("valid create DTO");
+        assert_eq!(request.name, "Moonships");
+        assert!(serde_json::from_str::<CreateProjectRequestDto>(
+            r#"{"name":"Moonships","workspaceId":"other","description":null,"goal":null}"#
+        )
+        .is_err());
+        assert!(serde_json::from_str::<ListProjectsRequestDto>(r#"{"path":"C:/data"}"#).is_err());
+
+        let response = ProjectListResponseDto {
+            projects: vec![ProjectDto {
+                id: "project-id".to_string(),
+                workspace_id: PERSONAL_WORKSPACE_ID.to_string(),
+                name: "Moonships".to_string(),
+                project_key: None,
+                description: None,
+                goal: None,
+                status: "planned".to_string(),
+                archived_at: None,
+                created_at: "2026-10-26T00:00:00Z".to_string(),
+                updated_at: "2026-10-26T00:00:00Z".to_string(),
+            }],
+        };
+        let json = serde_json::to_value(response).expect("serialize project list");
+        assert_eq!(json["projects"][0]["workspaceId"], PERSONAL_WORKSPACE_ID);
+        assert_eq!(json["projects"][0]["createdAt"], "2026-10-26T00:00:00Z");
+        assert!(json["projects"][0].get("workspace_id").is_none());
     }
 
     #[test]

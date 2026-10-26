@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { resolveRoute, type RouteResolution } from "./route-registry";
+import { ProjectsPage } from "./ProjectsPage";
 import { CommandPalette } from "./CommandPalette";
 import { getPaletteCommands, getRegisteredCommand } from "./command-registry";
 import {
@@ -21,7 +22,6 @@ import {
 
 const plannedNavigationItems = [
   "My Work",
-  "Projects",
   "Tasks",
   "Toolbox",
   "Security",
@@ -50,6 +50,7 @@ const foundationChecks: Array<{
 type AppShellProps = {
   children: ReactNode;
   theme: ThemePreference;
+  activeRoute?: "overview" | "projects";
   onToggleTheme: () => void;
   onOpenCommandPalette?: () => void;
   profileLabel?: string;
@@ -60,6 +61,7 @@ type AppShellProps = {
 export function AppShell({
   children,
   theme,
+  activeRoute = "overview",
   onToggleTheme,
   onOpenCommandPalette,
   profileLabel = "Developer",
@@ -82,8 +84,19 @@ export function AppShell({
         </a>
         <div className="rail-label">WORKSPACE</div>
         <nav className="navigation-list" aria-label="Workspace navigation">
-          <a className="nav-item nav-item-active" href="#/overview" aria-current="page">
+          <a
+            className={`nav-item${activeRoute === "overview" ? " nav-item-active" : ""}`}
+            href="#/overview"
+            aria-current={activeRoute === "overview" ? "page" : undefined}
+          >
             <span>Home</span>
+          </a>
+          <a
+            className={`nav-item${activeRoute === "projects" ? " nav-item-active" : ""}`}
+            href="#/projects"
+            aria-current={activeRoute === "projects" ? "page" : undefined}
+          >
+            <span>Projects</span>
           </a>
           {plannedNavigationItems.map((label) => (
             <div
@@ -551,6 +564,7 @@ export default function App() {
   const paletteTriggerRef = useRef<HTMLElement | null>(null);
   const [hideToTray, setHideToTray] = useState(false);
   const [hideToTrayStatus, setHideToTrayStatus] = useState("Loading preference…");
+  const [createProjectOnOpen, setCreateProjectOnOpen] = useState(false);
 
   useEffect(() => {
     applyThemePreference(theme, document.documentElement);
@@ -610,6 +624,11 @@ export default function App() {
         title: "Command not registered",
         description: "This command ID is not allowlisted. Nothing was executed.",
       });
+      return;
+    }
+    if (command.kind === "create-project") {
+      setCreateProjectOnOpen(true);
+      window.location.hash = "#/projects";
       return;
     }
     if (command.kind === "navigate") {
@@ -699,6 +718,7 @@ export default function App() {
   return (
     <AppShell
       theme={theme}
+      activeRoute={route.kind === "page" ? route.id : "overview"}
       onToggleTheme={toggleTheme}
       onOpenCommandPalette={() => {
         paletteTriggerRef.current =
@@ -711,6 +731,11 @@ export default function App() {
     >
       {route.kind === "page" && route.id === "overview" ? (
         <OverviewPage />
+      ) : route.kind === "page" && route.id === "projects" ? (
+        <ProjectsPage
+          createOnOpen={createProjectOnOpen}
+          onCreateHandled={() => setCreateProjectOnOpen(false)}
+        />
       ) : (
         <NotFoundPage requested={route.kind === "not-found" ? route.requested : ""} />
       )}

@@ -59,8 +59,19 @@ describe("M1-032 registered commands in the running shell", () => {
     expect(within(settings).getByRole("checkbox", { name: /Hide to tray on close/ })).toBeTruthy();
   });
 
+  it("opens the real local project form from the registered create command", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const palette = await openPalette(user);
+    await user.click(within(palette).getByRole("option", { name: /New Project/ }));
+
+    expect(window.location.hash).toBe("#/projects");
+    expect(await screen.findByRole("dialog", { name: "Create project" })).toBeTruthy();
+    expect(screen.queryByRole("dialog", { name: "Preview: New Project" })).toBeNull();
+    expect(getRegisteredCommand("project.create")?.kind).toBe("create-project");
+  });
+
   it.each([
-    ["New Project", "project"],
     ["New Task", "task"],
     ["New Note", "note"],
   ])("keeps %s as a no-execution preview", async (title, entity) => {

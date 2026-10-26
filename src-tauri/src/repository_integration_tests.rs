@@ -205,3 +205,29 @@ fn archiving_a_project_keeps_its_task_consistent_across_task_operations() {
     assert_eq!(archived.len(), 1);
     assert!(archived[0].archived_at.is_some());
 }
+
+#[test]
+fn project_records_remain_available_after_the_database_connection_is_reopened() {
+    let app_data = std::env::temp_dir().join(format!(
+        "moonships-project-restart-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("system time")
+            .as_nanos()
+    ));
+
+    let created = {
+        let mut connection = crate::open_database_in(&app_data).expect("open isolated database");
+        run_migrations(&mut connection).expect("migrate isolated database");
+        create_project(&mut connection, PERSONAL, "Restart acceptance project")
+    };
+
+    let mut reopened = crate::open_database_in(&app_data).expect("reopen isolated database");
+    run_migrations(&mut reopened).expect("migrations remain idempotent after reopen");
+    let listed = projects::list_projects(&reopened, PERSONAL).expect("read after reopen");
+    assert_eq!(listed.len(), 1);
+    assert_eq!(listed[0], created);
+    drop(reopened);
+    std::fs::remove_dir_all(app_data).expect("remove disposable project database");
+}

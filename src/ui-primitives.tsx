@@ -230,6 +230,7 @@ export function Dialog({ open, title, description, onClose, children, labelledBy
             variant="ghost"
             size="sm"
             aria-label="Close dialog"
+            title="Close dialog"
             onClick={onClose}
           >
             ×

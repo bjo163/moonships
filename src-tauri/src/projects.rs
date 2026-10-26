@@ -151,6 +151,53 @@ pub fn create_project(
     Ok(created)
 }
 
+/// Lists non-archived projects for one workspace in a stable order.
+pub fn list_projects(connection: &Connection, workspace_id: &str) -> Result<Vec<Project>, String> {
+    let workspace_id = workspace_id.trim();
+    if workspace_id.is_empty() {
+        return Err("VALIDATION_FAILED: workspace ID is required".to_string());
+    }
+    let workspace_exists: Option<i64> = connection
+        .query_row(
+            "SELECT 1 FROM workspaces WHERE id = ?1 AND archived_at IS NULL",
+            params![workspace_id],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|_| "IO_ERROR: could not read project workspace".to_string())?;
+    if workspace_exists.is_none() {
+        return Err("NOT_FOUND: project workspace does not exist or is archived".to_string());
+    }
+
+    let mut statement = connection
+        .prepare(
+            "SELECT id, workspace_id, name, project_key, description, goal,
+                    status, archived_at, created_at, updated_at
+             FROM projects
+             WHERE workspace_id = ?1 AND archived_at IS NULL
+             ORDER BY name COLLATE NOCASE ASC, id ASC",
+        )
+        .map_err(|_| "IO_ERROR: could not prepare project list".to_string())?;
+    let rows = statement
+        .query_map(params![workspace_id], |row| {
+            Ok(Project {
+                id: row.get(0)?,
+                workspace_id: row.get(1)?,
+                name: row.get(2)?,
+                project_key: row.get(3)?,
+                description: row.get(4)?,
+                goal: row.get(5)?,
+                status: row.get(6)?,
+                archived_at: row.get(7)?,
+                created_at: row.get(8)?,
+                updated_at: row.get(9)?,
+            })
+        })
+        .map_err(|_| "IO_ERROR: could not query projects".to_string())?;
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|_| "IO_ERROR: could not read projects".to_string())
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UpdateProject {
@@ -365,6 +412,51 @@ mod tests {
             .query_row("SELECT COUNT(*) FROM projects", [], |row| row.get(0))
             .unwrap();
         assert_eq!(still_one, 1);
+    }
+
+    #[test]
+    fn list_projects_is_workspace_scoped_excludes_archived_and_sorts_stably() {
+        let mut connection = fixture();
+        let mut alpha = request();
+        alpha.name = "Alpha".to_string();
+        let alpha = create_project(&mut connection, alpha).expect("alpha");
+        let mut beta = request();
+        beta.name = "beta".to_string();
+        beta.project_key = None;
+        let beta = create_project(&mut connection, beta).expect("beta");
+        let mut archived = request();
+        archived.name = "Archived".to_string();
+        archived.project_key = None;
+        let archived = create_project(&mut connection, archived).expect("archived");
+        archive_project(&mut connection, PERSONAL, &archived.id).expect("archive");
+
+        connection
+            .execute(
+                "INSERT INTO workspaces (id, name) VALUES ('other-workspace', 'Other')",
+                [],
+            )
+            .expect("second workspace");
+        let mut foreign = request();
+        foreign.workspace_id = "other-workspace".to_string();
+        foreign.name = "Foreign".to_string();
+        foreign.project_key = None;
+        create_project(&mut connection, foreign).expect("foreign project");
+
+        let listed = list_projects(&connection, PERSONAL).expect("list personal projects");
+        assert_eq!(
+            listed
+                .iter()
+                .map(|project| project.name.as_str())
+                .collect::<Vec<_>>(),
+            ["Alpha", "beta"]
+        );
+        assert_eq!(listed[0].id, alpha.id);
+        assert_eq!(listed[1].id, beta.id);
+        assert!(listed.iter().all(|project| project.archived_at.is_none()));
+        assert!(list_projects(&connection, "  ").is_err());
+        assert!(list_projects(&connection, "missing-workspace")
+            .unwrap_err()
+            .starts_with("NOT_FOUND:"));
     }
 
     #[test]

@@ -88,7 +88,6 @@ describe("Moonships application shell", () => {
     expect(markup).toContain('aria-current="page"');
     for (const label of [
       "My Work",
-      "Projects",
       "Tasks",
       "Toolbox",
       "Security",
@@ -103,12 +102,14 @@ describe("Moonships application shell", () => {
     const navigation = markup.split('aria-label="Workspace navigation"')[1]?.split("</nav>")[0];
     expect(navigation).toBeDefined();
     expect(navigation).not.toContain('href="#"');
-    expect(navigation?.match(/class="nav-state">Planned<\/span>/g)).toHaveLength(9);
+    expect(navigation).toContain('href="#/projects"');
+    expect(navigation?.match(/class="nav-state">Planned<\/span>/g)).toHaveLength(8);
   });
 
   it("resolves registered route IDs and keeps the legacy home hash compatible", () => {
     expect(resolveRoute("#/overview")).toEqual({ kind: "page", id: "overview" });
     expect(resolveRoute("#home")).toEqual({ kind: "page", id: "overview" });
+    expect(resolveRoute("#/projects")).toEqual({ kind: "page", id: "projects" });
     expect(resolveRoute("")).toEqual({ kind: "page", id: "overview" });
   });
 
@@ -435,13 +436,15 @@ describe("M1-032 registered command safety", () => {
     );
     expect(getRegisteredCommand("navigation.overview")?.kind).toBe("navigate");
     expect(getRegisteredCommand("settings.open")?.kind).toBe("settings");
-    expect(getRegisteredCommand("project.create")?.kind).toBe("preview");
+    expect(getRegisteredCommand("project.create")?.kind).toBe("create-project");
+    expect(getRegisteredCommand("navigation.projects")?.kind).toBe("navigate");
     expect(getRegisteredCommand("system.shell")).toBeUndefined();
     expect(commands.some((command) => command.id === "system.shell")).toBe(false);
   });
 
-  it("routes all create actions to preview and never registers a direct executor", () => {
-    for (const id of ["project.create", "task.create", "note.create"]) {
+  it("routes implemented project creation and keeps other create actions preview-only", () => {
+    expect(getRegisteredCommand("project.create")?.kind).toBe("create-project");
+    for (const id of ["task.create", "note.create"]) {
       expect(getRegisteredCommand(id)?.kind).toBe("preview");
       expect(getRegisteredCommand(id)?.risk).toBe("state-change");
     }
