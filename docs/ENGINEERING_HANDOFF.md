@@ -393,3 +393,7 @@ Added native request validation and typed provenance-bearing result contracts fo
 ## M4-002 DNS lookup adapter — 2026-10-26
 
 Added an internal read-only system-resolver adapter with a single bounded worker, one queued slot, the shared ten-per-minute limit, request deadlines, and a 32-address deduplicated result cap. Invalid target validation errors remain distinct from resolver failure results; timeout and unavailable worker states are separately typed. IP literals return directly with explicit provenance and do not invoke DNS. No Tauri command exposes the adapter. Limitation: the operating-system resolver API cannot cancel an in-flight lookup; the caller still returns at its deadline, while a hung lookup occupies the sole worker and new worker threads are not spawned. Verification passed: Rust suite 132/132; Clippy with warnings denied; Rust formatting; backlog validation (103/238 checked); and `git diff --check`.
+
+## M4-003 TCP connectivity test — 2026-10-26
+
+Added one-host/one-port TCP checks to the same bounded worker used for DNS, sharing its queue, timeout and ten-per-minute limit. The adapter tries resolved addresses only until the original deadline and distinguishes success, timeout, connection refusal, resolver errors and permission failures. Tests exercise a successful loopback listener and the error-code mappings without contacting external hosts. No IPC command is registered. Verification passed: Rust suite 133/133; Clippy with warnings denied; Rust formatting; backlog validation; and `git diff --check`.

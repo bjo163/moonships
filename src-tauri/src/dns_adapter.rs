@@ -7,7 +7,7 @@ use crate::network_diagnostics::{
 use std::{
     collections::{HashSet, VecDeque},
     io,
-    net::{IpAddr, SocketAddr, ToSocketAddrs},
+    net::{IpAddr, SocketAddr, TcpStream, ToSocketAddrs},
     sync::{
         mpsc::{self, Receiver, SyncSender, TrySendError},
         Mutex, OnceLock,
@@ -30,8 +30,15 @@ pub enum DnsLookupError {
 
 struct LookupJob {
     host: String,
+    operation: LookupOperation,
     deadline: Instant,
     response: mpsc::Sender<io::Result<Vec<SocketAddr>>>,
+}
+
+#[derive(Clone, Copy)]
+enum LookupOperation {
+    Dns,
+    TcpConnect(u16),
 }
 
 #[derive(Default)]
@@ -108,6 +115,7 @@ pub fn lookup_dns(
     let started = now;
     let job = LookupJob {
         host: validated.target_host.clone(),
+        operation: LookupOperation::Dns,
         deadline,
         response: response_tx,
     };
@@ -167,6 +175,96 @@ pub fn lookup_dns(
     }
 }
 
+/// Resolves one target and attempts a TCP connection to one explicit port.
+/// DNS resolution and connection share the same bounded worker and rate window.
+pub fn test_tcp_connectivity(
+    request: NetworkDiagnosticRequest,
+) -> Result<NetworkDiagnosticResult, DnsLookupError> {
+    let validated =
+        validate_network_diagnostic_request(request).map_err(DnsLookupError::InvalidRequest)?;
+    if validated.kind != NetworkDiagnosticKind::TcpConnectivity {
+        return Err(DnsLookupError::WrongOperation);
+    }
+
+    let now = Instant::now();
+    let rate_limiter = RATE_WINDOW_STATE.get_or_init(|| Mutex::new(RateWindow::default()));
+    if !rate_limiter
+        .lock()
+        .map(|mut limiter| limiter.acquire(now))
+        .unwrap_or(false)
+    {
+        return Ok(failure_result(
+            &validated,
+            NetworkDiagnosticOutcome::Failed,
+            NetworkDiagnosticErrorCode::RateLimited,
+            0,
+        ));
+    }
+    let Some(sender) = resolver_sender() else {
+        return Err(DnsLookupError::ResolverUnavailable);
+    };
+    let (response_tx, response_rx) = mpsc::channel();
+    let deadline = now + Duration::from_millis(u64::from(validated.timeout_ms));
+    let started = now;
+    let observed_at_epoch_ms = unix_epoch_milliseconds();
+    let job = LookupJob {
+        host: validated.target_host.clone(),
+        operation: LookupOperation::TcpConnect(validated.port.expect("validated TCP port")),
+        deadline,
+        response: response_tx,
+    };
+    match sender.try_send(job) {
+        Ok(()) => {}
+        Err(TrySendError::Full(_)) => {
+            return Ok(failure_result(
+                &validated,
+                NetworkDiagnosticOutcome::Failed,
+                NetworkDiagnosticErrorCode::RateLimited,
+                0,
+            ));
+        }
+        Err(TrySendError::Disconnected(_)) => return Err(DnsLookupError::ResolverUnavailable),
+    }
+
+    let remaining = deadline.saturating_duration_since(Instant::now());
+    match response_rx.recv_timeout(remaining) {
+        Ok(Ok(addresses)) => {
+            let (resolved_addresses, truncated) = cap_addresses(addresses);
+            Ok(NetworkDiagnosticResult {
+                kind: validated.kind,
+                target_host: validated.target_host,
+                target_port: validated.port,
+                observed_at_epoch_ms,
+                duration_ms: elapsed_ms(started),
+                source: NetworkDiagnosticSource::OperatingSystemTcpConnect,
+                outcome: if truncated {
+                    NetworkDiagnosticOutcome::Partial
+                } else {
+                    NetworkDiagnosticOutcome::Succeeded
+                },
+                error_code: None,
+                resolved_addresses,
+            })
+        }
+        Ok(Err(error)) => {
+            let (outcome, code) = tcp_error(&error);
+            Ok(failure_result_with_port(
+                &validated,
+                outcome,
+                code,
+                elapsed_ms(started),
+            ))
+        }
+        Err(mpsc::RecvTimeoutError::Timeout) => Ok(failure_result_with_port(
+            &validated,
+            NetworkDiagnosticOutcome::TimedOut,
+            NetworkDiagnosticErrorCode::TimedOut,
+            validated.timeout_ms,
+        )),
+        Err(mpsc::RecvTimeoutError::Disconnected) => Err(DnsLookupError::ResolverUnavailable),
+    }
+}
+
 fn resolver_sender() -> Option<&'static SyncSender<LookupJob>> {
     RESOLVER_SENDER
         .get_or_init(|| {
@@ -189,7 +287,10 @@ fn resolver_worker(receiver: Receiver<LookupJob>) {
             )));
             continue;
         }
-        let result = resolve_host(&job.host);
+        let result = match job.operation {
+            LookupOperation::Dns => resolve_host(&job.host),
+            LookupOperation::TcpConnect(port) => connect_host(&job.host, port, job.deadline),
+        };
         let _ = job.response.send(result);
     }
 }
@@ -198,6 +299,60 @@ fn resolve_host(host: &str) -> io::Result<Vec<SocketAddr>> {
     (host, 0)
         .to_socket_addrs()
         .map(|addresses| addresses.collect())
+}
+
+fn connect_host(host: &str, port: u16, deadline: Instant) -> io::Result<Vec<SocketAddr>> {
+    let addresses = resolve_host(host).map_err(|error| {
+        if error.kind() == io::ErrorKind::TimedOut {
+            error
+        } else {
+            io::Error::new(io::ErrorKind::NotFound, error.to_string())
+        }
+    })?;
+    let mut last_error = None;
+    for address in &addresses {
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        if remaining.is_zero() {
+            return Err(io::Error::new(
+                io::ErrorKind::TimedOut,
+                "connection deadline expired",
+            ));
+        }
+        match TcpStream::connect_timeout(&SocketAddr::new(address.ip(), port), remaining) {
+            Ok(stream) => {
+                drop(stream);
+                return Ok(addresses);
+            }
+            Err(error) => last_error = Some(error),
+        }
+    }
+    Err(last_error
+        .unwrap_or_else(|| io::Error::new(io::ErrorKind::NotFound, "no addresses resolved")))
+}
+
+fn tcp_error(error: &io::Error) -> (NetworkDiagnosticOutcome, NetworkDiagnosticErrorCode) {
+    match error.kind() {
+        io::ErrorKind::TimedOut => (
+            NetworkDiagnosticOutcome::TimedOut,
+            NetworkDiagnosticErrorCode::TimedOut,
+        ),
+        io::ErrorKind::ConnectionRefused => (
+            NetworkDiagnosticOutcome::Failed,
+            NetworkDiagnosticErrorCode::ConnectionRefused,
+        ),
+        io::ErrorKind::PermissionDenied => (
+            NetworkDiagnosticOutcome::Failed,
+            NetworkDiagnosticErrorCode::PermissionDenied,
+        ),
+        io::ErrorKind::NotFound => (
+            NetworkDiagnosticOutcome::Failed,
+            NetworkDiagnosticErrorCode::ResolverError,
+        ),
+        _ => (
+            NetworkDiagnosticOutcome::Failed,
+            NetworkDiagnosticErrorCode::HostUnreachable,
+        ),
+    }
 }
 
 fn cap_addresses(addresses: Vec<SocketAddr>) -> (Vec<IpAddr>, bool) {
@@ -224,10 +379,19 @@ fn failure_result(
     error_code: NetworkDiagnosticErrorCode,
     duration_ms: u32,
 ) -> NetworkDiagnosticResult {
+    failure_result_with_port(request, outcome, error_code, duration_ms)
+}
+
+fn failure_result_with_port(
+    request: &ValidatedNetworkDiagnosticRequest,
+    outcome: NetworkDiagnosticOutcome,
+    error_code: NetworkDiagnosticErrorCode,
+    duration_ms: u32,
+) -> NetworkDiagnosticResult {
     NetworkDiagnosticResult {
         kind: request.kind,
         target_host: request.target_host.clone(),
-        target_port: None,
+        target_port: request.port,
         observed_at_epoch_ms: unix_epoch_milliseconds(),
         duration_ms,
         source: NetworkDiagnosticSource::SystemResolver,
@@ -280,7 +444,7 @@ mod tests {
     };
     use std::{
         io,
-        net::{IpAddr, Ipv4Addr, SocketAddr},
+        net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener},
         time::{Duration, Instant},
     };
 
@@ -368,5 +532,36 @@ mod tests {
         );
         assert_eq!(result.outcome, NetworkDiagnosticOutcome::Succeeded);
         assert_eq!(result.duration_ms, 0);
+    }
+
+    #[test]
+    fn tcp_connect_reports_local_success_and_maps_refusal_and_timeout_separately() {
+        let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let succeeded = super::test_tcp_connectivity(NetworkDiagnosticRequest {
+            kind: NetworkDiagnosticKind::TcpConnectivity,
+            target_host: "127.0.0.1".to_string(),
+            port: Some(port),
+            timeout_ms: 2_000,
+        })
+        .unwrap();
+        assert_eq!(succeeded.outcome, NetworkDiagnosticOutcome::Succeeded);
+        assert_eq!(succeeded.target_port, Some(port));
+        drop(listener);
+
+        assert_eq!(
+            super::tcp_error(&io::Error::new(io::ErrorKind::ConnectionRefused, "fixture")),
+            (
+                NetworkDiagnosticOutcome::Failed,
+                NetworkDiagnosticErrorCode::ConnectionRefused
+            )
+        );
+        assert_eq!(
+            super::tcp_error(&io::Error::new(io::ErrorKind::TimedOut, "fixture")),
+            (
+                NetworkDiagnosticOutcome::TimedOut,
+                NetworkDiagnosticErrorCode::TimedOut
+            )
+        );
     }
 }
