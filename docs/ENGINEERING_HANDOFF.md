@@ -1,5 +1,11 @@
 # Moonships — Engineering Continuity & Foundation Evidence
 
+## M2-027 Task creation shortcut — 2026-10-26
+
+Added `Ctrl+Alt+N` (`⌘+Option+N` on Mac) to open the shared persisted Task creation dialog, and exposed the shortcut on the global New task button. It ignores editable targets and active dialogs/overlays, preserving typing and focus context. The dialog retains its existing focus management and native IPC persistence behavior.
+
+**Verification passed:** targeted `npx vitest run src/command-shortcut.behavior.test.tsx src/App.test.tsx` (39/39); `npm run check` (repository tests 8/8, frontend tests 99/99, typecheck and production build); backlog validation and `git diff --check`. Biome reports the existing CLI/schema mismatch and deprecated configuration notices plus four existing Task List test non-null assertion warnings. CI and issue sync are pending. M2-027 is accepted locally; M2-029 is the next dependency-ready task. M2 exit gates remain open.
+
 ## M2-026 Artifact/reference contract — 2026-10-26
 
 References are typed as validated HTTP(S) URL, namespaced provider ID, or opaque app-managed artifact ID. URL validation excludes embedded credentials and unsafe schemes; renderer-provided paths are rejected. App-managed references resolve below application-owned storage after canonical containment checks. Saving never opens, fetches, downloads or executes the target; opening requires a later explicit user action through a reviewed native adapter. The contract is documentation-only; no storage or open UI is claimed live.

@@ -78,4 +78,34 @@ describe("M1-033 shortcut and focus lifecycle", () => {
       within(preview).getByRole("button", { name: "Close dialog" }),
     );
   });
+
+  it("opens Task creation with Ctrl+Alt+N and exposes the shortcut on its button", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const createButton = screen.getByRole("button", { name: /New task/ });
+    expect(createButton.getAttribute("aria-keyshortcuts")).toBe("Control+Alt+N Meta+Alt+N");
+    expect(createButton.textContent).toContain("Ctrl+Alt+N");
+
+    await user.keyboard("{Control>}{Alt>}n{/Alt}{/Control}");
+    const dialog = await screen.findByRole("dialog", { name: "Create task" });
+    expect(document.activeElement).toBe(
+      within(dialog).getByRole("button", { name: "Close dialog" }),
+    );
+  });
+
+  it("does not open Task creation from an editable field or while a dialog is open", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    input.focus();
+    await user.keyboard("{Control>}{Alt>}n{/Alt}{/Control}");
+    expect(screen.queryByRole("dialog", { name: "Create task" })).toBeNull();
+    input.remove();
+
+    await user.click(screen.getByRole("button", { name: "Open Command Palette" }));
+    await user.keyboard("{Control>}{Alt>}n{/Alt}{/Control}");
+    expect(screen.getByRole("dialog", { name: "Command Palette" })).toBeTruthy();
+    expect(screen.queryByRole("dialog", { name: "Create task" })).toBeNull();
+  });
 });

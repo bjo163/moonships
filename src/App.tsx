@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { resolveRoute, type RouteId, type RouteResolution } from "./route-registry";
@@ -139,8 +139,14 @@ export function AppShell({
           </div>
           <div className="topbar-actions">
             {onCreateTask ? (
-              <Button variant="secondary" size="sm" onClick={onCreateTask}>
-                New task
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={onCreateTask}
+                aria-keyshortcuts="Control+Alt+N Meta+Alt+N"
+                title="New task (Ctrl+Alt+N / ⌘+Option+N)"
+              >
+                New task <kbd>Ctrl+Alt+N</kbd>
               </Button>
             ) : null}
             <button
@@ -586,10 +592,10 @@ export default function App() {
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
   const [createTaskProjectId, setCreateTaskProjectId] = useState<string | null>(null);
 
-  const openTaskCreation = (projectId?: string) => {
+  const openTaskCreation = useCallback((projectId?: string) => {
     setCreateTaskProjectId(projectId ?? null);
     setCreateTaskOpen(true);
-  };
+  }, []);
   const closeTaskCreation = () => {
     setCreateTaskOpen(false);
     setCreateTaskProjectId(null);
@@ -621,8 +627,8 @@ export default function App() {
       );
     };
     const onGlobalKeyDown = (event: KeyboardEvent) => {
-      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "k") return;
-      if (event.defaultPrevented || isEditableTarget(event.target) || commandPaletteOpen) return;
+      if (event.defaultPrevented || isEditableTarget(event.target)) return;
+      if (!(event.ctrlKey || event.metaKey)) return;
       if (
         document.querySelector("[role=dialog]") ||
         settingsOpen ||
@@ -630,14 +636,20 @@ export default function App() {
         commandPreview
       )
         return;
-      event.preventDefault();
-      paletteTriggerRef.current =
-        document.activeElement instanceof HTMLElement ? document.activeElement : null;
-      setCommandPaletteOpen(true);
+      const key = event.key.toLowerCase();
+      if (key === "k" && !event.altKey && !commandPaletteOpen) {
+        event.preventDefault();
+        paletteTriggerRef.current =
+          document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        setCommandPaletteOpen(true);
+      } else if (key === "n" && event.altKey && !commandPaletteOpen) {
+        event.preventDefault();
+        openTaskCreation();
+      }
     };
     window.addEventListener("keydown", onGlobalKeyDown);
     return () => window.removeEventListener("keydown", onGlobalKeyDown);
-  }, [commandPaletteOpen, settingsOpen, profileDialogOpen, commandPreview]);
+  }, [commandPaletteOpen, settingsOpen, profileDialogOpen, commandPreview, openTaskCreation]);
 
   const selectWorkspaceProfile = (nextProfile: WorkspaceProfileId) => {
     const saved = writeWorkspaceProfile(nextProfile, getBrowserStorage());

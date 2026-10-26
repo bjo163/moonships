@@ -465,7 +465,7 @@ describe("M1-033 Ctrl+K lifecycle contract", () => {
   it("binds the shortcut while guarding editable controls and existing dialogs", async () => {
     const { readFileSync } = await import("node:fs");
     const source = readFileSync(new URL("./App.tsx", import.meta.url), "utf8");
-    expect(source).toContain('event.key.toLowerCase() !== "k"');
+    expect(source).toContain('key === "k" && !event.altKey');
     expect(source).toContain("isEditableTarget(event.target)");
     expect(source).toContain('document.querySelector("[role=dialog]")');
     expect(source).toContain("paletteTriggerRef.current?.focus()");
