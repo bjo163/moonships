@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Base64DevToolsPanel } from "./Base64DevToolsPanel";
 import { Sha256DevToolsPanel } from "./Sha256DevToolsPanel";
 import { TextDiffDevToolsPanel } from "./TextDiffDevToolsPanel";
+import { TimestampDevToolsPanel } from "./TimestampDevToolsPanel";
 import { formatJsonInput, MAX_JSON_INPUT_BYTES } from "./json-formatter";
 import { UrlDevToolsPanel } from "./UrlDevToolsPanel";
 import { UuidDevToolsPanel } from "./UuidDevToolsPanel";
@@ -10,7 +11,7 @@ import { YamlDevToolsPanel } from "./YamlDevToolsPanel";
 
 export function DevToolsPage() {
   const [activeTool, setActiveTool] = useState<
-    "json" | "yaml" | "base64" | "url" | "uuid" | "sha256" | "diff"
+    "json" | "yaml" | "base64" | "url" | "uuid" | "sha256" | "diff" | "timestamp"
   >("json");
 
   return (
@@ -75,6 +76,13 @@ export function DevToolsPage() {
         >
           Text diff
         </Button>
+        <Button
+          variant={activeTool === "timestamp" ? "primary" : "secondary"}
+          aria-pressed={activeTool === "timestamp"}
+          onClick={() => setActiveTool("timestamp")}
+        >
+          Timestamp
+        </Button>
       </fieldset>
       {activeTool === "json" ? (
         <JsonFormatterPanel />
@@ -88,8 +96,10 @@ export function DevToolsPage() {
         <UuidDevToolsPanel />
       ) : activeTool === "sha256" ? (
         <Sha256DevToolsPanel />
-      ) : (
+      ) : activeTool === "diff" ? (
         <TextDiffDevToolsPanel />
+      ) : (
+        <TimestampDevToolsPanel />
       )}
     </section>
   );

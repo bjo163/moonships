@@ -198,6 +198,8 @@ M3-020 provides local SHA-256 text and file hashing with the exact-pinned RustCr
 
 M3-021 compares two local text inputs using exact-pinned `diff@9.0.0` (BSD-3-Clause). Each side is limited to 1 MiB UTF-8 and 50,000 lines; the Myers diff edit distance is capped at 1,000 and the unified result at 4 million characters. Exceeding a bound returns a clear error rather than a partial diff. Text stays in memory and is not sent to a provider or network.
 
+M3-022 converts whole-number Unix timestamps in seconds or milliseconds and strict ISO 8601 date-times with an explicit known timezone offset. It reports normalized UTC ISO, Unix values in both units and a separate device-local display labelled with the resolved timezone. Invalid numbers, unsupported date ranges, malformed calendar dates, missing offsets and unknown `-00:00` offsets return clear errors instead of being silently normalized.
+
 ## 7. Error model
 
 Use stable error codes/categories:
