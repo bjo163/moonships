@@ -110,7 +110,7 @@ export function AppShell({
             href="#/devtools"
             aria-current={activeRoute === "devtools" ? "page" : undefined}
           >
-            <span>DevTools · JSON</span>
+            <span>DevTools</span>
           </a>
           {plannedNavigationItems.map((label) => (
             <div

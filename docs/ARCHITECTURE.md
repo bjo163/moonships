@@ -186,6 +186,8 @@ M3-014 stores only cleanup report summaries in SQLite and exposes a bounded, Per
 
 M3-015 adds an in-process JSON formatter/validator with a 1 MiB UTF-8 input limit, 128-level nesting bound and 4 million character formatted-output cap. The built-in JSON parser validates input; formatting changes whitespace only, preserving number and string tokens. It makes no provider, network or filesystem calls and reports empty, invalid, oversized and overly nested input distinctly.
 
+M3-016 uses the explicitly selected, exact-pinned `yaml@2.9.1` parser/stringifier from eemeli/yaml under ISC license (see [third-party notices](THIRD_PARTY_NOTICES.md)). Parsing is YAML 1.2/core, strict, duplicate-key checked and uses `parseDocument` so syntax errors return structured parser codes and positions rather than throwing through the UI. Input is limited to 1 MiB; formatted output is limited to 4 million characters. YAML text is handled locally and never converted to arbitrary application objects or sent to a provider.
+
 ## 7. Error model
 
 Use stable error codes/categories:

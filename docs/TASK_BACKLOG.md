@@ -147,7 +147,7 @@
 
 ### Offline DevTools
 - [x] **M3-015 — Add JSON formatter/validator** [S] — Pure local transformation. **AC:** valid, invalid and oversized input are tested.
-- [ ] **M3-016 — Add YAML formatter/validator only with vetted parser** [S] — Keep parser selection explicit. **AC:** invalid YAML returns structured error.
+- [x] **M3-016 — Add YAML formatter/validator only with vetted parser** [S] — Keep parser selection explicit. **AC:** invalid YAML returns structured error.
 - [ ] **M3-017 — Add Base64 encode/decode** [S] — Handle UTF-8 and binary-vs-text clearly. **AC:** round-trip test passes.
 - [ ] **M3-018 — Add URL encode/decode** [S] — Distinguish components from full URLs. **AC:** reserved-character fixtures pass.
 - [ ] **M3-019 — Add UUID generator/validator** [S] — Use vetted random source/library. **AC:** output conforms to declared UUID format.

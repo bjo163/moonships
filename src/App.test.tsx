@@ -1,14 +1,14 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import App, { AppShell, NotFoundPage, SettingsDialog, WorkspaceProfileDialog } from "./App";
-import { resolveRoute } from "./route-registry";
 import { CommandPalette, filterPaletteCommands, type PaletteCommand } from "./CommandPalette";
-import { COMMAND_REGISTRY, getRegisteredCommand, getPaletteCommands } from "./command-registry";
+import { COMMAND_REGISTRY, getPaletteCommands, getRegisteredCommand } from "./command-registry";
+import { resolveRoute } from "./route-registry";
 import {
   getWorkspaceProfile,
   readWorkspaceProfile,
-  writeWorkspaceProfile,
   WORKSPACE_PROFILES,
+  writeWorkspaceProfile,
 } from "./workspace-profile";
 
 describe("Moonships application shell", () => {
@@ -85,6 +85,8 @@ describe("Moonships application shell", () => {
     expect(markup).toContain('aria-label="Workspace navigation"');
     expect(markup).toContain('href="#/overview"');
     expect(markup).toContain('href="#/cleaner"');
+    expect(markup).toContain('href="#/devtools"');
+    expect(markup).toContain("DevTools");
     expect(markup).toContain("Clean &amp; Storage");
     expect(markup).toContain('aria-current="page"');
     for (const label of [
@@ -113,6 +115,7 @@ describe("Moonships application shell", () => {
     expect(resolveRoute("#/projects")).toEqual({ kind: "page", id: "projects" });
     expect(resolveRoute("#/tasks")).toEqual({ kind: "page", id: "tasks" });
     expect(resolveRoute("#/cleaner")).toEqual({ kind: "page", id: "cleaner" });
+    expect(resolveRoute("#/devtools")).toEqual({ kind: "page", id: "devtools" });
     expect(resolveRoute("#/projects/project-id")).toEqual({
       kind: "project-overview",
       projectId: "project-id",

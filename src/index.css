@@ -278,6 +278,7 @@ h1 { font-size: var(--text-xl); letter-spacing: -.035em; margin: .45rem 0 0; }
 .json-devtools { display: grid; gap: var(--space-4); }
 .json-devtools__header h2 { margin: .35rem 0; font-size: var(--text-display); letter-spacing: -.04em; }
 .json-devtools__header p:last-child { margin-bottom: 0; }
+.json-devtools__tabs { display: flex; flex-wrap: wrap; gap: var(--space-2); min-width: 0; margin: 0; padding: 0; border: 0; }
 .json-devtools__workspace { display: grid; gap: var(--space-3); min-width: 0; padding: var(--space-5); border: 1px solid var(--color-border); border-radius: var(--radius-card); background: var(--color-surface); }
 .json-devtools__workspace > label { color: var(--color-text-primary); font-size: var(--text-sm); font-weight: 600; }
 .json-devtools__editor { width: 100%; min-height: 18rem; resize: vertical; padding: var(--space-3); border: 1px solid var(--color-border-strong); border-radius: var(--radius-control); background: var(--color-canvas); color: var(--color-text-primary); font-family: var(--font-mono); font-size: var(--text-sm); line-height: 1.55; tab-size: 2; }
@@ -289,6 +290,8 @@ h1 { font-size: var(--text-xl); letter-spacing: -.035em; margin: .45rem 0 0; }
 .json-devtools__output { width: 100%; height: 28rem; resize: vertical; margin: 0; padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-surface-raised); color: var(--color-text-primary); font-family: var(--font-mono); font-size: var(--text-sm); line-height: 1.55; white-space: pre; }
 .json-devtools__error, .json-devtools__empty { margin: 0; color: var(--color-text-muted); font-size: var(--text-sm); }
 .json-devtools__error { color: var(--color-status-danger-text); }
+.json-devtools__error p { margin: 0; }
+.json-devtools__error ul { margin: var(--space-2) 0 0; padding-left: var(--space-5); color: var(--color-text-muted); }
 .card-index { color: var(--color-index); font-size: var(--text-xs); letter-spacing: .12em; margin-bottom: 1.2rem; }
 .status-card h3 { font-size: var(--text-base); margin-bottom: .45rem; }
 .status-card p { color: var(--color-text-muted); font-size: var(--text-sm); min-height: 1.25rem; }
