@@ -487,6 +487,8 @@ From an Intelligence item detail, **Save to Research** creates or opens one loca
 
 ### Settings
 
+M7-015 adds a local AI enable/disable preference. AI is off by default. The current build has no connected provider, so enabling the preference does not send prompts or data anywhere; Settings says this plainly and confirms local features remain available. Preference load/save errors keep AI unavailable or preserve the last saved choice. No automatic provider fallback is permitted.
+
 ```text
 Settings navigation               Current section
 General                           Startup behavior (opt-in)

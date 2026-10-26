@@ -353,7 +353,7 @@ describe("M1 desktop foundation contracts", () => {
     const { readFileSync } = await import("node:fs");
     const domain = readFileSync(new URL("../src-tauri/src/domain.rs", import.meta.url), "utf8");
 
-    expect(domain).toContain("CURRENT_CONFIG_SCHEMA_VERSION: u32 = 1");
+    expect(domain).toContain("CURRENT_CONFIG_SCHEMA_VERSION: u32 = 2");
     expect(domain).toContain("impl Default for AppConfig");
     expect(domain).toContain("config_defaults_are_valid_and_schema_mismatch_fails_closed");
     expect(domain).toContain("Unsupported config schema version");

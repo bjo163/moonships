@@ -190,7 +190,7 @@ pub fn evaluate_policy(
     PolicyDecision::Allowed
 }
 
-pub const CURRENT_CONFIG_SCHEMA_VERSION: u32 = 1;
+pub const CURRENT_CONFIG_SCHEMA_VERSION: u32 = 2;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -227,6 +227,7 @@ pub struct AppConfig {
     pub profile: WorkspaceProfile,
     pub log_level: ConfigLogLevel,
     pub hide_to_tray: bool,
+    pub ai_enabled: bool,
 }
 
 impl Default for AppConfig {
@@ -237,6 +238,7 @@ impl Default for AppConfig {
             profile: WorkspaceProfile::Developer,
             log_level: ConfigLogLevel::Info,
             hide_to_tray: false,
+            ai_enabled: false,
         }
     }
 }

@@ -310,6 +310,11 @@ export function SettingsDialog({
   const [notificationsAvailable, setNotificationsAvailable] = useState(false);
   const [notificationsLoading, setNotificationsLoading] = useState(true);
   const [notificationsSaving, setNotificationsSaving] = useState(false);
+  const [aiEnabled, setAiEnabled] = useState(false);
+  const [aiAvailable, setAiAvailable] = useState(false);
+  const [aiLoading, setAiLoading] = useState(true);
+  const [aiSaving, setAiSaving] = useState(false);
+  const [aiStatus, setAiStatus] = useState("Loading AI preference…");
 
   useEffect(() => {
     let cancelled = false;
@@ -336,6 +341,52 @@ export function SettingsDialog({
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void invoke<{ enabled: boolean }>("get_ai_enabled")
+      .then(({ enabled }) => {
+        if (!cancelled) {
+          setAiEnabled(enabled);
+          setAiAvailable(true);
+          setAiStatus(
+            enabled
+              ? "AI is enabled, but no provider is connected in this build. No provider will receive data; local features remain available."
+              : "AI features are off. Local features remain available.",
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setAiStatus("AI preference is unavailable; AI remains off.");
+      })
+      .finally(() => {
+        if (!cancelled) setAiLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const toggleAi = async () => {
+    const enabled = !aiEnabled;
+    setAiSaving(true);
+    setAiStatus("Saving AI preference…");
+    try {
+      const saved = await invoke<{ enabled: boolean }>("set_ai_enabled", {
+        request: { enabled },
+      });
+      setAiEnabled(saved.enabled);
+      setAiStatus(
+        saved.enabled
+          ? "AI is enabled, but no provider is connected in this build. No provider will receive data; local features remain available."
+          : "AI features are off. Local features remain available.",
+      );
+    } catch {
+      setAiStatus("Could not update the AI preference. AI remains in its previous state.");
+    } finally {
+      setAiSaving(false);
+    }
+  };
 
   const toggleNotifications = async () => {
     const enabled = !notificationsEnabled;
@@ -462,6 +513,33 @@ export function SettingsDialog({
               Background monitoring <span className="nav-state">Planned</span>
             </span>
           </label>
+        </section>
+        <section className="settings-planned" aria-labelledby="ai-settings-title">
+          <div className="settings-planned-heading">
+            <div>
+              <p className="eyebrow">AI / DATA CONTROL</p>
+              <h3 id="ai-settings-title">AI provider controls</h3>
+            </div>
+          </div>
+          <p className="settings-note">
+            AI is optional and off by default. No provider is connected in this build, and no
+            alternate provider receives data if AI is unavailable.
+          </p>
+          <label
+            className={`settings-checkbox${aiLoading || !aiAvailable ? " settings-checkbox-disabled" : ""}`}
+          >
+            <input
+              type="checkbox"
+              checked={aiEnabled}
+              disabled={!aiAvailable || aiLoading || aiSaving}
+              onChange={() => void toggleAi()}
+              aria-label="Enable AI features"
+            />
+            <span>Enable AI features</span>
+          </label>
+          <p className="settings-note" role="status" aria-live="polite">
+            {aiStatus}
+          </p>
         </section>
       </section>
     </div>

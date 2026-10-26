@@ -143,6 +143,18 @@ mod tests {
         response: String,
     }
 
+    struct FailedProvider;
+
+    impl AiProvider for FailedProvider {
+        fn kind(&self) -> AiProviderKind {
+            AiProviderKind::Local
+        }
+
+        fn generate(&mut self, _request: &AiRequest) -> Result<AiResponse, AiProviderError> {
+            Err(AiProviderError::Unavailable)
+        }
+    }
+
     impl AiProvider for FakeProvider {
         fn kind(&self) -> AiProviderKind {
             AiProviderKind::Local
@@ -181,6 +193,19 @@ mod tests {
         .unwrap();
         assert_eq!(response.content, "fixture: hello");
         assert_eq!(provider.calls.get(), 1);
+    }
+
+    #[test]
+    fn provider_failure_is_returned_without_fallback() {
+        let mut provider = FailedProvider;
+        let result = request(
+            &enabled_local_config(),
+            &mut provider,
+            &AiRequest {
+                prompt: "summarize".to_owned(),
+            },
+        );
+        assert_eq!(result, Err(AiProviderError::Unavailable));
     }
 
     #[test]

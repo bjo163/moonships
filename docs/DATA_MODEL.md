@@ -12,6 +12,10 @@
 - Define database schema version and execute migrations transactionally.
 - SQLite foreign keys must be enabled for every connection.
 
+## 1.1 Application preferences
+
+The strict `AppConfig` record in `app_metadata` carries schema version 2 and local UI/runtime preferences, including `aiEnabled`. AI enablement is a boolean only; provider credentials and endpoints are not stored in this record. Version 1 records migrate forward with AI disabled. The setting remains off by default and does not imply a provider is available or authorize network access.
+
 ## 2. Core entities
 
 ### External adapter manifest (M6-001)

@@ -1,7 +1,7 @@
 //! Strict, versioned, non-secret app configuration stored in the existing SQLite metadata table.
 //! Never silently replace an invalid or future-version record with defaults.
 
-use crate::domain::AppConfig;
+use crate::domain::{AppConfig, ConfigLogLevel, ThemeMode, WorkspaceProfile};
 use rusqlite::{params, Connection, OptionalExtension};
 
 const APP_CONFIG_KEY: &str = "app.config.v1";
@@ -17,12 +17,52 @@ pub fn load_config(connection: &Connection) -> Result<Option<AppConfig>, String>
         .map_err(|error| format!("Could not read local app configuration: {error}"))?;
 
     raw.map(|content| {
-        let config: AppConfig = serde_json::from_str(&content)
+        let value: serde_json::Value = serde_json::from_str(&content)
             .map_err(|error| format!("Invalid persisted app configuration: {error}"))?;
+        let version = value
+            .get("schemaVersion")
+            .and_then(serde_json::Value::as_u64);
+        let config = match version {
+            Some(1) => {
+                let old: LegacyAppConfig = serde_json::from_value(value)
+                    .map_err(|error| format!("Invalid persisted app configuration: {error}"))?;
+                if old.schema_version != 1 {
+                    return Err(
+                        "Invalid persisted app configuration: unsupported legacy version"
+                            .to_owned(),
+                    );
+                }
+                let migrated = AppConfig {
+                    schema_version: crate::domain::CURRENT_CONFIG_SCHEMA_VERSION,
+                    theme: old.theme,
+                    profile: old.profile,
+                    log_level: old.log_level,
+                    hide_to_tray: old.hide_to_tray,
+                    ai_enabled: false,
+                };
+                save_config(connection, &migrated)?;
+                migrated
+            }
+            Some(_) => serde_json::from_value::<AppConfig>(value)
+                .map_err(|error| format!("Invalid persisted app configuration: {error}"))?,
+            None => {
+                return Err("Invalid persisted app configuration: missing schemaVersion".to_owned())
+            }
+        };
         config.validate()?;
         Ok(config)
     })
     .transpose()
+}
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct LegacyAppConfig {
+    schema_version: u32,
+    theme: ThemeMode,
+    profile: WorkspaceProfile,
+    log_level: ConfigLogLevel,
+    hide_to_tray: bool,
 }
 
 pub fn config_or_default(
@@ -77,6 +117,7 @@ mod tests {
         assert_eq!(config.profile, WorkspaceProfile::Developer);
         assert_eq!(config.log_level, ConfigLogLevel::Info);
         assert!(!config.hide_to_tray);
+        assert!(!config.ai_enabled);
         assert!(load_config(&connection).expect("query").is_none());
     }
 
@@ -97,6 +138,7 @@ mod tests {
             profile: WorkspaceProfile::NetworkNoc,
             log_level: ConfigLogLevel::Warn,
             hide_to_tray: true,
+            ai_enabled: true,
             ..AppConfig::default()
         };
         save_config(&connection, &config).expect("save");
@@ -109,9 +151,10 @@ mod tests {
             )
             .expect("persisted JSON");
         let json: serde_json::Value = serde_json::from_str(&persisted).expect("valid JSON");
-        assert_eq!(json["schemaVersion"], 1);
+        assert_eq!(json["schemaVersion"], 2);
         assert_eq!(json["profile"], "network_noc");
         assert_eq!(json["hideToTray"], true);
+        assert_eq!(json["aiEnabled"], true);
     }
 
     #[test]
@@ -132,12 +175,12 @@ mod tests {
         let connection = fixture();
         let valid = serde_json::to_value(AppConfig::default()).unwrap();
         for value in [
-            json!({"schemaVersion": 1, "theme": "neon", "profile": "developer", "logLevel": "info", "hideToTray": false}),
-            json!({"schemaVersion": 1, "theme": "dark", "profile": "developer", "logLevel": "info", "hideToTray": "false"}),
-            json!({"schemaVersion": 1, "theme": "dark", "profile": "developer", "logLevel": "info", "hideToTray": false, "apiToken": "secret"}),
-            json!({"schemaVersion": 2, "theme": "dark", "profile": "developer", "logLevel": "info", "hideToTray": false}),
-            json!({"schemaVersion": 1, "theme": "dark", "logLevel": "info", "hideToTray": false}),
-            json!({"schemaVersion": 1, "theme": "dark", "profile": "developer", "logLevel": "info", "hideToTray": null}),
+            json!({"schemaVersion": 2, "theme": "neon", "profile": "developer", "logLevel": "info", "hideToTray": false, "aiEnabled": false}),
+            json!({"schemaVersion": 2, "theme": "dark", "profile": "developer", "logLevel": "info", "hideToTray": "false", "aiEnabled": false}),
+            json!({"schemaVersion": 2, "theme": "dark", "profile": "developer", "logLevel": "info", "hideToTray": false, "aiEnabled": false, "apiToken": "secret"}),
+            json!({"schemaVersion": 3, "theme": "dark", "profile": "developer", "logLevel": "info", "hideToTray": false, "aiEnabled": false}),
+            json!({"schemaVersion": 2, "theme": "dark", "logLevel": "info", "hideToTray": false, "aiEnabled": false}),
+            json!({"schemaVersion": 2, "theme": "dark", "profile": "developer", "logLevel": "info", "hideToTray": null, "aiEnabled": false}),
             json!("not an object"),
         ] {
             connection
@@ -160,5 +203,21 @@ mod tests {
             )
             .unwrap();
         assert!(load_config(&connection).unwrap().is_some());
+    }
+
+    #[test]
+    fn version_one_preferences_migrate_and_keep_ai_disabled() {
+        let connection = fixture();
+        connection.execute(
+            "INSERT INTO app_metadata (key, value) VALUES (?1, ?2)",
+            params![APP_CONFIG_KEY, r#"{"schemaVersion":1,"theme":"light","profile":"network_noc","logLevel":"warn","hideToTray":true}"#],
+        ).unwrap();
+        let config = load_config(&connection).unwrap().unwrap();
+        assert_eq!(config.schema_version, CURRENT_CONFIG_SCHEMA_VERSION);
+        assert_eq!(config.theme, ThemeMode::Light);
+        assert_eq!(config.profile, WorkspaceProfile::NetworkNoc);
+        assert!(config.hide_to_tray);
+        assert!(!config.ai_enabled);
+        assert_eq!(load_config(&connection).unwrap(), Some(config));
     }
 }

@@ -2231,6 +2231,31 @@ fn set_hide_to_tray(
     Ok(request)
 }
 
+/// Stable IPC payload for reading and updating the AI enablement preference.
+#[derive(Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct AiEnabledPreferenceDto {
+    enabled: bool,
+}
+
+#[tauri::command]
+fn get_ai_enabled(app: AppHandle) -> Result<AiEnabledPreferenceDto, String> {
+    Ok(AiEnabledPreferenceDto {
+        enabled: read_app_config(&app)?.ai_enabled,
+    })
+}
+
+#[tauri::command]
+fn set_ai_enabled(
+    app: AppHandle,
+    request: AiEnabledPreferenceDto,
+) -> Result<AiEnabledPreferenceDto, String> {
+    let mut config = read_app_config(&app)?;
+    config.ai_enabled = request.enabled;
+    write_app_config(&app, &config)?;
+    Ok(request)
+}
+
 #[tauri::command]
 fn get_notification_preferences(
     app: AppHandle,
@@ -2269,6 +2294,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_hide_to_tray,
             set_hide_to_tray,
+            get_ai_enabled,
+            set_ai_enabled,
             get_notification_preferences,
             set_notification_preferences,
             get_app_config,
