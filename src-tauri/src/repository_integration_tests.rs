@@ -207,9 +207,9 @@ fn archiving_a_project_keeps_its_task_consistent_across_task_operations() {
 }
 
 #[test]
-fn project_records_remain_available_after_the_database_connection_is_reopened() {
+fn project_to_task_status_flow_persists_after_database_reopen() {
     let app_data = std::env::temp_dir().join(format!(
-        "moonships-project-restart-{}-{}",
+        "moonships-project-task-smoke-{}-{}",
         std::process::id(),
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -217,17 +217,51 @@ fn project_records_remain_available_after_the_database_connection_is_reopened() 
             .as_nanos()
     ));
 
-    let created = {
+    let (created_project, updated_task) = {
         let mut connection = crate::open_database_in(&app_data).expect("open isolated database");
         run_migrations(&mut connection).expect("migrate isolated database");
-        create_project(&mut connection, PERSONAL, "Restart acceptance project")
+        let project = create_project(&mut connection, PERSONAL, "Restart acceptance project");
+        let task = create_task(
+            &mut connection,
+            PERSONAL,
+            Some(project.id.clone()),
+            "Complete persisted workflow",
+        );
+        let updated = tasks::update_task(
+            &mut connection,
+            tasks::UpdateTask {
+                workspace_id: PERSONAL.to_string(),
+                id: task.id,
+                project_id: Some(project.id.clone()),
+                title: task.title,
+                description: Some("Updated before reopening the database".to_string()),
+                due_at: None,
+                status: "in_progress".to_string(),
+                priority: "p1".to_string(),
+            },
+        )
+        .expect("update task status in project workflow");
+        (project, updated)
     };
 
     let mut reopened = crate::open_database_in(&app_data).expect("reopen isolated database");
     run_migrations(&mut reopened).expect("migrations remain idempotent after reopen");
-    let listed = projects::list_projects(&reopened, PERSONAL).expect("read after reopen");
-    assert_eq!(listed.len(), 1);
-    assert_eq!(listed[0], created);
+    let listed_projects = projects::list_projects(&reopened, PERSONAL).expect("read projects");
+    assert_eq!(listed_projects, vec![created_project.clone()]);
+    let listed_tasks = tasks::list_tasks(&reopened, PERSONAL, tasks::TaskArchiveFilter::Active)
+        .expect("read tasks after reopen");
+    assert_eq!(listed_tasks, vec![updated_task.clone()]);
+    let read_task = tasks::get_task(&reopened, PERSONAL, &updated_task.id).expect("read task");
+    assert_eq!(
+        read_task.project_id.as_deref(),
+        Some(created_project.id.as_str())
+    );
+    assert_eq!(read_task.status, "in_progress");
+    assert_eq!(read_task.priority, "p1");
+    assert_eq!(
+        read_task.description.as_deref(),
+        Some("Updated before reopening the database")
+    );
     drop(reopened);
-    std::fs::remove_dir_all(app_data).expect("remove disposable project database");
+    std::fs::remove_dir_all(app_data).expect("remove disposable workflow database");
 }
