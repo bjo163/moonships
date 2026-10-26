@@ -141,7 +141,10 @@ mod tests {
         assert_eq!(events[0].summary, "Project created");
         assert_eq!(events[1].summary, "Task created");
         for event in events {
-            assert!(event.occurred_at.ends_with('Z'), "activity timestamp uses UTC");
+            assert!(
+                event.occurred_at.ends_with('Z'),
+                "activity timestamp uses UTC"
+            );
             assert!(!event.occurred_at.is_empty());
             assert_eq!(event.sensitivity, "normal");
             assert_eq!(event.actor_type, "local");
