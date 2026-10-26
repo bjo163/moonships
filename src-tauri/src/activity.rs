@@ -11,11 +11,22 @@ pub enum ActivityEntityKind {
     Task,
 }
 
-impl ActivityEntityKind {
-    fn values(self) -> (&'static str, &'static str) {
-        match self {
-            Self::Project => ("project", "Project created"),
-            Self::Task => ("task", "Task created"),
+#[derive(Debug, Clone, Copy)]
+pub enum ActivityAction {
+    Created,
+    Updated,
+    Archived,
+}
+
+impl ActivityAction {
+    fn values(self, kind: ActivityEntityKind) -> (&'static str, &'static str, &'static str) {
+        match (kind, self) {
+            (ActivityEntityKind::Project, Self::Created) => ("project", "created", "Project created"),
+            (ActivityEntityKind::Task, Self::Created) => ("task", "created", "Task created"),
+            (ActivityEntityKind::Project, Self::Updated) => ("project", "updated", "Project updated"),
+            (ActivityEntityKind::Task, Self::Updated) => ("task", "updated", "Task updated"),
+            (ActivityEntityKind::Project, Self::Archived) => ("project", "archived", "Project archived"),
+            (ActivityEntityKind::Task, Self::Archived) => ("task", "archived", "Task archived"),
         }
     }
 }
@@ -27,7 +38,17 @@ pub fn record_creation(
     kind: ActivityEntityKind,
     entity_id: &str,
 ) -> Result<(), String> {
-    let (entity_type, summary) = kind.values();
+    record_change(transaction, workspace_id, kind, entity_id, ActivityAction::Created)
+}
+
+pub fn record_change(
+    transaction: &Transaction<'_>,
+    workspace_id: &str,
+    kind: ActivityEntityKind,
+    entity_id: &str,
+    action: ActivityAction,
+) -> Result<(), String> {
+    let (entity_type, action_code, summary) = action.values(kind);
     let project_id = (entity_type == "project").then_some(entity_id);
     let task_id = (entity_type == "task").then_some(entity_id);
     transaction
@@ -35,7 +56,7 @@ pub fn record_creation(
             "INSERT INTO activity_events
                 (id, workspace_id, entity_type, entity_id,
                  project_id, task_id, action, summary)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'created', ?7)",
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
             params![
                 Uuid::new_v4().to_string(),
                 workspace_id,
@@ -43,6 +64,7 @@ pub fn record_creation(
                 entity_id,
                 project_id,
                 task_id,
+                action_code,
                 summary
             ],
         )
