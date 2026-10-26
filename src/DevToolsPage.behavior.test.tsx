@@ -55,4 +55,18 @@ describe("offline DevTools page", () => {
     expect(screen.getByRole("status").textContent).toContain("Decoded as binary");
     expect(screen.getByText(/00 7f 80 ff/).textContent).toContain("00 7f 80 ff");
   });
+
+  it("preserves URL separators in full URL mode", () => {
+    render(<DevToolsPage />);
+    fireEvent.click(screen.getByRole("button", { name: "URL" }));
+    fireEvent.click(screen.getByRole("button", { name: "Encode full URL" }));
+    fireEvent.change(screen.getByLabelText("Absolute URL input"), {
+      target: { value: "https://example.com/a b?q=one&next=/path#section" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Encode URL" }));
+
+    expect((screen.getByLabelText("URL output") as HTMLTextAreaElement).value).toBe(
+      "https://example.com/a%20b?q=one&next=/path#section",
+    );
+  });
 });

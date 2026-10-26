@@ -190,6 +190,8 @@ M3-016 uses the explicitly selected, exact-pinned `yaml@2.9.1` parser/stringifie
 
 M3-017 adds local Base64 conversion for UTF-8 text and explicit hexadecimal byte input, plus strict padded-standard-Base64 decoding. Inputs/decoded bytes are capped at 1 MiB; decoding uses fatal UTF-8 validation, so non-text data is labelled binary and shown as a 64-byte-limited hex preview. Encoding and decoding stay in memory and make no filesystem, network or provider calls.
 
+M3-018 distinguishes standalone URL components from absolute full URLs. Component operations use `encodeURIComponent`/`decodeURIComponent`; full URL operations use the browser URL parser and `decodeURI`, preserving reserved URL delimiters while validating absolute URL structure. UTF-8 input and displayed output are bounded, and malformed percent escapes/URLs return stable local errors.
+
 ## 7. Error model
 
 Use stable error codes/categories:
