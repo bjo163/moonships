@@ -114,6 +114,7 @@ Risk class is separate from task priority, vulnerability severity and business i
 - M3-020 text hashing accepts at most 1 MiB. File hashing opens only a path returned by the native Windows file picker, reads at most 2 GiB using a fixed 64 KiB buffer and exposes only the selected leaf filename, byte count and SHA-256 digest. The renderer cannot submit an arbitrary path, and the feature never modifies or uploads selected content. Errors do not include a full path; other platforms return explicit unsupported status.
 - M3-021 compares only in-memory text, with a 1 MiB UTF-8 and 50,000-line cap per input, a 1,000 edit-distance cutoff and a 4 million character output bound. The renderer has no file, network, provider or shell access through the diff tool.
 - M3-022 timestamp conversion accepts only bounded JavaScript-safe whole-number Unix values or strict ISO 8601 timestamps with a known timezone. It runs locally and displays UTC separately from device-local time with the timezone label; invalid input/range is rejected.
+- M3-023's offline acceptance test makes `fetch` throw and completes each local DevTools workflow, including the native SHA-256 bridge, while asserting no browser fetch. The native selected-file flow opens a native picker and reads locally; no provider or HTTP call is part of these tools.
 - Scan is read-only.
 - Candidate set comes from registered cleanup rules, never arbitrary UI-provided paths.
 - Default targets are narrow and documented; no broad recursive deletion of a user profile.

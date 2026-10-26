@@ -154,7 +154,7 @@
 - [x] **M3-020 — Add SHA-256 file/text hash utility** [S] — Stream large files. **AC:** known test vectors pass and memory use is bounded.
 - [x] **M3-021 — Add text diff utility** [S] — Side-by-side or unified result. **AC:** inserts/deletes/empty files are tested.
 - [x] **M3-022 — Add timestamp converter** [S] — Unix/ISO conversion. **AC:** invalid values and timezone display are clear.
-- [ ] **M3-023 — Add DevTools tests and offline acceptance check** [S] — Verify no provider calls. **AC:** tool works with networking disabled.
+- [x] **M3-023 — Add DevTools tests and offline acceptance check** [S] — Verify no provider calls. **AC:** tool works with networking disabled.
 
 ## M4 — NetOps, SysOps, connections and jobs
 

@@ -200,6 +200,8 @@ M3-021 compares two local text inputs using exact-pinned `diff@9.0.0` (BSD-3-Cla
 
 M3-022 converts whole-number Unix timestamps in seconds or milliseconds and strict ISO 8601 date-times with an explicit known timezone offset. It reports normalized UTC ISO, Unix values in both units and a separate device-local display labelled with the resolved timezone. Invalid numbers, unsupported date ranges, malformed calendar dates, missing offsets and unknown `-00:00` offsets return clear errors instead of being silently normalized.
 
+M3-023 exercises all implemented DevTools in one offline acceptance test with browser `fetch` replaced by a throwing stub. JSON, YAML, Base64, URL, UUID, SHA-256 text/file bridge, diff and timestamp flows must still finish, and the test asserts no `fetch` call occurs. This verifies the frontend tools do not depend on HTTP; native SHA-256 operations use Tauri IPC and local filesystem selection only.
+
 ## 7. Error model
 
 Use stable error codes/categories:
