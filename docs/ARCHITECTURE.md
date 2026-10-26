@@ -174,6 +174,8 @@ M3-007 defines a preview DTO with candidate ID, category, leaf display name, siz
 
 M3-008 adds an explicit review dialog for selected eligible rows. Its approval request is bound to the exact preview UUID, unique candidate UUIDs and their estimated byte total. Native request construction rejects empty, duplicate or skipped candidate selections. Approval only records the user's exact selection; it does not start deletion. Revalidation and the bounded executor are separate required gates.
 
+M3-009 captures a platform file identity with the candidate: Windows volume serial plus file index, or Unix device plus inode. Before proceeding, revalidation rejects missing identities, path changes, links/non-files, changed identity or metadata, protected/outside paths and candidates no longer eligible under the current rule. On unsupported platforms it fails closed. The verified path is for immediate use only; a later executor must revalidate immediately before mutation and must not cache it.
+
 ## 7. Error model
 
 Use stable error codes/categories:

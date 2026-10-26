@@ -88,6 +88,7 @@ pub struct CleanupCandidateMetadata {
     pub root: CleanupRoot,
     pub kind: CleanupFileKind,
     pub modified_at: SystemTime,
+    pub created_at: Option<SystemTime>,
     pub size_bytes: u64,
 }
 
@@ -100,6 +101,13 @@ pub struct CleanupCandidateIdentity {
     pub id: uuid::Uuid,
     pub relative_path: PathBuf,
     pub metadata: CleanupCandidateMetadata,
+    pub platform_identity: Option<CleanupPlatformFileIdentity>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CleanupPlatformFileIdentity {
+    pub volume_id: u64,
+    pub file_id: u64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -124,6 +132,63 @@ impl CleanupCandidateIdentity {
             id: uuid::Uuid::new_v4(),
             relative_path,
             metadata,
+            platform_identity: None,
+        })
+    }
+
+    /// Captures a candidate under a caller-supplied, native-resolved root.
+    /// The relative locator must be normal path components only; links are rejected.
+    pub fn capture(
+        allowed_root: &Path,
+        root_id: CleanupRoot,
+        relative_path: impl Into<PathBuf>,
+    ) -> Result<Self, CleanupRevalidationError> {
+        let relative_path = relative_path.into();
+        if relative_path.as_os_str().is_empty()
+            || !relative_path
+                .components()
+                .all(|component| matches!(component, std::path::Component::Normal(_)))
+        {
+            return Err(CleanupRevalidationError::InvalidIdentity);
+        }
+        let target = allowed_root.join(&relative_path);
+        let metadata = std::fs::symlink_metadata(&target)
+            .map_err(|_| CleanupRevalidationError::PathUnavailable)?;
+        if metadata.file_type().is_symlink() || !metadata.file_type().is_file() {
+            return Err(CleanupRevalidationError::NotRegularFile);
+        }
+        let initial_platform_identity = capture_platform_file_identity(&target)?;
+        let resolved =
+            validate_cleanup_path(allowed_root, &target, &[]).map_err(|error| match error {
+                CleanupPathError::PathResolutionFailed => CleanupRevalidationError::PathUnavailable,
+                CleanupPathError::InvalidRoot => CleanupRevalidationError::InvalidRoot,
+                CleanupPathError::OutsideAllowedRoot => {
+                    CleanupRevalidationError::OutsideAllowedRoot
+                }
+                CleanupPathError::ProtectedPath => CleanupRevalidationError::ProtectedPath,
+            })?;
+        let metadata = std::fs::symlink_metadata(resolved)
+            .map_err(|_| CleanupRevalidationError::PathUnavailable)?;
+        if metadata.file_type().is_symlink() || !metadata.file_type().is_file() {
+            return Err(CleanupRevalidationError::NotRegularFile);
+        }
+        let platform_identity = capture_platform_file_identity(&target)?;
+        if platform_identity != initial_platform_identity {
+            return Err(CleanupRevalidationError::Changed);
+        }
+        Ok(Self {
+            id: uuid::Uuid::new_v4(),
+            relative_path,
+            metadata: CleanupCandidateMetadata {
+                root: root_id,
+                kind: CleanupFileKind::RegularFile,
+                modified_at: metadata
+                    .modified()
+                    .map_err(|_| CleanupRevalidationError::MetadataUnavailable)?,
+                created_at: metadata.created().ok(),
+                size_bytes: metadata.len(),
+            },
+            platform_identity: Some(platform_identity),
         })
     }
 }
@@ -364,6 +429,177 @@ pub fn validate_cleanup_path(
     Ok(resolved_candidate)
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CleanupRevalidationError {
+    InvalidRule,
+    InvalidIdentity,
+    WrongRoot,
+    Changed,
+    NotRegularFile,
+    MetadataUnavailable,
+    IdentityUnavailable,
+    PathUnavailable,
+    InvalidRoot,
+    OutsideAllowedRoot,
+    ProtectedPath,
+    NotEligible(EligibilityExclusion),
+}
+
+#[cfg(windows)]
+fn capture_platform_file_identity(
+    path: &Path,
+) -> Result<CleanupPlatformFileIdentity, CleanupRevalidationError> {
+    use std::os::windows::{ffi::OsStrExt, io::FromRawHandle};
+    use windows_sys::Win32::{
+        Foundation::INVALID_HANDLE_VALUE,
+        Storage::FileSystem::{
+            CreateFileW, GetFileInformationByHandle, BY_HANDLE_FILE_INFORMATION,
+            FILE_FLAG_OPEN_REPARSE_POINT, FILE_READ_ATTRIBUTES, FILE_SHARE_DELETE, FILE_SHARE_READ,
+            FILE_SHARE_WRITE, OPEN_EXISTING,
+        },
+    };
+
+    let wide_path = path
+        .as_os_str()
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect::<Vec<_>>();
+    // The handle opens the reparse point itself, so a link is identified/rejected
+    // without following it. The handle is immediately owned by File and closed.
+    let raw_handle = unsafe {
+        CreateFileW(
+            wide_path.as_ptr(),
+            FILE_READ_ATTRIBUTES,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            std::ptr::null(),
+            OPEN_EXISTING,
+            FILE_FLAG_OPEN_REPARSE_POINT,
+            std::ptr::null_mut(),
+        )
+    };
+    if raw_handle == INVALID_HANDLE_VALUE {
+        return Err(CleanupRevalidationError::PathUnavailable);
+    }
+    let file = unsafe { std::fs::File::from_raw_handle(raw_handle) };
+    let mut information = BY_HANDLE_FILE_INFORMATION::default();
+    let succeeded = unsafe { GetFileInformationByHandle(raw_handle, &mut information) };
+    if succeeded == 0 {
+        return Err(CleanupRevalidationError::IdentityUnavailable);
+    }
+    if information.dwFileAttributes
+        & windows_sys::Win32::Storage::FileSystem::FILE_ATTRIBUTE_REPARSE_POINT
+        != 0
+    {
+        return Err(CleanupRevalidationError::NotRegularFile);
+    }
+    let file_id =
+        (u64::from(information.nFileIndexHigh) << 32) | u64::from(information.nFileIndexLow);
+    drop(file);
+    Ok(CleanupPlatformFileIdentity {
+        volume_id: u64::from(information.dwVolumeSerialNumber),
+        file_id,
+    })
+}
+
+#[cfg(unix)]
+fn capture_platform_file_identity(
+    path: &Path,
+) -> Result<CleanupPlatformFileIdentity, CleanupRevalidationError> {
+    use std::os::unix::fs::MetadataExt;
+
+    let metadata =
+        std::fs::symlink_metadata(path).map_err(|_| CleanupRevalidationError::PathUnavailable)?;
+    if metadata.file_type().is_symlink() || !metadata.file_type().is_file() {
+        return Err(CleanupRevalidationError::NotRegularFile);
+    }
+    Ok(CleanupPlatformFileIdentity {
+        volume_id: metadata.dev(),
+        file_id: metadata.ino(),
+    })
+}
+
+#[cfg(not(any(windows, unix)))]
+fn capture_platform_file_identity(
+    _path: &Path,
+) -> Result<CleanupPlatformFileIdentity, CleanupRevalidationError> {
+    Err(CleanupRevalidationError::IdentityUnavailable)
+}
+
+/// Re-checks a candidate's native target, kind, metadata snapshot, containment,
+/// protected-path policy and current rule eligibility. The caller must resolve
+/// `allowed_root` from the rule's closed root identifier and invoke this just
+/// before a later action. The returned path does not prevent a subsequent race;
+/// an executor must not cache it for later use.
+pub fn revalidate_cleanup_candidate(
+    identity: &CleanupCandidateIdentity,
+    rule: &CleanupRule,
+    allowed_root: &Path,
+    protected_paths: &[PathBuf],
+    observed_at: SystemTime,
+) -> Result<PathBuf, CleanupRevalidationError> {
+    if rule.validate().is_err() {
+        return Err(CleanupRevalidationError::InvalidRule);
+    }
+    if identity.metadata.root != rule.allowed_root {
+        return Err(CleanupRevalidationError::WrongRoot);
+    }
+    if identity.relative_path.as_os_str().is_empty()
+        || !identity
+            .relative_path
+            .components()
+            .all(|component| matches!(component, std::path::Component::Normal(_)))
+    {
+        return Err(CleanupRevalidationError::InvalidIdentity);
+    }
+    if identity.metadata.kind != CleanupFileKind::RegularFile {
+        return Err(CleanupRevalidationError::NotRegularFile);
+    }
+    let target = allowed_root.join(&identity.relative_path);
+    let metadata = std::fs::symlink_metadata(&target)
+        .map_err(|_| CleanupRevalidationError::PathUnavailable)?;
+    let file_type = metadata.file_type();
+    if file_type.is_symlink() || !file_type.is_file() {
+        return Err(CleanupRevalidationError::NotRegularFile);
+    }
+    let saved_platform_identity = identity
+        .platform_identity
+        .ok_or(CleanupRevalidationError::IdentityUnavailable)?;
+    if capture_platform_file_identity(&target)? != saved_platform_identity {
+        return Err(CleanupRevalidationError::Changed);
+    }
+    let created_at = metadata
+        .created()
+        .map_err(|_| CleanupRevalidationError::MetadataUnavailable)?;
+    let fresh_metadata = CleanupCandidateMetadata {
+        root: rule.allowed_root,
+        kind: CleanupFileKind::RegularFile,
+        modified_at: metadata
+            .modified()
+            .map_err(|_| CleanupRevalidationError::MetadataUnavailable)?,
+        created_at: Some(created_at),
+        size_bytes: metadata.len(),
+    };
+    if identity.metadata.created_at.is_none() {
+        return Err(CleanupRevalidationError::MetadataUnavailable);
+    }
+    if fresh_metadata != identity.metadata {
+        return Err(CleanupRevalidationError::Changed);
+    }
+
+    let resolved = validate_cleanup_path(allowed_root, &target, protected_paths).map_err(
+        |error| match error {
+            CleanupPathError::PathResolutionFailed => CleanupRevalidationError::PathUnavailable,
+            CleanupPathError::InvalidRoot => CleanupRevalidationError::InvalidRoot,
+            CleanupPathError::OutsideAllowedRoot => CleanupRevalidationError::OutsideAllowedRoot,
+            CleanupPathError::ProtectedPath => CleanupRevalidationError::ProtectedPath,
+        },
+    )?;
+    match evaluate_eligibility(rule, fresh_metadata, observed_at) {
+        EligibilityDecision::Eligible => Ok(resolved),
+        EligibilityDecision::Excluded(reason) => Err(CleanupRevalidationError::NotEligible(reason)),
+    }
+}
+
 /// Reads file metadata beneath a trusted, native-resolved root. This is not an IPC
 /// entry point: callers must not pass renderer-controlled paths. It never opens
 /// file contents or mutates the filesystem. Link entries are skipped, and are
@@ -400,6 +636,7 @@ fn scan_directory(
                 root: root_id,
                 kind: CleanupFileKind::RegularFile,
                 modified_at: metadata.modified()?,
+                created_at: metadata.created().ok(),
                 size_bytes: metadata.len(),
             });
         }
@@ -467,6 +704,7 @@ mod tests {
             root,
             kind,
             modified_at: NOW - Duration::from_secs(age_seconds),
+            created_at: None,
             size_bytes,
         }
     }
@@ -553,6 +791,7 @@ mod tests {
                     root: CleanupRoot::AppTemporary,
                     kind: CleanupFileKind::RegularFile,
                     modified_at: NOW + Duration::from_secs(1),
+                    created_at: None,
                     size_bytes: 1,
                 },
                 NOW,
@@ -940,6 +1179,124 @@ mod tests {
             ),
             Err(super::CleanupApprovalValidationError::DuplicateCandidate),
         );
+    }
+
+    #[test]
+    fn candidate_revalidation_rejects_changed_and_out_of_policy_files() {
+        let fixture =
+            std::env::temp_dir().join(format!("moonships-revalidate-{}", uuid::Uuid::new_v4()));
+        let root = fixture.join("root");
+        fs::create_dir_all(&root).expect("create disposable revalidation root");
+        let target = root.join("candidate.bin");
+        fs::write(&target, b"original").expect("write candidate fixture");
+        let observed_now = SystemTime::now();
+        let old_time = observed_now - Duration::from_secs(120);
+        fs::OpenOptions::new()
+            .write(true)
+            .open(&target)
+            .expect("open candidate fixture")
+            .set_times(fs::FileTimes::new().set_modified(old_time))
+            .expect("age candidate fixture");
+        let identity = super::CleanupCandidateIdentity::capture(
+            &root,
+            CleanupRoot::AppTemporary,
+            "candidate.bin",
+        )
+        .expect("capture candidate identity");
+        let rule = temporary_rule();
+
+        assert!(
+            super::revalidate_cleanup_candidate(&identity, &rule, &root, &[], observed_now,)
+                .is_ok()
+        );
+
+        fs::write(&target, b"replacement is longer").expect("change candidate fixture");
+        assert_eq!(
+            super::revalidate_cleanup_candidate(&identity, &rule, &root, &[], observed_now),
+            Err(super::CleanupRevalidationError::Changed),
+        );
+
+        fs::remove_file(&target).expect("remove changed candidate fixture");
+        std::thread::sleep(Duration::from_millis(20));
+        fs::write(&target, b"original")
+            .expect("replace candidate with identical-size fixture content");
+        fs::OpenOptions::new()
+            .write(true)
+            .open(&target)
+            .unwrap()
+            .set_times(fs::FileTimes::new().set_modified(old_time))
+            .expect("restore candidate modification time");
+        assert_eq!(
+            super::revalidate_cleanup_candidate(&identity, &rule, &root, &[], SystemTime::now()),
+            Err(super::CleanupRevalidationError::Changed),
+        );
+
+        let mut limited_rule = temporary_rule();
+        limited_rule.maximum_item_bytes = 4;
+        fs::OpenOptions::new()
+            .write(true)
+            .open(&target)
+            .unwrap()
+            .set_times(fs::FileTimes::new().set_modified(old_time))
+            .expect("age replacement fixture for policy check");
+        let current_observation = SystemTime::now();
+        let oversized_identity = super::CleanupCandidateIdentity::capture(
+            &root,
+            CleanupRoot::AppTemporary,
+            "candidate.bin",
+        )
+        .unwrap();
+        assert_eq!(
+            super::revalidate_cleanup_candidate(
+                &oversized_identity,
+                &limited_rule,
+                &root,
+                &[],
+                current_observation,
+            ),
+            Err(super::CleanupRevalidationError::NotEligible(
+                EligibilityExclusion::ItemTooLarge,
+            )),
+        );
+
+        fs::remove_dir_all(fixture).expect("remove disposable revalidation fixture");
+    }
+
+    #[test]
+    fn candidate_revalidation_rejects_link_non_file_and_invalid_identity() {
+        let fixture =
+            std::env::temp_dir().join(format!("moonships-revalidate-{}", uuid::Uuid::new_v4()));
+        let root = fixture.join("root");
+        fs::create_dir_all(&root).expect("create disposable revalidation root");
+        let target = root.join("candidate.bin");
+        fs::write(&target, b"candidate").expect("write candidate fixture");
+        let metadata = fs::symlink_metadata(&target).unwrap();
+        let snapshot = super::CleanupCandidateMetadata {
+            root: CleanupRoot::AppTemporary,
+            kind: CleanupFileKind::RegularFile,
+            modified_at: metadata.modified().unwrap(),
+            created_at: Some(metadata.created().unwrap()),
+            size_bytes: metadata.len(),
+        };
+        let mut identity = super::CleanupCandidateIdentity::new("candidate.bin", snapshot).unwrap();
+        identity.relative_path = PathBuf::from("../outside.bin");
+        assert_eq!(
+            super::revalidate_cleanup_candidate(&identity, &temporary_rule(), &root, &[], NOW),
+            Err(super::CleanupRevalidationError::InvalidIdentity),
+        );
+        identity.relative_path = PathBuf::from("candidate.bin");
+        assert_eq!(
+            super::revalidate_cleanup_candidate(&identity, &temporary_rule(), &root, &[], NOW),
+            Err(super::CleanupRevalidationError::IdentityUnavailable),
+        );
+        fs::remove_file(&target).expect("remove candidate fixture");
+        fs::create_dir(&target).expect("replace candidate with directory");
+        assert_eq!(
+            super::revalidate_cleanup_candidate(&identity, &temporary_rule(), &root, &[], NOW),
+            Err(super::CleanupRevalidationError::NotRegularFile),
+        );
+
+        fs::remove_dir_all(fixture).expect("remove disposable revalidation fixture");
     }
 
     #[cfg(windows)]
