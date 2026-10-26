@@ -105,6 +105,12 @@ Risk class is separate from task priority, vulnerability severity and business i
 - The IPv4 subnet calculator is pure local arithmetic over one strict address/prefix input. It does not resolve names, query network state or expand to scanned targets.
 - Result provenance identifies the exact target/port, operation, UTC observation time as epoch milliseconds, elapsed time, IP-literal source, OS resolver or TCP socket, outcome, stable error code and bounded resolved addresses. Invalid input is a validation error; resolver failures are distinct typed results. M4-002 added no IPC command; M4-014 later registered the bounded one-target command.
 
+### Connector declarations (M5-001)
+
+- Connector declarations require a stable bounded ID, a matching kind/access-method pair, HTTPS-only source and optional terms URLs without embedded credentials, and non-empty terms/rate-limit notes.
+- Enabling requires reviewed, non-restricted terms and bounded cadence, timeout, body size, item count and freshness values. Enabled-state deserialization reruns validation; no raw connector can bypass the enable check.
+- This task adds no network access, polling, scheduling or persistence. A future connector implementation must apply DNS/IP policy, redirect handling, timeout/size/rate enforcement and provider terms at the actual fetch boundary.
+
 ### Read-only system inventory (M4-007)
 
 - Inventory reads only OS family/process architecture, available logical processors, physical memory counters and capacity/free bytes on the volume containing the Windows directory.

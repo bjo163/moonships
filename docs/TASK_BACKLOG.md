@@ -176,7 +176,7 @@
 
 ## M5 — World Monitor, trends and media intelligence
 
-- [ ] **M5-001 — Define connector/source contract** [S] — Access method, terms, cadence, freshness and health. **AC:** a connector cannot be enabled without declared ID and limits.
+- [x] **M5-001 — Define connector/source contract** [S] — Access method, terms, cadence, freshness and health. **AC:** a connector cannot be enabled without declared ID and limits. Typed declarations validate ID, kind/access pairing, reviewed terms, HTTPS references, bounded polling/timeout/size/item limits, freshness and health before activation; no connector is fetched or persisted by this task.
 - [ ] **M5-002 — Add normalized intelligence item schema** [S] — Source URL and timestamps. **AC:** published/observed/event time are separate fields.
 - [ ] **M5-003 — Implement one user-configured RSS connector** [S] — Start with a test fixture and a permitted source. **AC:** rate/timeout and parsing errors are handled.
 - [ ] **M5-004 — Add HTTP fetch timeout, size cap and backoff** [S] — No unbounded content load. **AC:** oversized/slow source produces controlled failure.

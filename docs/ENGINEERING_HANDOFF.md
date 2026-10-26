@@ -445,3 +445,7 @@ Added a NetOps page for one DNS lookup or one TCP host/port check, calling the e
 ## M4-015 Network diagnostic regression tests — 2026-10-26
 
 Added a malformed-DNS request test that stops before resolver work and an already-expired TCP deadline test using `127.0.0.1`. The local TCP integration test checks success and accepts the OS-specific refusal or timeout outcome after a loopback listener closes; closed error mapping is asserted independently. The rate window is tested with injected monotonic timestamps at the 60-second boundary. No test contacts a public host. Verification passed: Rust suite 161/161; Clippy with warnings denied; Rust formatting; backlog validation; and `git diff --check`.
+
+## M5-001 Connector/source contract — 2026-10-26
+
+Added typed connector kind, access method, terms review, health and bounded policy fields. RSS/API/authorized-export kinds must match the access method. Enabled connectors require a valid stable ID, reviewed terms, HTTPS-only references without embedded credentials, poll cadence, request timeout, response/item caps and freshness threshold; both `enable()` and enabled-state deserialization fail closed, and blocked sources cannot be re-enabled by resetting health. No source is fetched, scheduled or persisted. Verification passed: Rust suite 168/168; Clippy with warnings denied; Rust formatting; backlog validation; and `git diff --check`.
