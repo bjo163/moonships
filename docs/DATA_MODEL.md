@@ -38,6 +38,7 @@ Milestone can group tasks by release/outcome. Do not make milestone date a hidde
 Fields: id, workspace_id, project_id?, parent_task_id?, title, description?, status, priority, due_at?, estimate_minutes?, completed_at?, created_at, updated_at, archived_at?.
 Canonical statuses: backlog, todo, in_progress, blocked, in_review, done, cancelled.
 Canonical priorities: p0, p1, p2, p3. Priority is not security severity or execution risk.
+M2-012 initial policy: any explicit transition between the seven canonical statuses is permitted, including reopening a completed/cancelled task; unchanged status is a no-op, unsupported values are rejected. All UI mutations must use the task service rather than a view-specific state machine. M2-010 adds a workspace-scoped transactional Task update service; UI and native IPC integration remain separate tasks.
 Task must be creatable with a title alone and defaults. Project is optional for a personal inbox task. The implemented M2-003 schema-v4 migration adds checked `backlog`/`p2` defaults, nonblank task titles, optional project/parent links, and workspace-scoped composite foreign keys. UTC timestamps use the existing SQLite convention. The M2-009 create service validates fields and generates UUID v4 IDs; the UI is not wired yet.
 
 ### TaskDependency

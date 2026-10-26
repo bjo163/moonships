@@ -4,6 +4,7 @@ pub mod domain;
 pub mod local_logging;
 pub mod projects;
 pub mod tasks;
+pub mod task_status;
 
 use std::{
     fs,
