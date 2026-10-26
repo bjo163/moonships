@@ -4,7 +4,9 @@ import { formatTaskDate, TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from "./task
 import {
   createTask,
   getTask,
+  listTaskActivity,
   listTasks,
+  type TaskActivityRecord,
   type TaskPriority,
   type TaskRecord,
   type TaskStatus,
@@ -34,6 +36,8 @@ export function TaskDetailPage({ taskId }: { taskId: string }) {
   const [task, setTask] = useState<TaskRecord | null>(null);
   const [projects, setProjects] = useState<ProjectRecord[]>([]);
   const [relatedTasks, setRelatedTasks] = useState<TaskRecord[]>([]);
+  const [activity, setActivity] = useState<TaskActivityRecord[]>([]);
+  const [activityLoadError, setActivityLoadError] = useState(false);
   const [relationshipLoadError, setRelationshipLoadError] = useState(false);
   const [subtaskTitle, setSubtaskTitle] = useState("");
   const [subtaskSaving, setSubtaskSaving] = useState(false);
@@ -51,13 +55,23 @@ export function TaskDetailPage({ taskId }: { taskId: string }) {
   const [priority, setPriority] = useState<TaskPriority>("p2");
   const [titleError, setTitleError] = useState<string | null>(null);
 
+  const reloadActivity = useCallback(async () => {
+    setActivityLoadError(false);
+    try {
+      setActivity(await listTaskActivity(taskId));
+    } catch {
+      setActivityLoadError(true);
+    }
+  }, [taskId]);
+
   const reload = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
-    const [taskResult, projectResult, relatedResult] = await Promise.allSettled([
+    const [taskResult, projectResult, relatedResult, activityResult] = await Promise.allSettled([
       getTask(taskId),
       listProjects(),
       listTasks(),
+      listTaskActivity(taskId),
     ]);
     if (taskResult.status === "rejected") {
       setTask(null);
@@ -74,6 +88,8 @@ export function TaskDetailPage({ taskId }: { taskId: string }) {
       setProjects(projectResult.status === "fulfilled" ? projectResult.value : []);
       setRelationshipLoadError(relatedResult.status === "rejected");
       setRelatedTasks(relatedResult.status === "fulfilled" ? relatedResult.value : []);
+      setActivityLoadError(activityResult.status === "rejected");
+      setActivity(activityResult.status === "fulfilled" ? activityResult.value : []);
     }
     setLoading(false);
   }, [taskId]);
@@ -326,6 +342,31 @@ export function TaskDetailPage({ taskId }: { taskId: string }) {
                 ) : null}
               </>
             )}
+          </section>
+          <section className="task-detail-activity" aria-labelledby="task-activity-title">
+            <h3 id="task-activity-title">Activity history</h3>
+            {activityLoadError ? (
+              <ErrorState
+                title="Activity history is unavailable"
+                description="Saved task activity could not be loaded. The task remains available."
+                onRetry={() => void reloadActivity()}
+              />
+            ) : activity.length === 0 ? (
+              <p className="muted">No activity recorded for this task.</p>
+            ) : (
+              <ol className="task-activity-list">
+                {activity.map((event) => (
+                  <li key={event.id}>
+                    <span>{event.summary}</span>
+                    <time dateTime={event.occurredAt}>{formatTaskDate(event.occurredAt)}</time>
+                  </li>
+                ))}
+              </ol>
+            )}
+            <p className="muted">
+              Activity records trusted changes only. Task titles, descriptions and credentials are
+              not copied into history.
+            </p>
           </section>
         </>
       ) : null}

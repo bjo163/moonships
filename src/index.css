@@ -289,6 +289,12 @@ h1 { font-size: var(--text-xl); letter-spacing: -.035em; margin: .45rem 0 0; }
 .task-detail-relationships { display: grid; gap: var(--space-3); max-width: 52rem; padding: var(--space-5); border: 1px solid var(--color-border); border-radius: var(--radius-card); background: var(--color-surface); }
 .task-detail-relationships h3, .task-detail-relationships h4, .task-detail-relationships p { margin: 0; }
 .task-subtask-form { display: grid; gap: var(--space-3); max-width: 32rem; }
+.task-detail-activity { display: grid; gap: var(--space-3); max-width: 52rem; padding: var(--space-5); border: 1px solid var(--color-border); border-radius: var(--radius-card); background: var(--color-surface); }
+.task-detail-activity h3, .task-detail-activity p { margin: 0; }
+.task-activity-list { display: grid; gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
+.task-activity-list li { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); padding-bottom: var(--space-3); border-bottom: 1px solid var(--color-border); }
+.task-activity-list li:last-child { padding-bottom: 0; border-bottom: 0; }
+.task-activity-list time { color: var(--color-text-muted); font-size: var(--text-xs); white-space: nowrap; }
 .project-activity-list { display: grid; gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
 .project-activity-list li { display: flex; align-items: flex-start; gap: var(--space-3); padding-bottom: var(--space-3); border-bottom: 1px solid var(--color-border); }
 .project-activity-list li:last-child { padding-bottom: 0; border-bottom: 0; }

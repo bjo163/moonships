@@ -6,6 +6,7 @@ use rusqlite::{params, Connection, Transaction};
 use uuid::Uuid;
 
 const PROJECT_ACTIVITY_LIMIT: i64 = 10;
+const TASK_ACTIVITY_LIMIT: i64 = 50;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProjectActivity {
@@ -14,6 +15,54 @@ pub struct ProjectActivity {
     pub action: String,
     pub summary: String,
     pub occurred_at: String,
+}
+
+pub type TaskActivity = ProjectActivity;
+
+/// Reads recent activity for one active Task in a workspace.
+pub fn list_task_activity(
+    connection: &Connection,
+    workspace_id: &str,
+    task_id: &str,
+) -> Result<Vec<TaskActivity>, String> {
+    let workspace_id = workspace_id.trim();
+    let task_id = task_id.trim();
+    if workspace_id.is_empty() || task_id.is_empty() {
+        return Err("VALIDATION_FAILED: task and workspace IDs are required".to_string());
+    }
+    let active: bool = connection
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM tasks
+             WHERE workspace_id = ?1 AND id = ?2 AND archived_at IS NULL)",
+            params![workspace_id, task_id],
+            |row| row.get(0),
+        )
+        .map_err(|_| "IO_ERROR: could not check task activity scope".to_string())?;
+    if !active {
+        return Err("NOT_FOUND: active task not found in workspace".to_string());
+    }
+    let mut statement = connection
+        .prepare(
+            "SELECT id, entity_type, action, summary, occurred_at
+             FROM activity_events
+             WHERE workspace_id = ?1 AND task_id = ?2
+             ORDER BY occurred_at DESC, rowid DESC
+             LIMIT ?3",
+        )
+        .map_err(|_| "IO_ERROR: could not prepare task activity list".to_string())?;
+    let rows = statement
+        .query_map(params![workspace_id, task_id, TASK_ACTIVITY_LIMIT], |row| {
+            Ok(TaskActivity {
+                id: row.get(0)?,
+                entity_type: row.get(1)?,
+                action: row.get(2)?,
+                summary: row.get(3)?,
+                occurred_at: row.get(4)?,
+            })
+        })
+        .map_err(|_| "IO_ERROR: could not list task activity".to_string())?;
+    rows.collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(|_| "IO_ERROR: could not read task activity".to_string())
 }
 
 /// Reads recent, trusted activity for a project and its currently linked tasks.
@@ -69,6 +118,8 @@ pub enum ActivityAction {
     Updated,
     Archived,
     Restored,
+    StatusChanged,
+    PriorityChanged,
 }
 
 impl ActivityAction {
@@ -89,6 +140,15 @@ impl ActivityAction {
             (ActivityEntityKind::Task, Self::Restored) => ("task", "restored", "Task restored"),
             (ActivityEntityKind::Project, Self::Restored) => {
                 ("project", "restored", "Project restored")
+            }
+            (ActivityEntityKind::Task, Self::StatusChanged) => {
+                ("task", "status_changed", "Task status changed")
+            }
+            (ActivityEntityKind::Task, Self::PriorityChanged) => {
+                ("task", "priority_changed", "Task priority changed")
+            }
+            (ActivityEntityKind::Project, Self::StatusChanged | Self::PriorityChanged) => {
+                ("project", "updated", "Project updated")
             }
         }
     }
@@ -325,9 +385,9 @@ mod tests {
         assert!(events
             .iter()
             .any(|event| event.entity_type == "task" && event.summary == "Task created"));
-        assert!(events
-            .iter()
-            .any(|event| event.entity_type == "task" && event.summary == "Task updated"));
+        assert!(events.iter().any(|event| {
+            event.entity_type == "task" && event.summary == "Task status changed"
+        }));
         assert!(events.iter().all(|event| {
             event.occurred_at.ends_with('Z')
                 && !event.summary.contains("Private")
@@ -377,6 +437,66 @@ mod tests {
                 .expect("other workspace has no matching project activity")
                 .is_empty()
         );
+    }
+
+    #[test]
+    fn task_activity_is_scoped_bounded_and_contains_only_trusted_summaries() {
+        let mut connection = fixture();
+        let task = tasks::create_task(
+            &mut connection,
+            tasks::CreateTask {
+                workspace_id: PERSONAL.to_string(),
+                project_id: None,
+                parent_task_id: None,
+                title: "Private task title".to_string(),
+                description: Some("private details".to_string()),
+                due_at: None,
+                status: Some("todo".to_string()),
+                priority: Some("p2".to_string()),
+            },
+        )
+        .expect("create task");
+        let mut updated = tasks::UpdateTask {
+            workspace_id: PERSONAL.to_string(),
+            id: task.id.clone(),
+            project_id: None,
+            title: "Private task title changed".to_string(),
+            description: Some("another private detail".to_string()),
+            due_at: None,
+            status: "in_progress".to_string(),
+            priority: "p1".to_string(),
+        };
+        tasks::update_task(&mut connection, updated.clone()).expect("first edit");
+        updated.title = "Private task title changed again".to_string();
+        tasks::update_task(&mut connection, updated).expect("second edit");
+
+        let history = list_task_activity(&connection, PERSONAL, &task.id).expect("task history");
+        assert_eq!(history.len(), 5);
+        assert_eq!(history[0].action, "updated");
+        assert_eq!(history[1].action, "updated");
+        assert_eq!(history[2].action, "priority_changed");
+        assert_eq!(history[3].action, "status_changed");
+        assert_eq!(history[4].action, "created");
+        assert!(history.iter().all(|event| event.entity_type == "task"));
+        assert!(!history.iter().any(|event| {
+            event.summary.contains("Private") || event.summary.contains("private")
+        }));
+        assert!(list_task_activity(&connection, "other-workspace", &task.id).is_err());
+        assert!(list_task_activity(&connection, PERSONAL, "missing-task").is_err());
+        for index in 0..55 {
+            connection
+                .execute(
+                    "INSERT INTO activity_events
+                        (id, workspace_id, entity_type, entity_id, task_id, action, summary)
+                     VALUES (?1, ?2, 'task', ?3, ?3, 'updated', 'Task updated')",
+                    params![format!("bounded-event-{index:02}"), PERSONAL, task.id],
+                )
+                .expect("append bounded fixture event");
+        }
+        let bounded = list_task_activity(&connection, PERSONAL, &task.id).expect("bounded list");
+        assert_eq!(bounded.len(), TASK_ACTIVITY_LIMIT as usize);
+        assert_eq!(bounded[0].id, "bounded-event-54");
+        assert_eq!(bounded[49].id, "bounded-event-05");
     }
 
     #[test]

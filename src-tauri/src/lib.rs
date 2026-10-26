@@ -172,6 +172,34 @@ struct TaskListResponseDto {
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct TaskActivityDto {
+    id: String,
+    entity_type: String,
+    action: String,
+    summary: String,
+    occurred_at: String,
+}
+
+impl From<activity::TaskActivity> for TaskActivityDto {
+    fn from(event: activity::TaskActivity) -> Self {
+        Self {
+            id: event.id,
+            entity_type: event.entity_type,
+            action: event.action,
+            summary: event.summary,
+            occurred_at: event.occurred_at,
+        }
+    }
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct TaskActivityListResponseDto {
+    events: Vec<TaskActivityDto>,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct ProjectOverviewRequestDto {
     id: String,
 }
@@ -692,6 +720,19 @@ fn get_task(app: AppHandle, request: TaskRequestDto) -> Result<TaskDto, String> 
 }
 
 #[tauri::command]
+fn list_task_activity(
+    app: AppHandle,
+    request: TaskRequestDto,
+) -> Result<TaskActivityListResponseDto, String> {
+    let connection = open_personal_workspace_database(&app)?;
+    let events = activity::list_task_activity(&connection, PERSONAL_WORKSPACE_ID, &request.id)?
+        .into_iter()
+        .map(TaskActivityDto::from)
+        .collect();
+    Ok(TaskActivityListResponseDto { events })
+}
+
+#[tauri::command]
 fn update_task(app: AppHandle, request: UpdateTaskRequestDto) -> Result<TaskDto, String> {
     let mut connection = open_personal_workspace_database(&app)?;
     tasks::update_task(
@@ -902,6 +943,7 @@ pub fn run() {
             create_task,
             list_tasks,
             get_task,
+            list_task_activity,
             update_task,
             get_project_overview,
             list_milestones,
@@ -995,8 +1037,9 @@ mod tests {
         CreateTaskRequestDto, ListMilestonesRequestDto, ListProjectsRequestDto,
         ListTasksRequestDto, MilestoneDto, MilestoneListResponseDto, ProjectActivityDto,
         ProjectDto, ProjectListResponseDto, ProjectOverviewRequestDto, ProjectOverviewResponseDto,
-        TaskDto, TaskListResponseDto, TaskRequestDto, UpdateTaskRequestDto, CURRENT_SCHEMA_VERSION,
-        DATABASE_BUSY_TIMEOUT_MS, DATABASE_FILE_NAME, PERSONAL_WORKSPACE_ID,
+        TaskActivityDto, TaskActivityListResponseDto, TaskDto, TaskListResponseDto, TaskRequestDto,
+        UpdateTaskRequestDto, CURRENT_SCHEMA_VERSION, DATABASE_BUSY_TIMEOUT_MS, DATABASE_FILE_NAME,
+        PERSONAL_WORKSPACE_ID,
     };
     use std::{
         fs,
@@ -1128,6 +1171,32 @@ mod tests {
             r#"{"id":"task-id","projectId":null,"title":"Task","description":null,"dueAt":null,"status":"todo","priority":"p2","path":"C:/data"}"#
         )
         .is_err());
+    }
+
+    #[test]
+    fn task_activity_ipc_is_narrow_and_serializes_trusted_event_fields() {
+        let request: TaskRequestDto =
+            serde_json::from_str(r#"{"id":"task-id"}"#).expect("task activity request");
+        assert_eq!(request.id, "task-id");
+        assert!(serde_json::from_str::<TaskRequestDto>(
+            r#"{"id":"task-id","workspaceId":"other"}"#
+        )
+        .is_err());
+
+        let response = TaskActivityListResponseDto {
+            events: vec![TaskActivityDto {
+                id: "event-id".to_string(),
+                entity_type: "task".to_string(),
+                action: "status_changed".to_string(),
+                summary: "Task status changed".to_string(),
+                occurred_at: "2026-10-26T01:00:00Z".to_string(),
+            }],
+        };
+        let json = serde_json::to_value(response).expect("serialize task activity");
+        assert_eq!(json["events"][0]["entityType"], "task");
+        assert_eq!(json["events"][0]["summary"], "Task status changed");
+        assert_eq!(json["events"][0]["occurredAt"], "2026-10-26T01:00:00Z");
+        assert!(json["events"][0].get("occurred_at").is_none());
     }
 
     #[test]

@@ -34,6 +34,7 @@ describe("M2-017 persisted Task detail", () => {
       if (command === "get_task") return savedTask;
       if (command === "list_projects") return { projects: [] };
       if (command === "list_tasks") return { tasks: [savedTask] };
+      if (command === "list_task_activity") return { events: [] };
       if (command === "update_task")
         return {
           ...savedTask,
@@ -85,6 +86,7 @@ describe("M2-017 persisted Task detail", () => {
       if (command === "get_task") return { ...savedTask, projectId: "project-1" };
       if (command === "list_projects") throw new Error("offline");
       if (command === "list_tasks") return { tasks: [] };
+      if (command === "list_task_activity") return { events: [] };
       if (command === undefined) return undefined;
       throw new Error(`Unexpected command: ${command}`);
     });
@@ -100,6 +102,7 @@ describe("M2-017 persisted Task detail", () => {
       if (command === "get_task") throw "NOT_FOUND: task is archived";
       if (command === "list_projects") return { projects: [] };
       if (command === "list_tasks") return { tasks: [] };
+      if (command === "list_task_activity") return { events: [] };
       if (command === undefined) return undefined;
       throw new Error(`Unexpected command: ${command}`);
     });
@@ -118,6 +121,7 @@ describe("M2-017 persisted Task detail", () => {
       if (command === "get_task") return savedTask;
       if (command === "list_projects") return { projects: [] };
       if (command === "list_tasks") return { tasks: [savedTask] };
+      if (command === "list_task_activity") return { events: [] };
       if (command === "create_task") return child;
       if (command === undefined) return undefined;
       throw new Error(`Unexpected command: ${command}`);
@@ -144,6 +148,7 @@ describe("M2-017 persisted Task detail", () => {
       if (command === "get_task") return child;
       if (command === "list_projects") return { projects: [] };
       if (command === "list_tasks") return { tasks: [savedTask, child] };
+      if (command === "list_task_activity") return { events: [] };
       if (command === undefined) return undefined;
       throw new Error(`Unexpected command: ${command}`);
     });
@@ -152,5 +157,66 @@ describe("M2-017 persisted Task detail", () => {
       "#/tasks/task-1",
     );
     expect(screen.queryByRole("button", { name: "Add subtask" })).toBeNull();
+  });
+
+  it("shows saved status and priority history without exposing user text", async () => {
+    invokeMock.mockImplementation(async (command: string) => {
+      if (command === "get_task") return savedTask;
+      if (command === "list_projects") return { projects: [] };
+      if (command === "list_tasks") return { tasks: [savedTask] };
+      if (command === "list_task_activity")
+        return {
+          events: [
+            {
+              id: "event-1",
+              entityType: "task",
+              action: "status_changed",
+              summary: "Task status changed",
+              occurredAt: "2026-10-26T01:00:00Z",
+            },
+            {
+              id: "event-2",
+              entityType: "task",
+              action: "priority_changed",
+              summary: "Task priority changed",
+              occurredAt: "2026-10-26T00:30:00Z",
+            },
+          ],
+        };
+      if (command === undefined) return undefined;
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    render(<TaskDetailPage taskId="task-1" />);
+    expect(await screen.findByRole("heading", { name: "Activity history" })).toBeTruthy();
+    expect(screen.getByText("Task status changed")).toBeTruthy();
+    expect(screen.getByText("Task priority changed")).toBeTruthy();
+    expect(invokeMock).toHaveBeenCalledWith("list_task_activity", { request: { id: "task-1" } });
+  });
+
+  it("keeps the task form usable and retries activity after a read failure", async () => {
+    const user = userEvent.setup();
+    let attempts = 0;
+    invokeMock.mockImplementation(async (command: string) => {
+      if (command === "get_task") return savedTask;
+      if (command === "list_projects") return { projects: [] };
+      if (command === "list_tasks") return { tasks: [savedTask] };
+      if (command === "list_task_activity") {
+        attempts += 1;
+        if (attempts === 1) throw "IO_ERROR: unavailable";
+        return { events: [] };
+      }
+      if (command === undefined) return undefined;
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    render(<TaskDetailPage taskId="task-1" />);
+    expect(
+      await screen.findByRole("heading", { name: "Activity history is unavailable" }),
+    ).toBeTruthy();
+    const title = screen.getByRole("textbox", { name: "Title" });
+    await user.clear(title);
+    await user.type(title, "Unsaved local edit");
+    await user.click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByText("No activity recorded for this task.")).toBeTruthy();
+    expect(title).toHaveProperty("value", "Unsaved local edit");
   });
 });

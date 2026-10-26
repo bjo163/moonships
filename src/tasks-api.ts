@@ -26,6 +26,14 @@ export type TaskRecord = {
   archivedAt: string | null;
 };
 
+export type TaskActivityRecord = {
+  id: string;
+  entityType: "task";
+  action: "created" | "updated" | "archived" | "restored" | "status_changed" | "priority_changed";
+  summary: string;
+  occurredAt: string;
+};
+
 export type CreateTaskInput = {
   title: string;
   projectId: string | null;
@@ -54,6 +62,12 @@ export function createTask(request: CreateTaskInput): Promise<TaskRecord> {
 
 export function getTask(id: string): Promise<TaskRecord> {
   return invoke<TaskRecord>("get_task", { request: { id } });
+}
+
+export function listTaskActivity(id: string): Promise<TaskActivityRecord[]> {
+  return invoke<{ events: TaskActivityRecord[] }>("list_task_activity", {
+    request: { id },
+  }).then(({ events }) => events);
 }
 
 export function updateTask(request: UpdateTaskInput): Promise<TaskRecord> {

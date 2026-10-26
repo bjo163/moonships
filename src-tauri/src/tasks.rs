@@ -516,13 +516,37 @@ pub fn update_task(connection: &mut Connection, request: UpdateTask) -> Result<T
     if changed == 0 {
         return Err("NOT_FOUND: task is unavailable".to_string());
     }
-    crate::activity::record_change(
-        &transaction,
-        workspace_id,
-        crate::activity::ActivityEntityKind::Task,
-        id,
-        crate::activity::ActivityAction::Updated,
-    )?;
+    if existing.status != request.status {
+        crate::activity::record_change(
+            &transaction,
+            workspace_id,
+            crate::activity::ActivityEntityKind::Task,
+            id,
+            crate::activity::ActivityAction::StatusChanged,
+        )?;
+    }
+    if existing.priority != request.priority {
+        crate::activity::record_change(
+            &transaction,
+            workspace_id,
+            crate::activity::ActivityEntityKind::Task,
+            id,
+            crate::activity::ActivityAction::PriorityChanged,
+        )?;
+    }
+    if existing.project_id != project_id
+        || existing.title != title
+        || existing.description != description
+        || existing.due_at != due_at
+    {
+        crate::activity::record_change(
+            &transaction,
+            workspace_id,
+            crate::activity::ActivityEntityKind::Task,
+            id,
+            crate::activity::ActivityAction::Updated,
+        )?;
+    }
     let (updated, _) = read_task(&transaction, workspace_id, id)?;
     transaction
         .commit()
@@ -725,10 +749,34 @@ mod tests {
                 |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
             )
             .expect("task activity");
-        assert_eq!(events, 2);
+        assert_eq!(events, 4);
         assert_eq!(action, "updated");
         assert_eq!(summary, "Task updated");
         assert!(!summary.contains("sensitive"));
+        let event_actions: Vec<(String, String)> = connection
+            .prepare(
+                "SELECT action, summary FROM activity_events WHERE task_id = ?1 ORDER BY rowid",
+            )
+            .unwrap()
+            .query_map(params![created.id], |row| Ok((row.get(0)?, row.get(1)?)))
+            .unwrap()
+            .map(Result::unwrap)
+            .collect();
+        assert_eq!(
+            event_actions,
+            vec![
+                ("created".to_string(), "Task created".to_string()),
+                (
+                    "status_changed".to_string(),
+                    "Task status changed".to_string()
+                ),
+                (
+                    "priority_changed".to_string(),
+                    "Task priority changed".to_string()
+                ),
+                ("updated".to_string(), "Task updated".to_string()),
+            ]
+        );
     }
 
     #[test]

@@ -108,7 +108,7 @@ fn project_and_task_services_persist_a_scoped_workflow_in_an_isolated_database()
         .expect("persisted repository rows");
     assert_eq!(projects_count, 1);
     assert_eq!(linked_tasks, 1);
-    assert_eq!(activity_count, 3);
+    assert_eq!(activity_count, 5);
 }
 
 #[test]
