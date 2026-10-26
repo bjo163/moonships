@@ -112,6 +112,7 @@ Risk class is separate from task priority, vulnerability severity and business i
 - M3-018 URL tools operate only on bounded local text. Component mode encodes reserved separators as data; full URL mode validates an absolute URL and preserves its reserved syntax delimiters. Conversion never opens or fetches the URL and has no filesystem, network, provider or shell capability.
 - M3-019 UUID v4 generation uses Web Crypto `randomUUID()` and fails closed when secure randomness is unavailable; it never falls back to `Math.random()`. Validation accepts canonical RFC-variant UUID versions 1–8 and the Nil UUID. No value leaves the local process.
 - M3-020 text hashing accepts at most 1 MiB. File hashing opens only a path returned by the native Windows file picker, reads at most 2 GiB using a fixed 64 KiB buffer and exposes only the selected leaf filename, byte count and SHA-256 digest. The renderer cannot submit an arbitrary path, and the feature never modifies or uploads selected content. Errors do not include a full path; other platforms return explicit unsupported status.
+- M3-021 compares only in-memory text, with a 1 MiB UTF-8 and 50,000-line cap per input, a 1,000 edit-distance cutoff and a 4 million character output bound. The renderer has no file, network, provider or shell access through the diff tool.
 - Scan is read-only.
 - Candidate set comes from registered cleanup rules, never arbitrary UI-provided paths.
 - Default targets are narrow and documented; no broad recursive deletion of a user profile.

@@ -196,6 +196,8 @@ M3-019 adds a local UUID v4 generator using the browser's Web Crypto `randomUUID
 
 M3-020 provides local SHA-256 text and file hashing with the exact-pinned RustCrypto `sha2` crate. Text is capped at 1 MiB; file selection happens in a native Windows picker and the native reader streams 64 KiB chunks up to 2 GiB, so memory use does not grow with file size. Only the selected leaf filename, byte count and digest return to the UI. Cancellation returns no digest; permission/read errors are reported without disclosing the full path. File hashing is currently unsupported outside Windows, matching the available native picker.
 
+M3-021 compares two local text inputs using exact-pinned `diff@9.0.0` (BSD-3-Clause). Each side is limited to 1 MiB UTF-8 and 50,000 lines; the Myers diff edit distance is capped at 1,000 and the unified result at 4 million characters. Exceeding a bound returns a clear error rather than a partial diff. Text stays in memory and is not sent to a provider or network.
+
 ## 7. Error model
 
 Use stable error codes/categories:

@@ -152,7 +152,7 @@
 - [x] **M3-018 — Add URL encode/decode** [S] — Distinguish components from full URLs. **AC:** reserved-character fixtures pass.
 - [x] **M3-019 — Add UUID generator/validator** [S] — Use vetted random source/library. **AC:** output conforms to declared UUID format.
 - [x] **M3-020 — Add SHA-256 file/text hash utility** [S] — Stream large files. **AC:** known test vectors pass and memory use is bounded.
-- [ ] **M3-021 — Add text diff utility** [S] — Side-by-side or unified result. **AC:** inserts/deletes/empty files are tested.
+- [x] **M3-021 — Add text diff utility** [S] — Side-by-side or unified result. **AC:** inserts/deletes/empty files are tested.
 - [ ] **M3-022 — Add timestamp converter** [S] — Unix/ISO conversion. **AC:** invalid values and timezone display are clear.
 - [ ] **M3-023 — Add DevTools tests and offline acceptance check** [S] — Verify no provider calls. **AC:** tool works with networking disabled.
 

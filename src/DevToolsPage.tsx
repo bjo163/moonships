@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Base64DevToolsPanel } from "./Base64DevToolsPanel";
 import { Sha256DevToolsPanel } from "./Sha256DevToolsPanel";
+import { TextDiffDevToolsPanel } from "./TextDiffDevToolsPanel";
 import { formatJsonInput, MAX_JSON_INPUT_BYTES } from "./json-formatter";
 import { UrlDevToolsPanel } from "./UrlDevToolsPanel";
 import { UuidDevToolsPanel } from "./UuidDevToolsPanel";
@@ -9,7 +10,7 @@ import { YamlDevToolsPanel } from "./YamlDevToolsPanel";
 
 export function DevToolsPage() {
   const [activeTool, setActiveTool] = useState<
-    "json" | "yaml" | "base64" | "url" | "uuid" | "sha256"
+    "json" | "yaml" | "base64" | "url" | "uuid" | "sha256" | "diff"
   >("json");
 
   return (
@@ -67,6 +68,13 @@ export function DevToolsPage() {
         >
           SHA-256
         </Button>
+        <Button
+          variant={activeTool === "diff" ? "primary" : "secondary"}
+          aria-pressed={activeTool === "diff"}
+          onClick={() => setActiveTool("diff")}
+        >
+          Text diff
+        </Button>
       </fieldset>
       {activeTool === "json" ? (
         <JsonFormatterPanel />
@@ -78,8 +86,10 @@ export function DevToolsPage() {
         <UrlDevToolsPanel />
       ) : activeTool === "uuid" ? (
         <UuidDevToolsPanel />
-      ) : (
+      ) : activeTool === "sha256" ? (
         <Sha256DevToolsPanel />
+      ) : (
+        <TextDiffDevToolsPanel />
       )}
     </section>
   );
