@@ -11,6 +11,7 @@ pub mod local_logging;
 pub mod milestones;
 pub mod network_diagnostics;
 pub mod ping_adapter;
+pub mod process_inventory;
 pub mod project_task_export;
 pub mod projects;
 pub mod subnet_calculator;
@@ -1005,6 +1006,11 @@ fn get_home_dashboard(app: AppHandle) -> Result<home_dashboard::HomeDashboard, S
 }
 
 #[tauri::command]
+fn list_process_inventory() -> process_inventory::ProcessInventorySnapshot {
+    process_inventory::read_process_inventory()
+}
+
+#[tauri::command]
 fn get_task(app: AppHandle, request: TaskRequestDto) -> Result<TaskDto, String> {
     let connection = open_personal_workspace_database(&app)?;
     tasks::get_task(&connection, PERSONAL_WORKSPACE_ID, &request.id).map(TaskDto::from)
@@ -1240,6 +1246,7 @@ pub fn run() {
             create_project,
             update_project,
             get_home_dashboard,
+            list_process_inventory,
             export_project_task_data,
             preview_project_task_import,
             create_task,

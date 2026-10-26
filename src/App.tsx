@@ -1,32 +1,33 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
-import { resolveRoute, type RouteId, type RouteResolution } from "./route-registry";
-import { ProjectsPage } from "./ProjectsPage";
-import { ProjectOverviewPage } from "./ProjectOverviewPage";
-import { TaskListPage } from "./TaskListPage";
-import { TaskDetailPage } from "./TaskDetailPage";
-import { TaskCreateDialog } from "./TaskCreateDialog";
+import { listen } from "@tauri-apps/api/event";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { CleanerPreviewPage } from "./CleanerPreviewPage";
-import { DevToolsPage } from "./DevToolsPage";
-import { HomeDashboardPage } from "./HomeDashboardPage";
-import { Button } from "./ui-primitives";
 import { CommandPalette, type PaletteCommand } from "./CommandPalette";
 import { getPaletteCommands, getRegisteredCommand } from "./command-registry";
-import { loadGlobalSearch, type GlobalSearchResult } from "./global-search";
-import {
-  getWorkspaceProfile,
-  readWorkspaceProfile,
-  writeWorkspaceProfile,
-  WORKSPACE_PROFILES,
-  type WorkspaceProfileId,
-} from "./workspace-profile";
+import { DevToolsPage } from "./DevToolsPage";
+import { type GlobalSearchResult, loadGlobalSearch } from "./global-search";
+import { HomeDashboardPage } from "./HomeDashboardPage";
+import { ProcessesPage } from "./ProcessesPage";
+import { ProjectOverviewPage } from "./ProjectOverviewPage";
+import { ProjectsPage } from "./ProjectsPage";
+import { type RouteId, type RouteResolution, resolveRoute } from "./route-registry";
+import { TaskCreateDialog } from "./TaskCreateDialog";
+import { TaskDetailPage } from "./TaskDetailPage";
+import { TaskListPage } from "./TaskListPage";
 import {
   applyThemePreference,
   readThemePreference,
-  writeThemePreference,
   type ThemePreference,
+  writeThemePreference,
 } from "./theme-preference";
+import { Button } from "./ui-primitives";
+import {
+  getWorkspaceProfile,
+  readWorkspaceProfile,
+  WORKSPACE_PROFILES,
+  type WorkspaceProfileId,
+  writeWorkspaceProfile,
+} from "./workspace-profile";
 
 const plannedNavigationItems = [
   "My Work",
@@ -111,6 +112,13 @@ export function AppShell({
             aria-current={activeRoute === "devtools" ? "page" : undefined}
           >
             <span>DevTools</span>
+          </a>
+          <a
+            className={`nav-item${activeRoute === "processes" ? " nav-item-active" : ""}`}
+            href="#/processes"
+            aria-current={activeRoute === "processes" ? "page" : undefined}
+          >
+            <span>Processes</span>
           </a>
           {plannedNavigationItems.map((label) => (
             <div
@@ -819,6 +827,8 @@ export default function App() {
         <CleanerPreviewPage preview={null} />
       ) : route.kind === "page" && route.id === "devtools" ? (
         <DevToolsPage />
+      ) : route.kind === "page" && route.id === "processes" ? (
+        <ProcessesPage />
       ) : route.kind === "task-detail" ? (
         <TaskDetailPage taskId={route.taskId} />
       ) : (

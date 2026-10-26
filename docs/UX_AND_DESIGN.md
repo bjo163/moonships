@@ -466,3 +466,7 @@ The proposed palette, semantic token names, typography, spacing, radii, elevatio
 ## Workspace profile onboarding (M1-034)
 
 On first launch, offer six local workspace profiles: Developer, Network / NOC, Sysadmin, Security / Research, Intelligence / Research, and Custom. A profile only selects suggested pinned sections/layout hints; it never grants permissions, enables a module, or starts a tool. The profile selector remains available from the top bar so users can change it later. The selected profile is stored in local WebView storage; it does not imply cloud sync or native permission state. If storage is unavailable, keep the selection for the current session and state that it was not persisted.
+
+## Process inventory (M4-008)
+
+The Processes page is a user-requested, read-only snapshot with an explicit **Refresh snapshot** action; it does not poll in the background. Show executable name, process ID, parent process ID, thread count and snapshot time in a semantic, horizontally scrollable table. Do not show a kill/terminate action, command line or executable path. Loading, adapter failure, permission denied, unsupported, empty and partial/capped snapshots have distinct text states. A permission denial never offers elevation. Use the shared page/table tokens and keyboard-visible focus styles from [Design System](DESIGN_SYSTEM.md).

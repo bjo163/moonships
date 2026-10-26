@@ -111,6 +111,12 @@ Risk class is separate from task priority, vulnerability severity and business i
 - Values use explicit available/unsupported/unavailable states. A missing platform API or failed query stays null with status; no estimate is substituted.
 - The inventory does not enumerate files, devices or processes, disclose the full system path, or register an unrestricted renderer command.
 
+### Process inventory (M4-008)
+
+- The native adapter takes a Tool Help process snapshot and returns only executable name, process/parent IDs and thread count; output is capped at 4,096 records and the snapshot handle is closed.
+- It does not open individual process handles, read command lines or executable paths, launch a process, elevate, terminate or mutate a process. Its registered IPC command takes no renderer arguments.
+- The UI requests one snapshot on entry and only refreshes after a user action. Permission denied, unsupported, unavailable, empty and partial results remain distinct.
+
 ## 5. Cleaner-specific safety
 
 - M3-001 defines rules as typed metadata with closed root IDs only: app-managed temporary storage, app cache, or an OS-resolved user temporary directory. Rules and renderer inputs cannot supply arbitrary paths. The pure eligibility evaluator accepts metadata only and never reads or deletes files. M3-002's test-only traversal helper reads metadata recursively under a disposable fixture, skips links, and performs no content reads or mutations; it is compiled only for tests and is not an IPC entry point. M3-003 canonicalizes the native-resolved allowed root, existing candidate and native-policy protected paths, then rejects candidates equal to/outside the root, beneath a protected path, or any unresolved input. Protected paths must be assembled by native policy, not supplied by renderer data. M3-004 tests a Windows directory junction aimed outside the root: canonical path validation rejects the target and read-only traversal skips the junction. This check does not close time-of-check/time-of-use races; immediate identity revalidation remains required before production mutation.

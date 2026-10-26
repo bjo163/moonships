@@ -139,6 +139,8 @@ M4-001 defines the bounded native network-diagnostic contract for one DNS lookup
 
 M4-007 adds a native read-only system inventory DTO. It reports the compiled OS family and process architecture, the logical processor count available to the process, physical RAM totals, and capacity/free bytes for the volume containing the Windows directory. Each field is represented as an optional value with an explicit available, unsupported or unavailable status; no fallback value is fabricated. Non-Windows builds mark Windows-only memory and storage metrics unsupported. The adapter does not return the Windows path or enumerate files/devices/processes, and is not registered as an IPC command.
 
+M4-008 adds a no-argument `list_process_inventory` command backed by a Windows Tool Help process snapshot. The adapter reports only executable name, process ID, parent ID and thread count, caps output at 4,096 records, closes its snapshot handle, and returns explicit unavailable/permission-denied/partial states. It does not open process handles, read command lines/paths or expose mutation commands. The Processes page reads only on mount or an explicit refresh; there is no background polling.
+
 ## 5. Command and event flow
 
 1. UI or workflow requests a registered tool by ID with typed arguments.
