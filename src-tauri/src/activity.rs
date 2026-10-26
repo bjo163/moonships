@@ -58,6 +58,18 @@ mod tests {
 
     const PERSONAL: &str = "00000000-0000-4000-8000-000000000001";
 
+    #[derive(Debug)]
+    struct RecordedActivity {
+        workspace_id: String,
+        entity_type: String,
+        entity_id: String,
+        action: String,
+        summary: String,
+        occurred_at: String,
+        sensitivity: String,
+        actor_type: String,
+    }
+
     fn fixture() -> Connection {
         let mut connection = Connection::open_in_memory().expect("disposable database");
         connection
@@ -102,48 +114,39 @@ mod tests {
                  FROM activity_events ORDER BY rowid",
             )
             .expect("activity query");
-        let events: Vec<(
-            String,
-            String,
-            String,
-            String,
-            String,
-            String,
-            String,
-            String,
-        )> = statement
+        let events: Vec<RecordedActivity> = statement
             .query_map([], |row| {
-                Ok((
-                    row.get(0)?,
-                    row.get(1)?,
-                    row.get(2)?,
-                    row.get(3)?,
-                    row.get(4)?,
-                    row.get(5)?,
-                    row.get(6)?,
-                    row.get(7)?,
-                ))
+                Ok(RecordedActivity {
+                    workspace_id: row.get(0)?,
+                    entity_type: row.get(1)?,
+                    entity_id: row.get(2)?,
+                    action: row.get(3)?,
+                    summary: row.get(4)?,
+                    occurred_at: row.get(5)?,
+                    sensitivity: row.get(6)?,
+                    actor_type: row.get(7)?,
+                })
             })
             .expect("rows")
             .map(|row| row.expect("row"))
             .collect();
         assert_eq!(events.len(), 2);
-        assert_eq!(events[0].0, PERSONAL);
-        assert_eq!(events[0].1, "project");
-        assert_eq!(events[0].2, project.id);
-        assert_eq!(events[1].1, "task");
-        assert_eq!(events[1].2, task.id);
-        assert_eq!(events[0].3, "created");
-        assert_eq!(events[1].3, "created");
-        assert_eq!(events[0].4, "Project created");
-        assert_eq!(events[1].4, "Task created");
+        assert_eq!(events[0].workspace_id, PERSONAL);
+        assert_eq!(events[0].entity_type, "project");
+        assert_eq!(events[0].entity_id, project.id);
+        assert_eq!(events[1].entity_type, "task");
+        assert_eq!(events[1].entity_id, task.id);
+        assert_eq!(events[0].action, "created");
+        assert_eq!(events[1].action, "created");
+        assert_eq!(events[0].summary, "Project created");
+        assert_eq!(events[1].summary, "Task created");
         for event in events {
-            assert!(event.5.ends_with('Z'), "activity timestamp uses UTC");
-            assert!(!event.5.is_empty());
-            assert_eq!(event.6, "normal");
-            assert_eq!(event.7, "local");
-            assert!(!event.4.contains("secret"));
-            assert!(!event.4.contains("Sensitive"));
+            assert!(event.occurred_at.ends_with('Z'), "activity timestamp uses UTC");
+            assert!(!event.occurred_at.is_empty());
+            assert_eq!(event.sensitivity, "normal");
+            assert_eq!(event.actor_type, "local");
+            assert!(!event.summary.contains("secret"));
+            assert!(!event.summary.contains("Sensitive"));
         }
     }
 
