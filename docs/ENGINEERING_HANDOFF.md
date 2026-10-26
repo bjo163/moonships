@@ -1,6 +1,22 @@
 # Moonships — Engineering Continuity & Foundation Evidence
 
-## Current M2 checkpoint — 2026-10-26
+## Current checkpoint — M2-006 activity storage accepted (2026-10-26)
+
+**Canonical branch:** `main`. **Verified implementation HEAD:** [4d4cc4d](https://github.com/bjo163/moonships/commit/4d4cc4dee571f344e7cdcc67f7dc2a9da8f2c64e). **Full code CI:** [40249712444](https://github.com/bjo163/moonships/actions/runs/40249712444) **SUCCESS 5/5 jobs**, including **38/38 Rust unit tests**, Rust formatting/Clippy with warnings denied, frontend build, backlog regression and Windows MSI/NSIS installer smoke packaging.
+
+**M2-006 (#40):** Schema v5 adds `activity_events` with UTC timestamps, local actor, event action, safe summary, sensitivity, workspace-scoped entity reference and composite SQLite foreign keys. Both `create_project` and `create_task` now persist their corresponding event in the same transaction. Tests assert valid project/task references, rejection of cross-workspace and nonexistent entities, secret-free event summaries, atomic entity rollback when event insertion fails, v4→v5 upgrade preserving prior records, and schema rollback when an index collision interrupts migration.
+
+**Accepted in canonical backlog:** M2-002, M2-003, M2-006, M2-007 and M2-009. After this documentation commit, confirm the existing issue-sync workflow closes #40. Issues #36/#37/#41/#43 were already confirmed closed by sync run [40248824539](https://github.com/bjo163/moonships/actions/runs/40248824539). No new branches or duplicate issues.
+
+**Not completed:** M2 project/task edit/archive services, Tauri IPC for this model, React Projects/Tasks screens, real end-to-end persisted UI workflow and Windows manual install/usability validation. This is **not an MVP or stable-release gate pass**. The last verified published version remains prerelease `v0.1.0-alpha.2`.
+
+**Exact next unblocked task:** M2-008 — transactional Project update/archive service preserving history and workspace integrity; then M2-012 status policy and M2-010/011 Task update/archive, followed by IPC and Project→Task UI vertical slice (M2-014/015/016/017/018/028/032). Keep independent M1 Windows/runtime/accessibility blockers open until observed.
+
+---
+
+## Previous M2 checkpoint (historical)
+
+## M2 model/service checkpoint — 2026-10-26 (historical)
 
 **Canonical branch:** `main`. **Code commit:** [9ce3718](https://github.com/bjo163/moonships/commit/9ce3718f425366f8681a0732fd1d6fb6f2f12134). **Verified CI:** [40248122958](https://github.com/bjo163/moonships/actions/runs/40248122958) — SUCCESS, all 5/5 required jobs; Rust 33/33 tests, formatting and Clippy, frontend production build, repository regression and Windows MSI/NSIS packaging all PASS.
 

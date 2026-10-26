@@ -54,6 +54,8 @@ MVP can scope to task/project comments. If polymorphic foreign keys reduce integ
 Fields: id, workspace_id, actor_type, actor_id?, entity_type, entity_id, action, occurred_at, correlation_id?, summary, metadata_json?, sensitivity.
 Keep audit/activity distinct from verbose debug logs. Sanitize metadata and never log secret values.
 
+Implemented subset (M2-006, migration v5): `activity_events` stores workspace-scoped entity type/ID, one project or task foreign key, `created` action, UTC timestamp, trusted fixed summary, actor type and sensitivity. Project/task create services append the event in the same transaction as the entity write; events are not fabricated for preexisting records. The additional optional actor ID/correlation ID/metadata fields described above are not persisted by this MVP subset and must be explicitly migrated before future usage. Never place user-supplied descriptions, credentials or arbitrary metadata into event summaries.
+
 ### Artifact / Reference
 Fields: id, workspace_id, project_id?, task_id?, artifact_type, title, uri_or_relative_path, media_type?, content_hash?, source_id?, created_at, sensitivity, metadata_json?.
 For external references save canonical URL/provider ID. For local artifacts validate path against app-owned storage. Avoid arbitrary file embedding by default.
