@@ -78,6 +78,8 @@ Exit criteria:
 
 ## M2 — Projects & Tasks
 
+> 2026-10-26 implementation checkpoint: M2-008 native Project update/archive acceptance tests pass. IPC, persisted UI, primary restart acceptance, Windows runtime, and full M2 exit gates remain open; see docs/ENGINEERING_HANDOFF.md.
+
 Deliverables:
 - Workspace and personal work inbox
 - Home dashboard based only on real local project/task/activity records

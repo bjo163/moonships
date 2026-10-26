@@ -28,6 +28,7 @@ Optional in MVP if it would delay basic project/task delivery.
 Fields: id, workspace_id, key?, name, description?, goal?, status, color_token?, start_date?, target_date?, archived_at?, created_at, updated_at.
 Project key is user-friendly metadata, not the primary ID. Avoid forcing a repository path or Git provider. The M2-002 schema-v3 migration creates a workspace-scoped `projects` table with `project_key` optional and unique when supplied within a workspace; `name` cannot be blank, `status` defaults to `planned`, and workspace references are foreign-key enforced. The M2-007 native service now supplies a random UUID v4, validates fields and active workspace membership, and creates the project transactionally. The migration itself does not generate entities or grant permissions; the UI is still pending.
 Statuses: planned, active, paused, completed, archived.
+M2-008 adds transactional scoped update/soft-archive and trusted change events. No-op updates leave timestamps and activity unchanged. Creating a project directly in archived state is rejected; existing linked tasks survive archive.
 
 ### Milestone
 Fields: id, project_id, title, description?, due_date?, status, sort_order, created_at, updated_at.

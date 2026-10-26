@@ -1,6 +1,19 @@
 # Moonships — Engineering Continuity & Foundation Evidence
 
-## Current checkpoint — M2-006 activity storage accepted (2026-10-26)
+## Current checkpoint — M2-008 project update/archive accepted (2026-10-26)
+
+**Canonical branch:** `main`. **Verified code:** [e83930b](https://github.com/bjo163/moonships/commit/e83930bde4d40d8d978a4dc45643e43e49d908e5). **Relevant CI run:** [40253359963](https://github.com/bjo163/moonships/actions/runs/40253359963) — Rust format/Clippy PASS, 43/43 Rust unit tests PASS, frontend production build PASS, backlog sync regression PASS; the Windows installer smoke-build remained pending at the time of this checkpoint. Inspect its final conclusion; do not treat packaging as Windows runtime validation.
+
+**M2-008, existing issue #42:** The native project update and soft-archive services preserve linked records and write trusted ActivityEvents transactionally. Acceptance tests verify field normalization, allowed status and workspace scoping, no-op edit without timestamp/activity churn, preservation of linked tasks on archive, and rollback when activity insert fails. Project creation cannot bypass soft archive by specifying status `archived`. No schema migration, data reset, or unsafe hard delete was introduced. The canonical backlog now checks M2-008 and will close issue #42 via its existing idempotent sync workflow.
+
+**Unfinished:** Task domain M2-004/005/010–013, persistent Project/Task IPC and React views M2-014–022, activity UI, integration/E2E M2-031/032, dashboard/search and usability M2-033–035, plus other unchecked task IDs in the backlog. Manual Windows desktop and accessibility tasks remain open. This checkpoint is **not** a verified MVP, release candidate or stable release.
+
+**Next unblocked task:** M2-012 status transition policy; then M2-010 task update, M2-011 task archive/restore, and UI/IPCs after their service acceptance. No new branch required.
+
+---
+
+
+## Previous checkpoint — M2-006 activity storage accepted (2026-10-26)
 
 **Canonical branch:** `main`. **Verified implementation HEAD:** [4d4cc4d](https://github.com/bjo163/moonships/commit/4d4cc4dee571f344e7cdcc67f7dc2a9da8f2c64e). **Full code CI:** [40249712444](https://github.com/bjo163/moonships/actions/runs/40249712444) **SUCCESS 5/5 jobs**, including **38/38 Rust unit tests**, Rust formatting/Clippy with warnings denied, frontend build, backlog regression and Windows MSI/NSIS installer smoke packaging.
 

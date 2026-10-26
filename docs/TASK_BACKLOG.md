@@ -97,7 +97,7 @@
 - [ ] **M2-005 — Add TaskDependency model** [S] [depends: M2-003] — Prevent self-dependency. **AC:** self-dependency is rejected and tested.
 - [x] **M2-006 — Add ActivityEvent storage** [S] [depends: M1-023] — Link events to project/task updates. **AC:** event timestamp and entity reference are persisted.
 - [x] **M2-007 — Add repository/service for creating a project** [S] [depends: M2-002] — No UI coupling. **AC:** unit test covers create and validation.
-- [ ] **M2-008 — Add repository/service for updating/archiving a project** [S] [depends: M2-007] — Avoid accidental hard deletion. **AC:** update/archive behavior is tested.
+- [x] **M2-008 — Add repository/service for updating/archiving a project** [S] [depends: M2-007] — Avoid accidental hard deletion. **AC:** update/archive behavior is tested.
 - [x] **M2-009 — Add repository/service for creating a task** [S] [depends: M2-003] — Apply canonical defaults. **AC:** minimal title-only create works.
 - [ ] **M2-010 — Add repository/service for updating a task** [S] [depends: M2-009] — Validate state transitions. **AC:** invalid status/priority is rejected.
 - [ ] **M2-011 — Add task archive/restore behavior** [S] [depends: M2-010] — Keep history. **AC:** archived items can be filtered and restored.
