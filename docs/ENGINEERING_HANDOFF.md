@@ -629,3 +629,9 @@ Verification passed: workflow schedule tests 2/2; full Rust library suite 288/28
 Added a strict version-1 configuration schema and internal provider trait. AI defaults off; config holds only an opaque credential reference and remote endpoints must be HTTPS without embedded credentials, query or fragment. Requests/responses are capped at 1 MiB and provider failures use closed error codes. Fake provider tests prove the core path works without network and disabled/mismatched configurations do not call a provider. No production provider, network access, UI or persistent config is wired.
 
 Verification passed: AI provider tests 4/4; full Rust library suite 292/292; `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`; `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`; backlog validation (156/238 checked); and `git diff --check`. Backlog before this task: 155/238 checked (65.1%); after this task: 156/238 checked (65.5%). M2-035 remains open as requested.
+
+## M7-009 Strict AI structured-output parser — 2026-10-26
+
+Added a version-1 JSON parser for inert AI-proposed tool requests. It rejects unknown fields, invalid IDs, unsupported schema versions, malformed or oversized JSON, too many arguments, excessive nesting and excessive total nodes. Parsing cannot invoke tools; a malformed-response test verifies the callback remains untouched. Registry resolution and policy enforcement remain later independent steps.
+
+Verification passed: AI structured-output tests 3/3; full Rust library suite 295/295; `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`; `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`; backlog validation (157/238 checked); and `git diff --check`. Backlog before this task: 156/238 checked (65.5%); after this task: 157/238 checked (66.0%). M2-035 remains open by direction.

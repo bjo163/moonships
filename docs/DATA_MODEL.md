@@ -182,6 +182,9 @@ Fields: schedule_id, workflow_id, workflow_version, interval_minutes, enabled, n
 ### AiProviderConfig
 Version-1 strict config fields: enabled, provider kind, model ID, optional HTTPS endpoint and optional opaque credential reference. It contains no credential value and defaults to disabled. Local providers cannot declare a remote endpoint or credential reference. The interface and schema are in-memory contracts; provider settings are not yet persisted or exposed in the UI.
 
+### AiToolRequest
+Strict schema version 1 contains a bounded tool ID and object of bounded JSON arguments. Documents are limited to 64 KiB, 128 root arguments and 16 nested levels (4,096 total value nodes). Parsed requests remain inert values; validation does not discover or invoke tools.
+
 ### ResearchCollection / Note
 Collection fields: id, workspace_id, name, description?, created_at, updated_at.
 Note fields: id, workspace_id, collection_id?, title, body, created_at, updated_at.
