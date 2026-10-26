@@ -14,6 +14,7 @@ pub mod ping_adapter;
 pub mod project_task_export;
 pub mod projects;
 pub mod subnet_calculator;
+pub mod system_inventory;
 pub mod task_dependencies;
 pub mod task_status;
 pub mod tasks;

@@ -409,3 +409,7 @@ Recorded traceroute as explicitly deferred because no reviewed adapter yet enfor
 ## M4-006 IPv4 subnet calculator — 2026-10-26
 
 Added strict single-IPv4-CIDR arithmetic for network address, netmask, wildcard mask, traditional broadcast, usable address range and counts. `/31` treats both addresses as usable and `/32` as one address; broadcast is absent for both. Invalid address/family/prefix and malformed slash inputs return typed errors. This utility is offline and is not exposed as an executable IPC command. Verification passed: Rust suite 139/139; Clippy with warnings denied; Rust formatting; backlog validation; and `git diff --check`.
+
+## M4-007 Read-only system inventory — 2026-10-26
+
+Added typed inventory fields for OS family, process architecture, available logical processors, physical memory totals and the Windows directory volume's total/free capacity. Windows uses native `GlobalMemoryStatusEx`, `GetWindowsDirectoryW` and `GetDiskFreeSpaceExW`; no arbitrary path is accepted or returned. Each value has an explicit available/unsupported/unavailable state and unsupported/failing values are null. No file, device or process enumeration or IPC command was added. Verification passed: Rust suite 141/141; Clippy with warnings denied; Rust formatting; backlog validation; and `git diff --check`.

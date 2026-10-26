@@ -105,6 +105,12 @@ Risk class is separate from task priority, vulnerability severity and business i
 - The IPv4 subnet calculator is pure local arithmetic over one strict address/prefix input. It does not resolve names, query network state or expand to scanned targets.
 - Result provenance identifies the exact target/port, operation, UTC observation time as epoch milliseconds, elapsed time, IP-literal source, OS resolver or TCP socket, outcome, stable error code and bounded resolved addresses. Invalid input is a validation error; resolver failures are distinct typed results. No executable IPC command is registered by M4-002.
 
+### Read-only system inventory (M4-007)
+
+- Inventory reads only OS family/process architecture, available logical processors, physical memory counters and capacity/free bytes on the volume containing the Windows directory.
+- Values use explicit available/unsupported/unavailable states. A missing platform API or failed query stays null with status; no estimate is substituted.
+- The inventory does not enumerate files, devices or processes, disclose the full system path, or register an unrestricted renderer command.
+
 ## 5. Cleaner-specific safety
 
 - M3-001 defines rules as typed metadata with closed root IDs only: app-managed temporary storage, app cache, or an OS-resolved user temporary directory. Rules and renderer inputs cannot supply arbitrary paths. The pure eligibility evaluator accepts metadata only and never reads or deletes files. M3-002's test-only traversal helper reads metadata recursively under a disposable fixture, skips links, and performs no content reads or mutations; it is compiled only for tests and is not an IPC entry point. M3-003 canonicalizes the native-resolved allowed root, existing candidate and native-policy protected paths, then rejects candidates equal to/outside the root, beneath a protected path, or any unresolved input. Protected paths must be assembled by native policy, not supplied by renderer data. M3-004 tests a Windows directory junction aimed outside the root: canonical path validation rejects the target and read-only traversal skips the junction. This check does not close time-of-check/time-of-use races; immediate identity revalidation remains required before production mutation.
