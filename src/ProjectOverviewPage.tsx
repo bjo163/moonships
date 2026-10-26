@@ -1,10 +1,16 @@
-import { useCallback, useEffect, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useState } from "react";
 import {
+  associateMilestoneTask,
+  createMilestone,
   getProjectOverview,
-  toProjectErrorMessage,
+  listMilestones,
+  type MilestoneRecord,
   type ProjectOverviewRecord,
   type ProjectStatus,
+  toProjectErrorMessage,
+  updateMilestone,
 } from "./projects-api";
+import { listTasks, type TaskRecord } from "./tasks-api";
 import { Badge, Button, EmptyState, ErrorState, LoadingState } from "./ui-primitives";
 
 const STATUS_LABELS: Record<ProjectStatus, string> = {
@@ -32,12 +38,31 @@ export function ProjectOverviewPage({
   const [overview, setOverview] = useState<ProjectOverviewRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [milestones, setMilestones] = useState<MilestoneRecord[]>([]);
+  const [tasks, setTasks] = useState<TaskRecord[]>([]);
+  const [milestoneLoadError, setMilestoneLoadError] = useState(false);
+  const [taskLoadError, setTaskLoadError] = useState(false);
+  const [milestoneTitle, setMilestoneTitle] = useState("");
+  const [milestoneDueDate, setMilestoneDueDate] = useState("");
+  const [milestoneBusy, setMilestoneBusy] = useState(false);
+  const [milestoneMessage, setMilestoneMessage] = useState<string | null>(null);
+  const [milestoneError, setMilestoneError] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
     try {
-      setOverview(await getProjectOverview(projectId));
+      const [overviewResult, milestoneResult, taskResult] = await Promise.allSettled([
+        getProjectOverview(projectId),
+        listMilestones(projectId),
+        listTasks(),
+      ]);
+      if (overviewResult.status === "rejected") throw overviewResult.reason;
+      setOverview(overviewResult.value);
+      setMilestoneLoadError(milestoneResult.status === "rejected");
+      setMilestones(milestoneResult.status === "fulfilled" ? milestoneResult.value : []);
+      setTaskLoadError(taskResult.status === "rejected");
+      setTasks(taskResult.status === "fulfilled" ? taskResult.value : []);
     } catch (error) {
       setOverview(null);
       setLoadError(toProjectErrorMessage(error, "load"));
@@ -45,6 +70,64 @@ export function ProjectOverviewPage({
       setLoading(false);
     }
   }, [projectId]);
+
+  const saveMilestone = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!milestoneTitle.trim()) return;
+    setMilestoneBusy(true);
+    setMilestoneError(null);
+    setMilestoneMessage(null);
+    try {
+      const saved = await createMilestone({
+        projectId,
+        title: milestoneTitle.trim(),
+        description: null,
+        dueDate: milestoneDueDate || null,
+      });
+      setMilestones((current) => [...current, saved]);
+      setMilestoneTitle("");
+      setMilestoneDueDate("");
+      setMilestoneMessage("Milestone saved on this device.");
+    } catch (error) {
+      setMilestoneError(toProjectErrorMessage(error, "save"));
+    } finally {
+      setMilestoneBusy(false);
+    }
+  };
+
+  const linkTask = async (milestone: MilestoneRecord, taskId: string) => {
+    if (!taskId) return;
+    setMilestoneBusy(true);
+    setMilestoneError(null);
+    setMilestoneMessage(null);
+    try {
+      const saved = await associateMilestoneTask({ projectId, milestoneId: milestone.id, taskId });
+      setMilestones((current) => current.map((item) => (item.id === saved.id ? saved : item)));
+      setMilestoneMessage("Task associated with milestone. Task status was not changed.");
+    } catch (error) {
+      setMilestoneError(toProjectErrorMessage(error, "save"));
+    } finally {
+      setMilestoneBusy(false);
+    }
+  };
+
+  const changeMilestoneStatus = async (
+    milestone: MilestoneRecord,
+    status: MilestoneRecord["status"],
+  ) => {
+    setMilestoneBusy(true);
+    setMilestoneError(null);
+    setMilestoneMessage(null);
+    try {
+      const saved = await updateMilestone({ ...milestone, status });
+      setMilestones((current) => current.map((item) => (item.id === saved.id ? saved : item)));
+      setMilestoneMessage("Milestone status saved. Associated task statuses were not changed.");
+    } catch (error) {
+      setMilestoneError(toProjectErrorMessage(error, "save"));
+    } finally {
+      setMilestoneBusy(false);
+    }
+  };
 
   useEffect(() => {
     void reload();
@@ -159,6 +242,147 @@ export function ProjectOverviewPage({
                 ))}
               </ol>
             )}
+          </section>
+
+          <section className="project-milestones" aria-labelledby="project-milestones-title">
+            <header>
+              <div>
+                <p className="eyebrow">PROJECT PLAN</p>
+                <h3 id="project-milestones-title">Milestones</h3>
+              </div>
+              <span className="muted">Grouping tasks never changes their status.</span>
+            </header>
+            {milestoneLoadError ? (
+              <ErrorState
+                title="Milestones are unavailable"
+                description="Milestones could not be loaded."
+                onRetry={() => void reload()}
+              />
+            ) : milestones.length === 0 ? (
+              <EmptyState
+                title="No milestones yet"
+                description="Add a milestone to group this project's tasks by outcome or due date."
+              />
+            ) : (
+              <ul className="project-milestone-list">
+                {milestones.map((milestone) => {
+                  const availableTasks = tasks.filter(
+                    (task) =>
+                      task.projectId === projectId &&
+                      !milestone.tasks.some((linked) => linked.id === task.id),
+                  );
+                  return (
+                    <li key={milestone.id}>
+                      <div className="project-milestone-list__heading">
+                        <strong>{milestone.title}</strong>
+                        <label className="ms-field">
+                          <span className="ms-label">Milestone status</span>
+                          <select
+                            className="ms-input"
+                            value={milestone.status}
+                            disabled={milestoneBusy}
+                            onChange={(event) =>
+                              void changeMilestoneStatus(
+                                milestone,
+                                event.target.value as MilestoneRecord["status"],
+                              )
+                            }
+                          >
+                            <option value="planned">Planned</option>
+                            <option value="active">Active</option>
+                            <option value="completed">Completed</option>
+                          </select>
+                        </label>
+                      </div>
+                      <span className="muted">
+                        {milestone.dueDate ? `Due ${milestone.dueDate}` : "No due date"}
+                      </span>
+                      {milestone.tasks.length ? (
+                        <ul>
+                          {milestone.tasks.map((task) => (
+                            <li key={task.id}>
+                              {task.title} · {task.status.replaceAll("_", " ")}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="muted">No tasks associated.</p>
+                      )}
+                      <label className="ms-field">
+                        <span className="ms-label">Associate project task</span>
+                        <select
+                          className="ms-input"
+                          value=""
+                          disabled={milestoneBusy || availableTasks.length === 0}
+                          onChange={(event) => void linkTask(milestone, event.target.value)}
+                        >
+                          <option value="">
+                            {availableTasks.length
+                              ? "Choose a task…"
+                              : "No unassociated project tasks"}
+                          </option>
+                          {availableTasks.map((task) => (
+                            <option key={task.id} value={task.id}>
+                              {task.title}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            {taskLoadError ? (
+              <p className="task-detail-form__error" role="status">
+                Project tasks could not be loaded, so task associations may be unavailable. Use
+                Refresh to try again.
+              </p>
+            ) : null}
+            <form
+              className="project-milestone-form"
+              onSubmit={(event) => void saveMilestone(event)}
+            >
+              <label className="ms-field">
+                <span className="ms-label">Milestone title</span>
+                <input
+                  className="ms-input"
+                  value={milestoneTitle}
+                  onChange={(event) => setMilestoneTitle(event.target.value)}
+                  maxLength={160}
+                  required
+                  disabled={milestoneBusy}
+                />
+              </label>
+              <label className="ms-field">
+                <span className="ms-label">Due date</span>
+                <input
+                  className="ms-input"
+                  type="date"
+                  value={milestoneDueDate}
+                  onChange={(event) => setMilestoneDueDate(event.target.value)}
+                  disabled={milestoneBusy}
+                />
+              </label>
+              <Button
+                type="submit"
+                loading={milestoneBusy}
+                loadingLabel="Saving…"
+                disabled={!milestoneTitle.trim()}
+              >
+                Add milestone
+              </Button>
+            </form>
+            {milestoneError ? (
+              <p className="task-detail-form__error" role="alert">
+                {milestoneError}
+              </p>
+            ) : null}
+            {milestoneMessage ? (
+              <p className="muted" role="status">
+                {milestoneMessage}
+              </p>
+            ) : null}
           </section>
         </>
       ) : null}

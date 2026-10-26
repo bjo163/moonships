@@ -42,6 +42,21 @@ export type ProjectOverviewRecord = {
   recentActivity: ProjectActivityRecord[];
 };
 
+export type MilestoneTaskRecord = { id: string; title: string; status: string };
+export type MilestoneRecord = {
+  id: string;
+  workspaceId: string;
+  projectId: string;
+  title: string;
+  description: string | null;
+  dueDate: string | null;
+  status: "planned" | "active" | "completed";
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+  tasks: MilestoneTaskRecord[];
+};
+
 export function listProjects(): Promise<ProjectRecord[]> {
   return invoke<ProjectListResponse>("list_projects", { request: {} }).then(
     ({ projects }) => projects,
@@ -58,6 +73,40 @@ export function updateProject(request: UpdateProjectInput): Promise<ProjectRecor
 
 export function getProjectOverview(id: string): Promise<ProjectOverviewRecord> {
   return invoke<ProjectOverviewRecord>("get_project_overview", { request: { id } });
+}
+
+export function listMilestones(projectId: string): Promise<MilestoneRecord[]> {
+  return invoke<{ milestones: MilestoneRecord[] }>("list_milestones", {
+    request: { projectId },
+  }).then(({ milestones }) => milestones);
+}
+
+export function createMilestone(request: {
+  projectId: string;
+  title: string;
+  description: string | null;
+  dueDate: string | null;
+}): Promise<MilestoneRecord> {
+  return invoke<MilestoneRecord>("create_milestone", { request });
+}
+
+export function associateMilestoneTask(request: {
+  projectId: string;
+  milestoneId: string;
+  taskId: string;
+}): Promise<MilestoneRecord> {
+  return invoke<MilestoneRecord>("associate_milestone_task", { request });
+}
+
+export function updateMilestone(request: {
+  projectId: string;
+  id: string;
+  title: string;
+  description: string | null;
+  dueDate: string | null;
+  status: MilestoneRecord["status"];
+}): Promise<MilestoneRecord> {
+  return invoke<MilestoneRecord>("update_milestone", { request });
 }
 
 export function toProjectErrorMessage(error: unknown, action: "load" | "save"): string {

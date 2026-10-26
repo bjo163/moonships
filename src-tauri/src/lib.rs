@@ -3,6 +3,7 @@ pub mod config;
 pub mod domain;
 pub mod labels;
 pub mod local_logging;
+pub mod milestones;
 pub mod projects;
 pub mod task_dependencies;
 pub mod task_status;
@@ -51,7 +52,7 @@ fn open_database_in(app_data_dir: &Path) -> Result<Connection, String> {
     Ok(connection)
 }
 
-const CURRENT_SCHEMA_VERSION: i64 = 7;
+const CURRENT_SCHEMA_VERSION: i64 = 8;
 const PERSONAL_WORKSPACE_ID: &str = "00000000-0000-4000-8000-000000000001";
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
@@ -203,6 +204,96 @@ struct ProjectOverviewResponseDto {
     project: ProjectDto,
     active_task_count: u64,
     recent_activity: Vec<ProjectActivityDto>,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct CreateMilestoneRequestDto {
+    project_id: String,
+    title: String,
+    description: Option<String>,
+    due_date: Option<String>,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ListMilestonesRequestDto {
+    project_id: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct AssociateMilestoneTaskRequestDto {
+    project_id: String,
+    milestone_id: String,
+    task_id: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct UpdateMilestoneRequestDto {
+    project_id: String,
+    id: String,
+    title: String,
+    description: Option<String>,
+    due_date: Option<String>,
+    status: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct MilestoneTaskDto {
+    id: String,
+    title: String,
+    status: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct MilestoneDto {
+    id: String,
+    workspace_id: String,
+    project_id: String,
+    title: String,
+    description: Option<String>,
+    due_date: Option<String>,
+    status: String,
+    sort_order: i64,
+    created_at: String,
+    updated_at: String,
+    tasks: Vec<MilestoneTaskDto>,
+}
+
+impl From<milestones::Milestone> for MilestoneDto {
+    fn from(value: milestones::Milestone) -> Self {
+        Self {
+            id: value.id,
+            workspace_id: value.workspace_id,
+            project_id: value.project_id,
+            title: value.title,
+            description: value.description,
+            due_date: value.due_date,
+            status: value.status,
+            sort_order: value.sort_order,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
+            tasks: value
+                .tasks
+                .into_iter()
+                .map(|task| MilestoneTaskDto {
+                    id: task.id,
+                    title: task.title,
+                    status: task.status,
+                })
+                .collect(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct MilestoneListResponseDto {
+    milestones: Vec<MilestoneDto>,
 }
 
 impl From<tasks::Task> for TaskDto {
@@ -455,6 +546,48 @@ pub(crate) fn run_migrations(connection: &mut Connection) -> Result<(), String> 
             })?;
     }
 
+    if current_version < 8 {
+        transaction
+            .execute_batch(
+                "CREATE UNIQUE INDEX idx_tasks_workspace_project_identity
+                    ON tasks (workspace_id, project_id, id);
+                CREATE TABLE milestones (
+                id TEXT PRIMARY KEY NOT NULL,
+                workspace_id TEXT NOT NULL,
+                project_id TEXT NOT NULL,
+                title TEXT NOT NULL CHECK (length(trim(title)) BETWEEN 1 AND 160),
+                description TEXT,
+                due_date TEXT CHECK (due_date IS NULL OR due_date GLOB '????-??-??'),
+                status TEXT NOT NULL DEFAULT 'planned'
+                    CHECK (status IN ('planned', 'active', 'completed')),
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+                updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+                UNIQUE (workspace_id, project_id, id),
+                FOREIGN KEY (workspace_id, project_id)
+                    REFERENCES projects (workspace_id, id) ON DELETE RESTRICT
+            );
+            CREATE INDEX idx_milestones_project_order
+                ON milestones (workspace_id, project_id, sort_order, due_date, id);
+            CREATE TABLE milestone_tasks (
+                workspace_id TEXT NOT NULL,
+                project_id TEXT NOT NULL,
+                milestone_id TEXT NOT NULL,
+                task_id TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+                PRIMARY KEY (workspace_id, milestone_id, task_id),
+                FOREIGN KEY (workspace_id, project_id, milestone_id)
+                    REFERENCES milestones (workspace_id, project_id, id) ON DELETE CASCADE,
+                FOREIGN KEY (workspace_id, project_id, task_id)
+                    REFERENCES tasks (workspace_id, project_id, id) ON DELETE CASCADE
+            );
+            CREATE INDEX idx_milestone_tasks_project_task
+                ON milestone_tasks (workspace_id, project_id, task_id);
+            INSERT INTO schema_migrations (version) VALUES (8);",
+            )
+            .map_err(|error| format!("Could not apply milestone schema migration: {error}"))?;
+    }
+
     transaction
         .commit()
         .map_err(|error| format!("Could not commit schema migration: {error}"))
@@ -598,6 +731,76 @@ fn get_project_overview(
     })
 }
 
+#[tauri::command]
+fn list_milestones(
+    app: AppHandle,
+    request: ListMilestonesRequestDto,
+) -> Result<MilestoneListResponseDto, String> {
+    let connection = open_personal_workspace_database(&app)?;
+    let milestones =
+        milestones::list_milestones(&connection, PERSONAL_WORKSPACE_ID, &request.project_id)?
+            .into_iter()
+            .map(MilestoneDto::from)
+            .collect();
+    Ok(MilestoneListResponseDto { milestones })
+}
+
+#[tauri::command]
+fn create_milestone(
+    app: AppHandle,
+    request: CreateMilestoneRequestDto,
+) -> Result<MilestoneDto, String> {
+    let mut connection = open_personal_workspace_database(&app)?;
+    milestones::create_milestone(
+        &mut connection,
+        milestones::CreateMilestone {
+            workspace_id: PERSONAL_WORKSPACE_ID.to_string(),
+            project_id: request.project_id,
+            title: request.title,
+            description: request.description,
+            due_date: request.due_date,
+        },
+    )
+    .map(MilestoneDto::from)
+}
+
+#[tauri::command]
+fn associate_milestone_task(
+    app: AppHandle,
+    request: AssociateMilestoneTaskRequestDto,
+) -> Result<MilestoneDto, String> {
+    let mut connection = open_personal_workspace_database(&app)?;
+    milestones::associate_task(
+        &mut connection,
+        PERSONAL_WORKSPACE_ID,
+        &request.project_id,
+        &request.milestone_id,
+        &request.task_id,
+    )
+    .map(MilestoneDto::from)
+}
+
+#[tauri::command]
+fn update_milestone(
+    app: AppHandle,
+    request: UpdateMilestoneRequestDto,
+) -> Result<MilestoneDto, String> {
+    let mut connection = open_personal_workspace_database(&app)?;
+    milestones::update_milestone(
+        &mut connection,
+        milestones::UpdateMilestone {
+            workspace_id: PERSONAL_WORKSPACE_ID.to_string(),
+            project_id: request.project_id,
+            id: request.id,
+            title: request.title,
+            description: request.description,
+            due_date: request.due_date,
+            status: request.status,
+        },
+    )
+    .map(MilestoneDto::from)
+}
+
 fn hide_to_tray_path(app: &AppHandle) -> Result<PathBuf, String> {
     app.path()
         .app_config_dir()
@@ -700,7 +903,11 @@ pub fn run() {
             list_tasks,
             get_task,
             update_task,
-            get_project_overview
+            get_project_overview,
+            list_milestones,
+            create_milestone,
+            associate_milestone_task,
+            update_milestone
         ])
         .setup(|app| {
             let app_data_dir = app.path().app_data_dir()?;
@@ -784,11 +991,12 @@ pub fn run() {
 mod tests {
     use super::{
         database_path, hide_to_tray_enabled, open_database_in, run_migrations,
-        CreateProjectRequestDto, CreateTaskRequestDto, ListProjectsRequestDto, ListTasksRequestDto,
-        ProjectActivityDto, ProjectDto, ProjectListResponseDto, ProjectOverviewRequestDto,
-        ProjectOverviewResponseDto, TaskDto, TaskListResponseDto, TaskRequestDto,
-        UpdateTaskRequestDto, CURRENT_SCHEMA_VERSION, DATABASE_BUSY_TIMEOUT_MS, DATABASE_FILE_NAME,
-        PERSONAL_WORKSPACE_ID,
+        AssociateMilestoneTaskRequestDto, CreateMilestoneRequestDto, CreateProjectRequestDto,
+        CreateTaskRequestDto, ListMilestonesRequestDto, ListProjectsRequestDto,
+        ListTasksRequestDto, MilestoneDto, MilestoneListResponseDto, ProjectActivityDto,
+        ProjectDto, ProjectListResponseDto, ProjectOverviewRequestDto, ProjectOverviewResponseDto,
+        TaskDto, TaskListResponseDto, TaskRequestDto, UpdateTaskRequestDto, CURRENT_SCHEMA_VERSION,
+        DATABASE_BUSY_TIMEOUT_MS, DATABASE_FILE_NAME, PERSONAL_WORKSPACE_ID,
     };
     use std::{
         fs,
@@ -1269,10 +1477,10 @@ mod tests {
                 "DROP TABLE task_dependencies;
                  DROP TABLE task_labels;
                  DROP TABLE labels;
-                 DROP TABLE activity_events;
+                 DROP TABLE IF EXISTS activity_events;
                  DROP TABLE tasks;
                  DROP TABLE projects;
-                 DELETE FROM schema_migrations WHERE version >= 3;
+                 DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DELETE FROM schema_migrations WHERE version >= 3;
                  INSERT INTO app_metadata (key, value)
                      VALUES ('rollback-marker', 'preserved');
                  CREATE TABLE unrelated_fixture (id TEXT PRIMARY KEY);
@@ -1481,10 +1689,10 @@ mod tests {
                 "DROP TABLE task_dependencies;
                  DROP TABLE task_labels;
                  DROP TABLE labels;
-                 DROP TABLE activity_events;
+                 DROP TABLE IF EXISTS activity_events;
                  DROP TABLE tasks;
                  DROP INDEX idx_projects_workspace_id;
-                 DELETE FROM schema_migrations WHERE version >= 4;
+                 DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DELETE FROM schema_migrations WHERE version >= 4;
                  INSERT INTO app_metadata (key, value) VALUES ('saved', 'keep-me');
                  INSERT INTO projects (id, workspace_id, name)
                  VALUES ('existing-project', '00000000-0000-4000-8000-000000000001', 'Keep Project');",
@@ -1529,10 +1737,10 @@ mod tests {
                 "DROP TABLE task_dependencies;
                  DROP TABLE task_labels;
                  DROP TABLE labels;
-                 DROP TABLE activity_events;
+                 DROP TABLE IF EXISTS activity_events;
                  DROP TABLE tasks;
                  DROP INDEX idx_projects_workspace_id;
-                 DELETE FROM schema_migrations WHERE version >= 4;
+                 DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DELETE FROM schema_migrations WHERE version >= 4;
                  INSERT INTO app_metadata (key, value) VALUES ('saved', 'preserve-me');
                  CREATE TABLE unrelated_fixture (id TEXT);
                  CREATE INDEX idx_tasks_workspace_status ON unrelated_fixture (id);",
@@ -1587,8 +1795,8 @@ mod tests {
                 "DROP TABLE task_dependencies;
                  DROP TABLE task_labels;
                  DROP TABLE labels;
-                 DROP TABLE activity_events;
-                 DELETE FROM schema_migrations WHERE version >= 5;
+                 DROP TABLE IF EXISTS activity_events;
+                 DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DELETE FROM schema_migrations WHERE version >= 5;
                  INSERT INTO projects (id, workspace_id, name)
                  VALUES ('saved-project', '00000000-0000-4000-8000-000000000001', 'Preserve');
                  INSERT INTO tasks (id, workspace_id, project_id, title)
@@ -1636,8 +1844,8 @@ mod tests {
                 "DROP TABLE task_dependencies;
                  DROP TABLE task_labels;
                  DROP TABLE labels;
-                 DROP TABLE activity_events;
-                 DELETE FROM schema_migrations WHERE version >= 5;
+                 DROP TABLE IF EXISTS activity_events;
+                 DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DELETE FROM schema_migrations WHERE version >= 5;
                  INSERT INTO app_metadata (key, value) VALUES ('keep', 'original');
                  CREATE TABLE unrelated_fixture (id TEXT);
                  CREATE INDEX idx_activity_events_entity ON unrelated_fixture(id);",
@@ -1682,7 +1890,7 @@ mod tests {
                 "DROP TABLE task_dependencies;
                  DROP TABLE task_labels;
                  DROP TABLE labels;
-                 DELETE FROM schema_migrations WHERE version >= 6;
+                 DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DELETE FROM schema_migrations WHERE version >= 6;
                  INSERT INTO projects (id, workspace_id, name)
                  VALUES ('label-project', '00000000-0000-4000-8000-000000000001', 'Preserve');
                  INSERT INTO tasks (id, workspace_id, project_id, title)
@@ -1732,7 +1940,7 @@ mod tests {
                 "DROP TABLE task_dependencies;
                  DROP TABLE task_labels;
                  DROP TABLE labels;
-                 DELETE FROM schema_migrations WHERE version >= 6;
+                 DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DELETE FROM schema_migrations WHERE version >= 6;
                  INSERT INTO app_metadata (key, value) VALUES ('keep-label-data', 'original');
                  CREATE TABLE unrelated_label_fixture (id TEXT);
                  CREATE INDEX idx_labels_workspace_name
@@ -1776,7 +1984,7 @@ mod tests {
         connection
             .execute_batch(
                 "DROP TABLE task_dependencies;
-                 DELETE FROM schema_migrations WHERE version = 7;
+                 DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DELETE FROM schema_migrations WHERE version >= 7;
                  INSERT INTO tasks (id, workspace_id, title)
                  VALUES ('blocked-task', '00000000-0000-4000-8000-000000000001', 'Blocked');
                  INSERT INTO tasks (id, workspace_id, title)
@@ -1815,7 +2023,7 @@ mod tests {
         connection
             .execute_batch(
                 "DROP TABLE task_dependencies;
-                 DELETE FROM schema_migrations WHERE version = 7;
+                 DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DELETE FROM schema_migrations WHERE version >= 7;
                  INSERT INTO app_metadata (key, value) VALUES ('keep-dependency-data', 'original');
                  CREATE TABLE unrelated_dependency_fixture (id TEXT);
                  CREATE INDEX idx_task_dependencies_workspace_prerequisite
@@ -1849,6 +2057,111 @@ mod tests {
         assert_eq!(saved, "original");
         drop(connection);
         let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn milestone_ipc_dtos_are_camel_case_and_reject_renderer_scope() {
+        let create: CreateMilestoneRequestDto = serde_json::from_str(
+            r#"{"projectId":"project-id","title":"Release","description":null,"dueDate":"2026-12-31"}"#,
+        ).expect("typed milestone create");
+        assert_eq!(create.due_date.as_deref(), Some("2026-12-31"));
+        assert!(serde_json::from_str::<CreateMilestoneRequestDto>(
+            r#"{"projectId":"project-id","title":"Release","description":null,"dueDate":null,"workspaceId":"other"}"#,
+        ).is_err());
+        assert!(serde_json::from_str::<ListMilestonesRequestDto>(
+            r#"{"projectId":"project-id","path":"C:/data"}"#,
+        )
+        .is_err());
+        assert!(serde_json::from_str::<AssociateMilestoneTaskRequestDto>(
+            r#"{"projectId":"p1","milestoneId":"m1","taskId":"t1","workspaceId":"other"}"#,
+        )
+        .is_err());
+        let response = MilestoneListResponseDto {
+            milestones: vec![MilestoneDto {
+                id: "m1".into(),
+                workspace_id: PERSONAL_WORKSPACE_ID.into(),
+                project_id: "p1".into(),
+                title: "Release".into(),
+                description: None,
+                due_date: create.due_date,
+                status: "planned".into(),
+                sort_order: 0,
+                created_at: "2026-10-26T00:00:00Z".into(),
+                updated_at: "2026-10-26T00:00:00Z".into(),
+                tasks: vec![],
+            }],
+        };
+        let json = serde_json::to_value(response).unwrap();
+        assert_eq!(json["milestones"][0]["projectId"], "p1");
+        assert_eq!(json["milestones"][0]["dueDate"], "2026-12-31");
+        assert!(json["milestones"][0].get("workspace_id").is_none());
+    }
+
+    #[test]
+    fn migration_v8_preserves_existing_tasks_and_rejects_cross_project_links() {
+        let dir = unique_temp_dir("milestones-upgrade");
+        let mut connection = open_database_in(&dir).unwrap();
+        run_migrations(&mut connection).unwrap();
+        connection.execute_batch(
+            "DROP TABLE milestone_tasks; DROP TABLE milestones;
+             DROP INDEX idx_tasks_workspace_project_identity;
+             DELETE FROM schema_migrations WHERE version = 8;
+             INSERT INTO projects (id, workspace_id, name) VALUES ('old-project', '00000000-0000-4000-8000-000000000001', 'Old project');
+             INSERT INTO tasks (id, workspace_id, project_id, title) VALUES ('old-task', '00000000-0000-4000-8000-000000000001', 'old-project', 'Keep task');",
+        ).unwrap();
+        run_migrations(&mut connection).expect("upgrade v7 to v8");
+        run_migrations(&mut connection).expect("idempotent v8");
+        let title: String = connection
+            .query_row("SELECT title FROM tasks WHERE id='old-task'", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(title, "Keep task");
+        let milestone = crate::milestones::create_milestone(
+            &mut connection,
+            crate::milestones::CreateMilestone {
+                workspace_id: PERSONAL_WORKSPACE_ID.into(),
+                project_id: "old-project".into(),
+                title: "Release".into(),
+                description: None,
+                due_date: None,
+            },
+        )
+        .unwrap();
+        let error = connection.execute("INSERT INTO milestone_tasks (workspace_id, project_id, milestone_id, task_id) VALUES (?1, 'wrong-project', ?2, 'old-task')", rusqlite::params![PERSONAL_WORKSPACE_ID, milestone.id]).unwrap_err();
+        assert!(
+            matches!(error, rusqlite::Error::SqliteFailure(ref code, _) if code.code == rusqlite::ErrorCode::ConstraintViolation)
+        );
+        drop(connection);
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn failed_milestone_migration_rolls_back_schema_and_version() {
+        let mut connection = rusqlite::Connection::open_in_memory().unwrap();
+        connection.execute_batch("PRAGMA foreign_keys=ON;").unwrap();
+        run_migrations(&mut connection).unwrap();
+        connection.execute_batch(
+            "DROP TABLE milestone_tasks; DROP TABLE milestones;
+             DROP INDEX idx_tasks_workspace_project_identity; DELETE FROM schema_migrations WHERE version=8;
+             CREATE TABLE unrelated_milestone_fixture (id TEXT);
+             CREATE INDEX idx_milestones_project_order ON unrelated_milestone_fixture(id);",
+        ).unwrap();
+        assert!(run_migrations(&mut connection).is_err());
+        let table_count: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='milestones'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let version: i64 = connection
+            .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(table_count, 0);
+        assert_eq!(version, 7);
     }
 
     #[test]
