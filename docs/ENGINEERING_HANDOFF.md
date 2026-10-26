@@ -405,3 +405,7 @@ Added typed ping capability detection. On Windows it probes whether the native I
 ## M4-005 Traceroute deferred status — 2026-10-26
 
 Recorded traceroute as explicitly deferred because no reviewed adapter yet enforces both hop and wall-clock limits. The native contract returns a typed deferred reason; it does not start `tracert`/`traceroute`, substitute another process, or report a successful result. Verification passed: Rust suite 136/136; Clippy with warnings denied; Rust formatting; backlog validation (106/238 checked); and `git diff --check`.
+
+## M4-006 IPv4 subnet calculator — 2026-10-26
+
+Added strict single-IPv4-CIDR arithmetic for network address, netmask, wildcard mask, traditional broadcast, usable address range and counts. `/31` treats both addresses as usable and `/32` as one address; broadcast is absent for both. Invalid address/family/prefix and malformed slash inputs return typed errors. This utility is offline and is not exposed as an executable IPC command. Verification passed: Rust suite 139/139; Clippy with warnings denied; Rust formatting; backlog validation; and `git diff --check`.
