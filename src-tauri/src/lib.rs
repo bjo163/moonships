@@ -25,6 +25,7 @@ pub mod local_logging;
 pub mod milestones;
 pub mod network_diagnostics;
 pub mod notification_preferences;
+pub mod observability_adapter;
 pub mod ping_adapter;
 pub mod process_inventory;
 pub mod project_task_export;

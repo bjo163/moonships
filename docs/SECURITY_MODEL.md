@@ -93,6 +93,12 @@ A capability describes authority; it does not by itself authorize every target o
 - The Task contains only the result ID, redacted URL, status or closed error code, observation timestamp and bounded response byte count. It never includes response body, request/response headers or original unredacted URL/query values.
 - Both stored history JSON (256 KiB) and the Task description (10,000 characters) are bounded. An evicted or malformed history row fails closed; no Task is created.
 
+### Observability provider contract (M6-005)
+
+- Provider declarations contain only a bounded ID, display name and fixed logs/metrics/traces kinds. Health contains only a closed status enum, optional last-success timestamp and bounded freshness threshold.
+- No endpoint, credential, query, raw telemetry payload, provider plugin execution, polling or persistence is defined. Unknown fields are rejected by the strict DTO.
+- A recent timestamp never overrides degraded, unavailable, disabled, unsupported or error status; missing, invalid or future timestamps cannot be labeled fresh/current.
+
 ### OpenAPI document viewer (M6-003)
 
 - A user action opens the native Windows file picker; renderer code cannot supply a path. Native code reads at most 1 MiB, rejects non-UTF-8 and oversized files, and returns only the filename plus bounded text. No database persistence or network access is performed.

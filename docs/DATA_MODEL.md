@@ -23,6 +23,8 @@ M6-003 creates no database records. A native picker returns a bounded UTF-8 docu
 
 M6-004 stores no new link table: a follow-up Task description records the opaque HTTP history ID and a bounded metadata snapshot (redacted URL, status/error, observation time and response byte count). The source history remains separately capped at 200 rows; if it is evicted, the ID remains in the Task as provenance, but its history detail is no longer available. Response bodies and headers are excluded.
 
+M6-005 observability provider metadata is a strict in-memory DTO: stable bounded ID/name, one or more fixed signal kinds (logs, metrics, traces), fixed health status, optional last-success RFC 3339 time and bounded freshness threshold. Its derived view separates provider status from freshness and sets `is_current` only for a ready provider with a valid non-future timestamp within threshold. No endpoint, account, token, event payload or raw telemetry field exists in the contract.
+
 ### Workspace
 Purpose: local grouping of projects, settings and views.
 Fields: id, name, description?, profile_type?, created_at, updated_at, archived_at?.

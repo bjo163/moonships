@@ -125,6 +125,8 @@ M6-002 adds **HTTP Inspector** under Toolbox. The user submits one public HTTPS 
 
 M6-004 adds an explicit **Create follow-up Task** action to a successful Inspector result. The user sees the saved result ID and a notice that only redacted metadata is attached. Success identifies the created Task; failure is shown inline. The Task contains result ID, redacted URL, status, observation time and response size only; body and headers are excluded.
 
+M6-005 defines the provider status/freshness vocabulary for future logs, metrics and traces sources. No screen or connected provider is added by this contract task.
+
 M6-003 adds **OpenAPI Viewer** under Toolbox. A user selects a local JSON/YAML file through the native picker. Loading, cancellation, parse/validation failure and a valid summary are distinct. The screen displays spec version, title, API version and path count, then offers the source text in a collapsed, escaped-text viewer. It states the 1 MiB limit and that validation is structural/local, does not resolve references and never contacts API servers.
 
 ## 4. Project & task UX
