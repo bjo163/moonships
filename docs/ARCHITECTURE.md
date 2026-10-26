@@ -135,6 +135,8 @@ A registered tool defines:
 
 A tool call returns structured status, data, warnings, errors and provenance metadata. Do not treat a missing field, provider outage, parser failure or stale result as success.
 
+M4-001 defines the bounded native network-diagnostic contract for one DNS lookup or one TCP host/port test. Targets are required bare ASCII hostnames (IDNs use punycode) or IP literals; URLs, host-embedded ports, wildcards and ranges are rejected. Timeout must be 100–10,000 ms (2,000 ms default); future adapters must enforce one concurrent run, at most ten runs per minute and at most 32 returned IP addresses. Results identify the requested target/port, operation, UTC observation time as Unix epoch milliseconds, duration, OS resolver/socket source, outcome, stable error code and bounded resolved addresses. This is a validation/DTO contract only; it does not make network requests or register an executable command.
+
 ## 5. Command and event flow
 
 1. UI or workflow requests a registered tool by ID with typed arguments.

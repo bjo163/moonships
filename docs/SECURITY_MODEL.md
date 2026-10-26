@@ -93,6 +93,13 @@ Risk class is separate from task priority, vulnerability severity and business i
 - App startup and background tasks cannot silently approve a consequential action.
 - Approval binds to exact arguments, tool version, target, scope and preview hash. Any material change invalidates it.
 
+### Bounded network diagnostics (M4-001)
+
+- A request names one DNS hostname/IP or one TCP hostname/IP plus one explicit port. A URL, embedded port, wildcard, CIDR or target range is rejected; the UI must show the exact target and requested operation before starting a future adapter.
+- Hostnames are ASCII DNS labels (IDNs must be punycode); literal IPv4 and IPv6 are supported. User whitespace is not silently trimmed. A target is never accepted from page content, model output or a redirect.
+- Timeout is 100–10,000 ms, with a 2,000 ms default. Future adapters must enforce one concurrent diagnostic and at most ten runs per minute; DNS output is capped at 32 IP addresses. No automatic retries or range expansion are allowed.
+- Result provenance identifies the exact target/port, operation, UTC observation time as epoch milliseconds, elapsed time, OS resolver or TCP socket, outcome, stable error code and bounded resolved addresses. This task defines validation and result types only; it performs no network operation.
+
 ## 5. Cleaner-specific safety
 
 - M3-001 defines rules as typed metadata with closed root IDs only: app-managed temporary storage, app cache, or an OS-resolved user temporary directory. Rules and renderer inputs cannot supply arbitrary paths. The pure eligibility evaluator accepts metadata only and never reads or deletes files. M3-002's test-only traversal helper reads metadata recursively under a disposable fixture, skips links, and performs no content reads or mutations; it is compiled only for tests and is not an IPC entry point. M3-003 canonicalizes the native-resolved allowed root, existing candidate and native-policy protected paths, then rejects candidates equal to/outside the root, beneath a protected path, or any unresolved input. Protected paths must be assembled by native policy, not supplied by renderer data. M3-004 tests a Windows directory junction aimed outside the root: canonical path validation rejects the target and read-only traversal skips the junction. This check does not close time-of-check/time-of-use races; immediate identity revalidation remains required before production mutation.

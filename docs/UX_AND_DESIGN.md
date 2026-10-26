@@ -263,8 +263,8 @@ Required behaviors:
 
 ### Flow D — network diagnosis
 1. Choose a target from a saved profile or enter a target.
-2. Show which network requests will be made and to which host.
-3. Run selected diagnostics within timeout/rate limits.
+2. Accept one hostname/IP for DNS or one hostname/IP and a single port for TCP; do not accept URLs, ranges or wildcards.
+3. Show the exact target, requested operation and timeout before running a selected diagnostic within the rate limit.
 4. Display raw result, parsed summary, timestamp and failure state.
 5. Offer “Create task from result” with the relevant evidence attached.
 6. Do not automatically expand the target range or scan unrelated hosts.

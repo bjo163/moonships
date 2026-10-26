@@ -156,6 +156,8 @@ Exit criteria:
 
 ## M4 — System Operations
 
+M4-001 defines the network diagnostic request/result contract and validates one bare hostname or IP target, operation-specific port, timeout, concurrency/rate policy and bounded provenance. It performs no network request; adapters are separate tasks.
+
 Deliverables:
 - Read-only system inventory
 - Network diagnostics with timeouts/target display
