@@ -365,6 +365,8 @@ M7-001 defines the strict version-1 workflow document contract. Steps refer to t
 
 M7-002 validates that a parsed workflow has no more than 128 uniquely identified steps, each dependency points to one declared step and the dependency graph is acyclic. Missing/duplicate dependencies and cycles fail closed. This validator does not order or execute tools, resolve tool versions against a registry or apply runtime policy.
 
+M7-003 adds a deterministic in-memory runner over explicitly registered exact tool ID/version handlers. It uses a stable topological order that prefers earlier-declared ready steps, returns typed outputs, stops after the first failed/unavailable handler and marks remaining steps skipped. The desktop app registers no production workflow handlers or IPC entry point in this task. Any future production handler must enforce registry, capability, scope and approval policy; timeout and configurable stop/continue behavior are separate follow-up tasks.
+
 AI consumes a limited context assembled by Moonships and can request only registered tools. Keep provider request/response types behind an internal interface. Persist prompt/output only when configured and necessary; redact secrets and minimize sensitive data.
 
 Model output is untrusted input:

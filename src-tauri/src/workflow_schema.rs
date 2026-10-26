@@ -2,7 +2,7 @@
 //! are deliberately owned by later workflow tasks.
 
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::collections::{BTreeMap, BTreeSet};
 
 pub const WORKFLOW_SCHEMA_VERSION: u32 = 1;
 pub const MAX_WORKFLOW_DOCUMENT_BYTES: usize = 1024 * 1024;
@@ -105,6 +105,14 @@ impl WorkflowDefinition {
 /// Validate step identities and dependency DAG structure without resolving tools
 /// or executing any step.
 pub fn validate_workflow(workflow: &WorkflowDefinition) -> Result<(), WorkflowValidationError> {
+    workflow_execution_order(workflow).map(|_| ())
+}
+
+/// Return one deterministic topological order, preferring the earliest declared
+/// step whenever several steps are ready.
+pub fn workflow_execution_order(
+    workflow: &WorkflowDefinition,
+) -> Result<Vec<usize>, WorkflowValidationError> {
     workflow
         .validate_shape()
         .map_err(|_| WorkflowValidationError::InvalidSchema)?;
@@ -135,25 +143,25 @@ pub fn validate_workflow(workflow: &WorkflowDefinition) -> Result<(), WorkflowVa
         }
     }
 
-    let mut ready: VecDeque<usize> = indegree
+    let mut ready: BTreeSet<usize> = indegree
         .iter()
         .enumerate()
         .filter_map(|(index, count)| (*count == 0).then_some(index))
         .collect();
-    let mut visited = 0;
-    while let Some(index) = ready.pop_front() {
-        visited += 1;
+    let mut order = Vec::with_capacity(workflow.steps.len());
+    while let Some(index) = ready.pop_first() {
+        order.push(index);
         for dependent in &dependents[index] {
             indegree[*dependent] -= 1;
             if indegree[*dependent] == 0 {
-                ready.push_back(*dependent);
+                ready.insert(*dependent);
             }
         }
     }
-    if visited != workflow.steps.len() {
+    if order.len() != workflow.steps.len() {
         return Err(WorkflowValidationError::DependencyCycle);
     }
-    Ok(())
+    Ok(order)
 }
 
 fn valid_identifier(value: &str, max_bytes: usize) -> bool {
@@ -205,8 +213,8 @@ fn valid_value(value: &WorkflowValue, depth: usize) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        validate_workflow, WorkflowDefinition, WorkflowSchemaError, WorkflowValidationError,
-        WorkflowValue, MAX_WORKFLOW_STEPS,
+        validate_workflow, workflow_execution_order, WorkflowDefinition, WorkflowSchemaError,
+        WorkflowValidationError, WorkflowValue, MAX_WORKFLOW_STEPS,
     };
 
     const VALID: &str = r#"{
@@ -299,6 +307,7 @@ mod tests {
         second.depends_on = vec!["inspect".to_owned()];
         workflow.steps.push(second);
         assert_eq!(validate_workflow(&workflow), Ok(()));
+        assert_eq!(workflow_execution_order(&workflow), Ok(vec![0, 1]));
 
         workflow.steps[0].depends_on = vec!["summarize".to_owned()];
         assert_eq!(

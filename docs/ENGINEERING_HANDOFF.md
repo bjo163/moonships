@@ -591,3 +591,9 @@ Verification passed: workflow schema tests 3/3; full Rust library suite 273/273;
 Extended the versioned workflow schema with optional explicit step dependencies and added a pre-execution DAG validator. It accepts acyclic dependencies, rejects missing/duplicate references, duplicate step IDs and cycles, and caps workflow size at 128 steps. The validator runs no tools and does not resolve registered tool versions or grant capabilities/approval; those checks remain execution-boundary requirements.
 
 Verification passed: focused workflow schema/validator tests 5/5; full Rust library suite 275/275; `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`; `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`; backlog validation (149/238 checked); and `git diff --check`.
+
+## M7-003 Deterministic sequential workflow runner — 2026-10-26
+
+Added an in-memory runner over explicitly registered handlers keyed by exact tool ID/version. It follows a deterministic topological order, preferring earlier-declared ready steps, returns typed outputs, and stops on the first handler failure or unavailable version while marking remaining steps skipped. Duplicate registrations are rejected. A fixture verifies expected invocation order and output values, while a mismatched version proves no handler executes and subsequent steps are skipped. No production handler, IPC command, persistence, timeout or approval flow is introduced; future production handlers must enforce policy and M7-004 adds timeout/error policy.
+
+Verification passed: focused runner tests 3/3; full Rust library suite 278/278; `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`; `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`; backlog validation (150/238 checked); and `git diff --check`.
