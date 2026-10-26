@@ -685,8 +685,9 @@ mod tests {
         // index name so schema v3 fails *after* CREATE TABLE projects succeeds.
         connection
             .execute_batch(
-                "DROP TABLE projects;
-                 DELETE FROM schema_migrations WHERE version = 3;
+                "DROP TABLE tasks;
+                 DROP TABLE projects;
+                 DELETE FROM schema_migrations WHERE version >= 3;
                  INSERT INTO app_metadata (key, value)
                      VALUES ('rollback-marker', 'preserved');
                  CREATE TABLE unrelated_fixture (id TEXT PRIMARY KEY);
