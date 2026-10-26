@@ -99,6 +99,12 @@ A capability describes authority; it does not by itself authorize every target o
 - No endpoint, credential, query, raw telemetry payload, provider plugin execution, polling or persistence is defined. Unknown fields are rejected by the strict DTO.
 - A recent timestamp never overrides degraded, unavailable, disabled, unsupported or error status; missing, invalid or future timestamps cannot be labeled fresh/current.
 
+### Local metrics snapshot (M6-006)
+
+- Read only the existing bounded OS inventory counters. The snapshot exposes no process names, file paths, device identifiers, account data or raw OS messages.
+- Refresh occurs only on page entry or explicit user action. No timer, startup collection, remote exporter, persistence or telemetry is added.
+- Values carry explicit availability status; unsupported/unavailable values are null and are not represented as zero. The source and sample time are included in the response.
+
 ### OpenAPI document viewer (M6-003)
 
 - A user action opens the native Windows file picker; renderer code cannot supply a path. Native code reads at most 1 MiB, rejects non-UTF-8 and oversized files, and returns only the filename plus bounded text. No database persistence or network access is performed.

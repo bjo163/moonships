@@ -25,6 +25,8 @@ M6-004 stores no new link table: a follow-up Task description records the opaque
 
 M6-005 observability provider metadata is a strict in-memory DTO: stable bounded ID/name, one or more fixed signal kinds (logs, metrics, traces), fixed health status, optional last-success RFC 3339 time and bounded freshness threshold. Its derived view separates provider status from freshness and sets `is_current` only for a ready provider with a valid non-future timestamp within threshold. No endpoint, account, token, event payload or raw telemetry field exists in the contract.
 
+M6-006 local metrics are an in-memory snapshot only: fixed source label, RFC 3339 sample time, and fixed numeric fields for logical processor count, physical memory total/available and Windows volume total/free. Each field carries an available/unsupported/unavailable state; unavailable values are null rather than fabricated zeroes. No snapshot table, remote telemetry payload or background series is stored.
+
 ### Workspace
 Purpose: local grouping of projects, settings and views.
 Fields: id, name, description?, profile_type?, created_at, updated_at, archived_at?.

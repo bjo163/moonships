@@ -341,6 +341,8 @@ M6-004 lets the user create a follow-up Task from a saved HTTP inspection by opa
 
 M6-005 defines a data-only observability provider manifest and health view for logs, metrics and traces. Fixed provider status and freshness enums distinguish fresh, stale, unknown and degraded/unavailable/disabled/unsupported/error states; only ready providers with a valid recent success time are current. IDs, names, signal kinds and freshness thresholds are bounded. The contract has no endpoint, credentials, transport, persistence, queries or polling implementation.
 
+M6-006 exposes a manually refreshed local metrics snapshot from the existing read-only system inventory: logical processor count, physical memory totals/availability and Windows volume capacity. The typed response identifies its fixed local OS API source, sample timestamp and per-field available/unsupported/unavailable state. It does not persist samples, poll in the background, collect process details, or send telemetry remotely.
+
 M6-003 adds a local OpenAPI document viewer. A native file chooser reads at most 1 MiB of UTF-8 text and returns no path; parsing/validation runs locally with YAML 1.2 duplicate-key rejection and aliases disabled. The validator checks OpenAPI 3.0/3.1 version, `info.title`, `info.version` and a bounded `paths` object. The original file text is shown as escaped text only. It neither resolves `$ref`, loads remote schemas, nor contacts API servers; this is a bounded structural validator, not full OpenAPI conformance.
 
 ## 11. AI adapter boundary

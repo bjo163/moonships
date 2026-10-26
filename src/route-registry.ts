@@ -34,6 +34,7 @@ export const ROUTE_REGISTRY = {
     label: "Services",
     hash: "#/services",
   },
+  metrics: { id: "metrics", label: "Local Metrics", hash: "#/metrics" },
   activity: { id: "activity", label: "Activity Center", hash: "#/activity" },
   netops: { id: "netops", label: "NetOps", hash: "#/netops" },
   "http-inspector": { id: "http-inspector", label: "HTTP Inspector", hash: "#/http-inspector" },

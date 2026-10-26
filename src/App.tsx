@@ -12,6 +12,7 @@ import { HomeDashboardPage } from "./HomeDashboardPage";
 import { HttpInspectorPage } from "./HttpInspectorPage";
 import { IntelligencePage } from "./IntelligencePage";
 import { IntelligenceSourcesPage } from "./IntelligenceSourcesPage";
+import { LocalMetricsPage } from "./LocalMetricsPage";
 import { NetOpsPage } from "./NetOpsPage";
 import { OpenApiDocumentPage } from "./OpenApiDocumentPage";
 import { ProcessesPage } from "./ProcessesPage";
@@ -149,6 +150,13 @@ export function AppShell({
             aria-current={activeRoute === "services" ? "page" : undefined}
           >
             <span>Services</span>
+          </a>
+          <a
+            className={`nav-item${activeRoute === "metrics" ? " nav-item-active" : ""}`}
+            href="#/metrics"
+            aria-current={activeRoute === "metrics" ? "page" : undefined}
+          >
+            <span>Local Metrics</span>
           </a>
           <a
             className={`nav-item${activeRoute === "activity" ? " nav-item-active" : ""}`}
@@ -981,6 +989,8 @@ export default function App() {
         <ProcessesPage />
       ) : route.kind === "page" && route.id === "services" ? (
         <ServicesPage />
+      ) : route.kind === "page" && route.id === "metrics" ? (
+        <LocalMetricsPage />
       ) : route.kind === "page" && route.id === "activity" ? (
         <ActivityCenterPage />
       ) : route.kind === "page" && route.id === "netops" ? (

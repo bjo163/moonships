@@ -22,6 +22,7 @@ pub mod intelligence_watchlists;
 pub mod jobs;
 pub mod labels;
 pub mod local_logging;
+pub mod local_metrics;
 pub mod milestones;
 pub mod network_diagnostics;
 pub mod notification_preferences;
@@ -1626,6 +1627,11 @@ fn list_service_inventory() -> service_inventory::ServiceInventorySnapshot {
 }
 
 #[tauri::command]
+fn get_local_metrics_snapshot() -> local_metrics::LocalMetricsSnapshot {
+    local_metrics::read_local_metrics_snapshot()
+}
+
+#[tauri::command]
 fn list_jobs(app: AppHandle) -> Result<Vec<jobs::JobRecord>, String> {
     let connection = open_personal_workspace_database(&app)?;
     jobs::list(&connection)
@@ -1910,6 +1916,7 @@ pub fn run() {
             get_home_dashboard,
             list_process_inventory,
             list_service_inventory,
+            get_local_metrics_snapshot,
             list_jobs,
             run_network_diagnostic,
             create_task_from_diagnostic,
