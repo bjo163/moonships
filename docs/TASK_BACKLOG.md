@@ -232,7 +232,7 @@
 
 ## M8 — Stable release, maintainability and UX quality
 
-- [ ] **M8-001 — Define application versioning/release notes format** [S] — Version, changes, known issues, migrations. **AC:** sample release notes pass documentation review.
+- [x] **M8-001 — Define application versioning/release notes format** [S] — Version, changes, known issues, migrations. **AC:** sample release notes pass documentation review. Added pre-1.0 semantic version policy, human tag to Windows embedded-version mapping, required evidence-based release-note sections, and a clearly unpublished alpha example with migration/privacy/known-limitation disclosures.
 - [ ] **M8-002 — Select and document root license** [S] — Owner/legal decision required. **AC:** root LICENSE and third-party notice policy agree.
 - [ ] **M8-003 — Add dependency/license inventory job** [S] — Review false positives. **AC:** CI produces an artifact/report with dependency versions.
 - [ ] **M8-004 — Add SBOM generation where supported** [S] — Identify format/version. **AC:** release pipeline stores SBOM artifact.

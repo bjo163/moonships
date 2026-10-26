@@ -1,5 +1,7 @@
 # Desktop Release Guide
 
+Version numbering and the release-notes structure are defined in [Versioning and Release Notes](VERSIONING_AND_RELEASE_NOTES.md). Use its sample for documentation review only; it is not a published release.
+
 ## Automated Windows release
 
 The release workflow is configured to build and publish from a release branch named like `release/v0.1.0-alpha.2`. Push a reviewed release branch based on the exact `main` commit intended for testing; the workflow runs on Windows and publishes the matching `v0.1.0-alpha.2` GitHub prerelease with MSI and NSIS installers.
