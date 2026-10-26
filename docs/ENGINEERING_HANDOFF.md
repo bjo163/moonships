@@ -433,3 +433,7 @@ Added tagged Terminal/SSH/RDP profile types, strict host/port/name validation, a
 ## M4-012 Activity Center — 2026-10-26
 
 Added schema v10 for bounded local job history, a native transition service, and an Activity Center route that reads the newest 200 records. The UI shows truthful status, reported progress, recorded duration and result, with loading, empty and retryable error states. Terminal states cannot reopen; timestamps are recorded on first run and terminal completion. No sample records are created. No job producers are wired yet, and restart recovery/cancellation remain follow-up work; interrupted jobs are not falsely completed. Verification passed: Rust suite 157/157; frontend suite 181/181; `npm run check` (format, lint, repo tests, frontend tests, typecheck and production build); Clippy with warnings denied; Rust formatting; backlog validation; and `git diff --check`. Existing Biome schema/CLI compatibility notices are informational.
+
+## M4-013 Job cancellation — 2026-10-26
+
+Activity Center displays a disabled Cancel action for saved jobs and explains that no connected runner currently supports cancellation. No cancellation command or false `cancelled` state is exposed; a future runner must confirm that work stopped before reporting the terminal status. Verification passed: frontend suite and `npm run check`; backlog validation; and `git diff --check`.

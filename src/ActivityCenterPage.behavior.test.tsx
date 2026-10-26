@@ -30,6 +30,8 @@ describe("M4-012 Activity Center", () => {
     expect(within(row).getByText("100%")).toBeTruthy();
     expect(within(row).getByText("1m 0s")).toBeTruthy();
     expect(within(row).getByText("12 files indexed")).toBeTruthy();
+    expect(within(row).getByRole("button", { name: "Cancel" }).hasAttribute("disabled")).toBe(true);
+    expect(screen.getByRole("note").textContent).toMatch(/no connected job runner/i);
   });
 
   it("shows a truthful empty state and a retryable storage error", async () => {

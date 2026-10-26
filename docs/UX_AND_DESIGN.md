@@ -117,6 +117,8 @@ M3-015 through M3-023 expose local JSON, YAML, Base64, URL, UUID, SHA-256, text-
 
 M2-033 replaces the Home foundation placeholder with saved Personal workspace data. It shows counts for open, overdue, due-in-seven-days and blocked Tasks; the five most recently updated active Projects; up to five overdue and five upcoming active Tasks; and up to ten most recent normal-sensitivity Activity events. Completed/cancelled and archived Tasks do not affect open/due counts. Empty, loading and retryable read-error states are distinct; a genuinely empty first run offers Project and Task creation. Activity summaries and user-authored titles render as text and link to their saved records. Approval requests remain unavailable and are labelled as such; no synthetic operations or health metrics appear.
 
+M4-012/013 Activity Center shows persisted job state, reported progress, recorded duration and result. Cancel remains disabled with an explanation while no connected runner advertises safe cancellation; the UI does not claim a request stopped work.
+
 ## 4. Project & task UX
 
 ### Projects list — M2-014 initial slice

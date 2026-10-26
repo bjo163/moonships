@@ -109,6 +109,7 @@ export function ActivityCenterPage() {
                 <th scope="col">Progress</th>
                 <th scope="col">Duration</th>
                 <th scope="col">Result</th>
+                <th scope="col">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -139,12 +140,28 @@ export function ActivityCenterPage() {
                   <td>
                     {job.resultSummary || (job.finishedAt ? "No result summary" : "In progress")}
                   </td>
+                  <td>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled
+                      title="No connected job runner currently supports cancellation."
+                    >
+                      Cancel
+                    </Button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
+      {!loading && !error && jobs.length > 0 ? (
+        <p className="muted" role="note">
+          Cancellation is unavailable because no connected job runner currently reports safe
+          cancellation support.
+        </p>
+      ) : null}
     </section>
   );
 }
