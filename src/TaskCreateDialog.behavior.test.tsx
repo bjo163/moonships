@@ -69,6 +69,7 @@ describe("M2-016 persisted Task creation dialog", () => {
 
   it("persists a task with an optional project and confirms the saved record", async () => {
     const user = userEvent.setup();
+    const onCreated = vi.fn();
     invokeMock.mockImplementation(
       async (command: string, payload?: { request?: Record<string, unknown> }) => {
         if (command === "list_projects") return { projects: [project] };
@@ -77,7 +78,7 @@ describe("M2-016 persisted Task creation dialog", () => {
         throw new Error(`Unexpected command: ${command}`);
       },
     );
-    render(<TaskCreateDialog open onClose={() => undefined} />);
+    render(<TaskCreateDialog open onClose={() => undefined} onCreated={onCreated} />);
     const dialog = await screen.findByRole("dialog", { name: "Create task" });
     await user.type(
       within(dialog).getByRole("textbox", { name: "Task title" }),
@@ -99,6 +100,8 @@ describe("M2-016 persisted Task creation dialog", () => {
       },
     });
     expect(screen.getByText("Project: Moonships · Todo · P2 · Normal")).toBeTruthy();
+    expect(onCreated).toHaveBeenCalledOnce();
+    expect(onCreated.mock.calls[0]?.[0].title).toBe("Write first workflow");
   });
 
   it("saves to the Personal inbox when no project is selected", async () => {

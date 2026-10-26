@@ -7,6 +7,7 @@ import { ProjectOverviewPage } from "./ProjectOverviewPage";
 import { TaskListPage } from "./TaskListPage";
 import { TaskDetailPage } from "./TaskDetailPage";
 import { TaskCreateDialog } from "./TaskCreateDialog";
+import { HomeDashboardPage } from "./HomeDashboardPage";
 import { Button } from "./ui-primitives";
 import { CommandPalette } from "./CommandPalette";
 import { getPaletteCommands, getRegisteredCommand } from "./command-registry";
@@ -17,7 +18,6 @@ import {
   WORKSPACE_PROFILES,
   type WorkspaceProfileId,
 } from "./workspace-profile";
-import { describeModuleAvailability, type ModuleAvailability } from "./module-availability";
 import {
   applyThemePreference,
   readThemePreference,
@@ -34,22 +34,6 @@ const plannedNavigationItems = [
   "Knowledge",
   "Settings",
 ] as const;
-
-const foundationChecks: Array<{
-  label: string;
-  detail: string;
-  status: "Foundation" | "Planned";
-  availability?: ModuleAvailability;
-}> = [
-  { label: "Desktop runtime", detail: "Tauri 2 · Rust", status: "Foundation" },
-  { label: "Interface", detail: "React · TypeScript · Vite", status: "Foundation" },
-  {
-    label: "Data and tools",
-    detail: "Not connected yet",
-    status: "Planned",
-    availability: "not_configured",
-  },
-];
 
 type AppShellProps = {
   children: ReactNode;
@@ -187,66 +171,6 @@ export function AppShell({
         </div>
       </section>
     </main>
-  );
-}
-
-function OverviewPage() {
-  return (
-    <div id="home">
-      <section className="hero" aria-labelledby="hero-title">
-        <div className="hero-orbit" aria-hidden="true">
-          <span />
-          <i />
-          <b />
-        </div>
-        <div className="hero-copy">
-          <p className="eyebrow">YOUR SPACE. YOUR SIGNAL.</p>
-          <h2 id="hero-title">
-            A clear starting point
-            <br />
-            for complex work.
-          </h2>
-          <p className="hero-description">
-            Moonships is being built as a local-first technical workbench. This starter screen
-            confirms the interface foundation; operational tools are not connected yet.
-          </p>
-          <span className="quiet-chip">PRE-IMPLEMENTATION SHELL</span>
-        </div>
-      </section>
-
-      <section className="section-heading">
-        <div>
-          <p className="eyebrow">SYSTEM MAP / 01</p>
-          <h2>Workbench overview</h2>
-        </div>
-        <span className="muted">No external services connected</span>
-      </section>
-
-      <div className="status-grid">
-        {foundationChecks.map((item, index) => (
-          <article className="status-card" key={item.label}>
-            <div className="card-index">0{index + 1}</div>
-            <h3>{item.label}</h3>
-            <p>{item.detail}</p>
-            {item.availability ? (
-              <p className="availability-note">
-                {describeModuleAvailability(item.availability).label}:{" "}
-                {describeModuleAvailability(item.availability).description}
-              </p>
-            ) : null}
-            <span className={item.status === "Planned" ? "state state-planned" : "state"}>
-              <span className="state-dot" />
-              {item.status}
-            </span>
-          </article>
-        ))}
-      </div>
-
-      <footer className="page-footer">
-        <span>MOONSHIPS WORKBENCH</span>
-        <span>Build the core. Verify every signal.</span>
-      </footer>
-    </div>
   );
 }
 
@@ -591,6 +515,7 @@ export default function App() {
   const [createProjectOnOpen, setCreateProjectOnOpen] = useState(false);
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
   const [createTaskProjectId, setCreateTaskProjectId] = useState<string | null>(null);
+  const [homeRefreshSignal, setHomeRefreshSignal] = useState(0);
 
   const openTaskCreation = useCallback((projectId?: string) => {
     setCreateTaskProjectId(projectId ?? null);
@@ -599,6 +524,10 @@ export default function App() {
   const closeTaskCreation = () => {
     setCreateTaskOpen(false);
     setCreateTaskProjectId(null);
+  };
+  const openProjectCreation = () => {
+    setCreateProjectOnOpen(true);
+    window.location.hash = "#/projects";
   };
 
   useEffect(() => {
@@ -790,7 +719,23 @@ export default function App() {
       onOpenProfile={() => setProfileDialogOpen(true)}
     >
       {route.kind === "page" && route.id === "overview" ? (
-        <OverviewPage />
+        <HomeDashboardPage
+          key={homeRefreshSignal}
+          onCreateTask={() => openTaskCreation()}
+          onCreateProject={openProjectCreation}
+          onOpenProjects={() => {
+            window.location.hash = "#/projects";
+          }}
+          onOpenTasks={() => {
+            window.location.hash = "#/tasks";
+          }}
+          onOpenProject={(projectId) => {
+            window.location.hash = `#/projects/${encodeURIComponent(projectId)}`;
+          }}
+          onOpenTask={(taskId) => {
+            window.location.hash = `#/tasks/${encodeURIComponent(taskId)}`;
+          }}
+        />
       ) : route.kind === "page" && route.id === "projects" ? (
         <ProjectsPage
           createOnOpen={createProjectOnOpen}
@@ -823,6 +768,7 @@ export default function App() {
         open={createTaskOpen}
         initialProjectId={createTaskProjectId}
         onClose={closeTaskCreation}
+        onCreated={() => setHomeRefreshSignal((signal) => signal + 1)}
       />
       {profileDialogOpen ? (
         <WorkspaceProfileDialog

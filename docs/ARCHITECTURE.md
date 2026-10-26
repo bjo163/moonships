@@ -104,6 +104,8 @@ M2-026 defines artifact references as metadata-only typed targets: validated HTT
 
 M2-029 adds `export_project_task_data`, a no-path-request native command. It reads the Personal workspace's complete Project/Task records and normal-sensitivity Activity through the application-data database, constructs strict export schema v1 with the Cargo app version and a UTC timestamp, validates and round-trips JSON, then asks the user for a save location through a native Windows dialog. The frontend receives only cancellation/success counts and the selected file's name; it cannot select an arbitrary path or write file data. Errors and cancellation remain distinct from success. Settings, metadata, logs, credentials and restricted activity are not exported.
 
+M2-033 adds `get_home_dashboard`, a no-request, read-only native command fixed to the Personal workspace. SQL-derived counts use a single UTC `asOf` value; returned lists are bounded to five Projects, five overdue Tasks, five upcoming Tasks and ten normal-sensitivity Activity events. The renderer cannot supply a workspace, time, query or SQL, and no polling or write path is introduced.
+
 Every frontend-to-native command must use an explicit, named request/response contract once it crosses the Tauri IPC boundary. Do not expose internal domain structs directly as a long-lived IPC schema.
 
 - Define request and response DTOs in Rust with Serde `Deserialize` / `Serialize`; use `#[serde(rename_all = "camelCase", deny_unknown_fields)]` for predictable JSON naming and rejection of unexpected request fields.

@@ -82,7 +82,7 @@ describe("M1-033 shortcut and focus lifecycle", () => {
   it("opens Task creation with Ctrl+Alt+N and exposes the shortcut on its button", async () => {
     const user = userEvent.setup();
     render(<App />);
-    const createButton = screen.getByRole("button", { name: /New task/ });
+    const createButton = screen.getByRole("button", { name: /New task Ctrl\+Alt\+N/ });
     expect(createButton.getAttribute("aria-keyshortcuts")).toBe("Control+Alt+N Meta+Alt+N");
     expect(createButton.textContent).toContain("Ctrl+Alt+N");
 

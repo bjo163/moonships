@@ -1,6 +1,7 @@
 pub mod activity;
 pub mod config;
 pub mod domain;
+pub mod home_dashboard;
 pub mod labels;
 pub mod local_logging;
 pub mod milestones;
@@ -877,6 +878,16 @@ fn list_tasks(app: AppHandle, request: ListTasksRequestDto) -> Result<TaskListRe
 }
 
 #[tauri::command]
+fn get_home_dashboard(app: AppHandle) -> Result<home_dashboard::HomeDashboard, String> {
+    let connection = open_personal_workspace_database(&app)?;
+    home_dashboard::load(
+        &connection,
+        PERSONAL_WORKSPACE_ID,
+        chrono::DateTime::<chrono::Utc>::from(std::time::SystemTime::now()),
+    )
+}
+
+#[tauri::command]
 fn get_task(app: AppHandle, request: TaskRequestDto) -> Result<TaskDto, String> {
     let connection = open_personal_workspace_database(&app)?;
     tasks::get_task(&connection, PERSONAL_WORKSPACE_ID, &request.id).map(TaskDto::from)
@@ -1103,6 +1114,7 @@ pub fn run() {
             list_projects,
             create_project,
             update_project,
+            get_home_dashboard,
             export_project_task_data,
             preview_project_task_import,
             create_task,

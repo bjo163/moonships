@@ -113,6 +113,8 @@
 - No monitor sources: ask user to choose sources, show update cadence and permissions.
 - Offline: local tools remain available; network-only functions display offline state.
 
+M2-033 replaces the Home foundation placeholder with saved Personal workspace data. It shows counts for open, overdue, due-in-seven-days and blocked Tasks; the five most recently updated active Projects; up to five overdue and five upcoming active Tasks; and up to ten most recent normal-sensitivity Activity events. Completed/cancelled and archived Tasks do not affect open/due counts. Empty, loading and retryable read-error states are distinct; a genuinely empty first run offers Project and Task creation. Activity summaries and user-authored titles render as text and link to their saved records. Approval requests remain unavailable and are labelled as such; no synthetic operations or health metrics appear.
+
 ## 4. Project & task UX
 
 ### Projects list — M2-014 initial slice

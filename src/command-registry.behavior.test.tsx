@@ -44,7 +44,7 @@ describe("M1-032 registered commands in the running shell", () => {
 
     expect(screen.queryByRole("dialog", { name: "Command Palette" })).toBeNull();
     expect(window.location.hash).toBe("#/overview");
-    expect(await screen.findByRole("heading", { name: /A clear starting point/ })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Welcome back" })).toBeTruthy();
   });
 
   it("opens the persisted Task List from the registered Tasks navigation command", async () => {

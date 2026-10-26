@@ -13,10 +13,12 @@ import { Badge, Button, Dialog, Input } from "./ui-primitives";
 export function TaskCreateDialog({
   open,
   onClose,
+  onCreated,
   initialProjectId = null,
 }: {
   open: boolean;
   onClose: () => void;
+  onCreated?: (task: TaskRecord) => void;
   initialProjectId?: string | null;
 }) {
   const [title, setTitle] = useState("");
@@ -84,6 +86,7 @@ export function TaskCreateDialog({
         priority,
       });
       setCreatedTask(created);
+      onCreated?.(created);
     } catch (error) {
       setSaveError(toTaskErrorMessage(error));
     } finally {

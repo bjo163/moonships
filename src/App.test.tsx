@@ -12,13 +12,12 @@ import {
 } from "./workspace-profile";
 
 describe("Moonships application shell", () => {
-  it("renders the foundation status without claiming planned tools are live", () => {
+  it("renders Home as the local work dashboard instead of a pre-implementation shell", () => {
     const markup = renderToStaticMarkup(<App />);
 
-    expect(markup).toContain("Workbench overview");
-    expect(markup).toContain("PRE-IMPLEMENTATION SHELL");
-    expect(markup).toContain("Not connected yet");
-    expect(markup).toContain("No external services connected");
+    expect(markup).toContain("Welcome back");
+    expect(markup).toContain("Your projects, tasks and recorded activity on this device.");
+    expect(markup).not.toContain("PRE-IMPLEMENTATION SHELL");
   });
 
   it("provides a keyboard skip link, focus target and named theme control", () => {
@@ -324,10 +323,9 @@ describe("M1 desktop foundation contracts", () => {
     expect(domain).toContain("permission_policy_covers_allowed_denied_and_approval_required");
   });
 
-  it("exposes explicit module availability states instead of conflating setup and empty results", async () => {
+  it("keeps module availability descriptions explicit", async () => {
     const { readFileSync } = await import("node:fs");
     const availability = readFileSync(new URL("./module-availability.ts", import.meta.url), "utf8");
-    const appSource = readFileSync(new URL("./App.tsx", import.meta.url), "utf8");
     const { describeModuleAvailability } = await import("./module-availability");
 
     for (const state of [
@@ -345,8 +343,6 @@ describe("M1 desktop foundation contracts", () => {
       "no operation has been attempted",
     );
     expect(describeModuleAvailability("available").isOperational).toBe(true);
-    expect(appSource).toContain('availability: "not_configured"');
-    expect(appSource).toContain("describeModuleAvailability(item.availability)");
   });
 
   it("defines versioned non-secret configuration defaults and validation", async () => {

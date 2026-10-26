@@ -82,6 +82,8 @@ Exit criteria:
 
 > 2026-10-26 follow-up: M2-030 adds read-only Project/Task import preview through the native Open dialog. Strict schema validation rejects malformed/unsupported documents; input is capped at 50 MiB and 100,000 records. Preview returns counts, version metadata and up to five names/titles; no database is opened or changed. Local verification passed Rust 94/94, Clippy, Rust format, targeted preview UI 4/4, `npm run check` (repository 8/8, frontend 103/103, typecheck/build), Windows MSI/NSIS packaging and backlog validation. CI [40288940951](https://github.com/bjo163/moonships/actions/runs/40288940951) passed 5/5 jobs; backlog sync [40288940959](https://github.com/bjo163/moonships/actions/runs/40288940959) closed issue [#64](https://github.com/bjo163/moonships/issues/64). Import/commit remains a separate user-confirmed task. M2 exit gates remain open.
 
+> 2026-10-26 follow-up: M2-033 replaces the Home placeholder with a fixed-Personal-workspace, read-only dashboard command. It derives open/overdue/due-soon/blocked counts from active SQLite records, and returns bounded recent Projects, overdue/upcoming Tasks and normal-sensitivity Activity. The UI has honest first-run, empty, loading and retryable error states, links to saved records and refreshes after Task creation; approval work is explicitly unavailable. No polling, synthetic events or fake health metrics were added. Local verification passed Rust 96/96, Clippy, Rust format, `npm run check` (repository 8/8, frontend 105/105, typecheck/build), Windows MSI/NSIS packaging and backlog validation. CI and issue sync are pending. M2-034 and M2-035 remain; M2 exit gates remain open.
+
 > 2026-10-26 follow-up: M2-027 adds discoverable `Ctrl+Alt+N` / `⌘+Option+N` access to the shared persisted Task creation dialog. The shortcut ignores editable controls and active dialogs; targeted behavior and App contract tests passed 39/39. CI [40285806600](https://github.com/bjo163/moonships/actions/runs/40285806600) passed 5/5 jobs, including Windows package smoke build; backlog sync [40285806580](https://github.com/bjo163/moonships/actions/runs/40285806580) closed existing issue [#61](https://github.com/bjo163/moonships/issues/61). M2-029 is next and is accepted in the newer checkpoint above; M2 remains open.
 
 > 2026-10-26 follow-up: M2-026 defines safe Project/Task references: validated credential-free HTTP(S), namespaced opaque provider IDs, or opaque app-managed artifact IDs. Renderer paths and unsafe URL schemes are rejected; saving does not open, fetch, download or execute targets. Explicit opening requires a reviewed native adapter. Backlog validator passed; this is a documentation contract, not a shipped UI/storage feature. M2-027 was next at that checkpoint and is accepted in a newer checkpoint; M2 remains open.
@@ -119,7 +121,7 @@ Deliverables:
 
 Exit criteria:
 - [ ] Create/edit/archive project and task; persist across restart.
-- [ ] Home dashboard counts are derived from persisted data and have honest empty/error states.
+- [x] Home dashboard counts are derived from persisted data and have honest empty/error states.
 - [ ] Global search finds local entities by type and is keyboard-navigable.
 - [ ] Task can exist without project (personal inbox).
 - [ ] Canonical statuses and priorities are consistent across views.
