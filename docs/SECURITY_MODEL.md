@@ -400,6 +400,8 @@ Before executing an assessment:
 - Use release provenance/SBOM as the project matures.
 - Review third-party licenses before copying source, code, assets or branding.
 
+For adapter, provider, external source, third-party code/package or asset changes, the PR must include the record in [INTEGRATION_REVIEW_CHECKLIST.md](INTEGRATION_REVIEW_CHECKLIST.md). The author supplies source/version and evidence; a reviewer/date and exactly one outcome (`approved`, `blocked`, or `not applicable`) are required. `not applicable` needs a reason; blank or `blocked` means the change is incomplete and the adapter must remain unavailable. Review covers provenance/licensing, permitted access and purpose, attribution, limits, caching/retention, redistribution, privacy, revocation/failure, notices and assets as relevant. Re-review material changes. This records an engineering decision and evidence at review time; it is not legal advice or a permanent rights grant.
+
 ## 10. Security verification checklist
 
 - [ ] Every Tauri command has input validation and an explicit capability/policy.

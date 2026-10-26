@@ -36,3 +36,8 @@ Include:
 
 ## Definition of Done
 A task is done only when code, tests, docs (where relevant), and its acceptance criteria agree. A successful compile alone does not complete a feature.
+## Integration source, data and license review
+
+For any adapter, provider, external data source, third-party package/code, or visual/audio asset, complete [`docs/INTEGRATION_REVIEW_CHECKLIST.md`](docs/INTEGRATION_REVIEW_CHECKLIST.md) in the PR description. The author must identify provenance and applicable terms; a reviewer must record exactly one outcome (`approved`, `blocked`, or `not applicable`), reviewer/date, and evidence. An empty result or a blocked result means the adapter change is not considered complete. `not applicable` requires a reason. Do not merge/release a blocked adapter as available. Re-review when versions, terms, access or use change.
+
+The checklist is an engineering evidence and review gate, not a legal determination. Verify source terms directly, including permitted access, purpose, rate limits, attribution, retention, redistribution, privacy and revocation. Record required notices in [`docs/THIRD_PARTY_NOTICES.md`](docs/THIRD_PARTY_NOTICES.md). User-facing connector terms acknowledgement does not replace the PR review.
