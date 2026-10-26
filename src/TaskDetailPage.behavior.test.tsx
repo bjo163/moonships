@@ -48,6 +48,7 @@ describe("M2-017 persisted Task detail", () => {
 
     const title = await screen.findByRole("textbox", { name: "Title" });
     expect(title).toHaveProperty("value", "Write release notes");
+    expect(title).toHaveProperty("maxLength", 200);
     expect(screen.getByRole("textbox", { name: "Description" })).toHaveProperty(
       "value",
       "Summarize the changes",

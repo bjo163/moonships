@@ -148,7 +148,7 @@ export function TaskDetailPage({ taskId }: { taskId: string }) {
               }}
               required
               disabled={saving}
-              maxLength={240}
+              maxLength={200}
               autoComplete="off"
               error={titleError ?? undefined}
             />
