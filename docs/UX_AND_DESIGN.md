@@ -118,9 +118,10 @@
 ### Projects list — M2-014 initial slice
 The Projects navigation opens records from the local Personal workspace. The list shows active projects only, sorted case-insensitively by name with stable ID tie-breaking, and includes status, goal, description and local update time. Create and edit forms support name, goal, description and status on edit; successful saves are confirmed by re-reading SQLite. Loading, empty, error and retry states are distinct. Archived-project browsing and archive controls are not part of this slice.
 
-### Project detail
-Tabs: Overview, Tasks, Roadmap, Notes/Docs, Activity, Settings.
-Overview includes objective, status, owner/local profile, dates, health derived from transparent rules, milestones and recent activity.
+### Project detail — M2-015 initial Overview
+Opening a Project from the Projects list shows its saved name, status, goal and description, the count of non-archived linked Tasks, a New Task action, and up to ten recent safe activity summaries. Zero linked Tasks and no activity each have explicit empty copy; loading, retryable errors and an unavailable/archived Project have distinct states. New Task opens the shared creation dialog with this Project selected. This slice does not imply health scores, owner assignment, milestones, or other unimplemented detail tabs.
+
+Future detail tabs may include Overview, Tasks, Roadmap, Notes/Docs, Activity and Settings. Add them only when their data and interactions exist.
 
 ### Task detail
 Fields: title, description, status, priority, project, parent/subtasks, assignee (optional local profile or team integration), labels, due date, estimate (optional), dependencies, comments, linked artifacts/references, created/updated timestamps and activity.
