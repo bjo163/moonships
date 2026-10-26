@@ -120,7 +120,7 @@
 - [ ] **M2-028 — Add project/task empty/loading/error states** [S] [depends: M2-014,M2-018] — Include retry where safe. **AC:** screens do not present DB failures as empty content.
 - [ ] **M2-029 — Add project/task export to a versioned JSON format** [S] [depends: M2-003,M2-006] — Exclude secrets. **AC:** exported file includes schema/app version and passes schema validation.
 - [ ] **M2-030 — Add project/task import preview** [S] [depends: M2-029] — Do not commit import until user confirms. **AC:** malformed/oversized input is rejected with no partial writes.
-- [ ] **M2-031 — Add project/task repository integration tests** [S] [depends: M2-007,M2-009] — Use disposable test DB. **AC:** tests are isolated and do not touch user DB.
+- [x] **M2-031 — Add project/task repository integration tests** [S] [depends: M2-007,M2-009] — Use disposable test DB. **AC:** tests are isolated and do not touch user DB.
 - [ ] **M2-032 — Add end-to-end smoke flow for project-to-task** [S] [depends: M2-014,M2-016,M2-018] — Create project, task, status update, restart/read. **AC:** automated or documented reproducible smoke test passes.
 
 - [ ] **M2-033 — Build the Home dashboard from real local records** [S] [depends: M2-014,M2-018,M2-025] — Show recent projects, My Work counts, upcoming/overdue tasks and recent activity. **AC:** counts derive from persisted data; first-run/empty/error states are honest; no synthetic telemetry or fake activity is shown.

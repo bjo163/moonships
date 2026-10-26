@@ -78,7 +78,7 @@ Exit criteria:
 
 ## M2 — Projects & Tasks
 
-> 2026-10-26 implementation checkpoint: M2-008 Project update/archive, M2-010/M2-012 Task update/status-policy, M2-011 Task archive/restore, and M2-013 due date/time serialization are implemented. M2-011 CI run [40259593377](https://github.com/bjo163/moonships/actions/runs/40259593377) passed 5/5 jobs and issue #45 is closed. M2-013 local evidence: 58/58 Rust tests, formatting, Clippy, repository checks, and Windows MSI/NSIS packaging passed; issue #47 sync and CI are pending push. Native IPC, persisted React UI, primary restart acceptance, manual Windows runtime, and M2 exit gates remain open; see docs/ENGINEERING_HANDOFF.md.
+> 2026-10-26 implementation checkpoint: M2-008 Project update/archive, M2-010/M2-012 Task update/status-policy, M2-011 Task archive/restore, M2-013 due date/time serialization, and M2-031 isolated Project/Task repository integration tests are implemented. M2-011 CI [40259593377](https://github.com/bjo163/moonships/actions/runs/40259593377) and M2-013 CI [40260498134](https://github.com/bjo163/moonships/actions/runs/40260498134) passed 5/5 jobs each; issues #45 and #47 are closed. M2-031 local evidence: 61/61 Rust tests, formatting, Clippy, repository checks, and Windows MSI/NSIS packaging passed; its GitHub CI and issue #65 sync are pending. Native IPC, persisted React UI, primary restart acceptance, manual Windows runtime, and M2 exit gates remain open; see docs/ENGINEERING_HANDOFF.md.
 
 Deliverables:
 - Workspace and personal work inbox

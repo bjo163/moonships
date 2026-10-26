@@ -1,12 +1,20 @@
 # Moonships — Engineering Continuity & Foundation Evidence
 
+## M2-031 Project/Task repository integration tests — 2026-10-26
+
+`src-tauri/src/repository_integration_tests.rs` adds isolated, in-memory SQLite integration tests over the public Project and Task services. The fixture runs the real migrations and asserts that its database path is empty. Coverage verifies persisted project/task create, update, listing and activity counts; UTC due date storage; cross-workspace link rejection without partial writes; and consistency when a project is archived while a linked task remains.
+
+**Local verification passed:** targeted integration tests (3/3); `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`; `cargo test --manifest-path src-tauri/Cargo.toml --all-targets` (61 passed, 0 failed); `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`; `npm run check` (8 repository tests, 67 frontend tests, typecheck and production build); and `npm run tauri -- build` (Windows executable, MSI and NSIS bundles). The bundled app was not installed or manually exercised. Biome emits the known CLI/config schema mismatch. `git diff --check` passed.
+
+Implementation commit: `b0f097a` (`test(M2-031): cover project and task repository persistence`). GitHub CI and existing issue #65 synchronization are pending this documentation push. M2-013 CI [40260498134](https://github.com/bjo163/moonships/actions/runs/40260498134) completed successfully (5/5 jobs), and issue [#47](https://github.com/bjo163/moonships/issues/47) is closed. **Next unblocked task:** M2-014 — Project list/create/edit UI, after verifying dependencies and UI contracts. No Tauri IPC or persisted React UI is implemented yet; M2 is not complete.
+
 ## M2-013 due date/time serialization — 2026-10-26
 
 `dueAt` now accepts an RFC 3339 timestamp only when the input includes `Z` or a numeric timezone offset. The Task create/update service normalizes it to UTC with a `Z` suffix, preserves fractional-second precision, and persists the canonical value in the existing `due_at` column. Date-only and timezone-free values are rejected before writes; blank optional values clear the due time. The model contract documents local-time rendering at the UI boundary.
 
 **Local verification passed:** targeted Task tests 16/16; `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`; `cargo test --manifest-path src-tauri/Cargo.toml --all-targets` (58 passed, 0 failed); `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`; `npm run check` (8 repository tests, 67 frontend tests, typecheck and production build); and `npm run tauri -- build` (Windows executable, MSI and NSIS bundles). Biome emits its known config-schema mismatch warning documented in the M2-011 section. The test generated a temporary Cargo.lock because the repository does not carry one; it is excluded from the change.
 
-Implementation commit: `f58adca` (`feat(M2-013): normalize due timestamps to UTC`). The backlog now records M2-013 complete; existing issue [#47](https://github.com/bjo163/moonships/issues/47) will synchronize on the documentation push. GitHub CI is pending. Exact next task after issue sync and CI: M2-031 — isolated Project/Task repository integration tests.
+Implementation commit: `f58adca` (`feat(M2-013): normalize due timestamps to UTC`). The backlog records M2-013 complete; GitHub CI [40260498134](https://github.com/bjo163/moonships/actions/runs/40260498134) passed 5/5 jobs and existing issue [#47](https://github.com/bjo163/moonships/issues/47) is closed. The next task was M2-031, completed in the checkpoint above.
 
 ## M2-011 Task archive/restore — 2026-10-26
 
