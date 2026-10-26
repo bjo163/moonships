@@ -635,3 +635,9 @@ Verification passed: AI provider tests 4/4; full Rust library suite 292/292; `ca
 Added a version-1 JSON parser for inert AI-proposed tool requests. It rejects unknown fields, invalid IDs, unsupported schema versions, malformed or oversized JSON, too many arguments, excessive nesting and excessive total nodes. Parsing cannot invoke tools; a malformed-response test verifies the callback remains untouched. Registry resolution and policy enforcement remain later independent steps.
 
 Verification passed: AI structured-output tests 3/3; full Rust library suite 295/295; `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`; `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`; backlog validation (157/238 checked); and `git diff --check`. Backlog before this task: 156/238 checked (65.5%); after this task: 157/238 checked (66.0%). M2-035 remains open by direction.
+
+## M7-010 Read-only AI registry discovery — 2026-10-26
+
+Added a stable catalog projection of enabled tool IDs, versions, API versions, risk classes and input schemas. The provider receives that catalog with the user's bounded question; its structured recommendation must match an enabled registered ID exactly. Invented and disabled IDs fail closed. Returned recommendations remain inert and do not invoke tools or grant permissions/approval. Production registry wiring and user-facing preview remain future tasks.
+
+Verification passed: AI registry-discovery tests 3/3; full Rust library suite 298/298; `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`; `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`; backlog validation (158/238 checked); and `git diff --check`. Backlog before this task: 157/238 checked (66.0%); after this task: 158/238 checked (66.4%). M2-035 remains open as requested.

@@ -118,6 +118,11 @@ impl ToolRegistry {
     pub fn get(&self, id: &str) -> Option<&ToolDefinition> {
         self.tools.get(id)
     }
+
+    /// Returns registered enabled tools in stable ID order for read-only discovery.
+    pub fn enabled_tools(&self) -> Vec<&ToolDefinition> {
+        self.tools.values().filter(|tool| tool.enabled).collect()
+    }
 }
 
 impl ToolDefinition {

@@ -185,6 +185,9 @@ Version-1 strict config fields: enabled, provider kind, model ID, optional HTTPS
 ### AiToolRequest
 Strict schema version 1 contains a bounded tool ID and object of bounded JSON arguments. Documents are limited to 64 KiB, 128 root arguments and 16 nested levels (4,096 total value nodes). Parsed requests remain inert values; validation does not discover or invoke tools.
 
+### AiToolRecommendation
+Read-only AI discovery combines a bounded prompt with a stable catalog of enabled registered tool IDs, versions, API versions, risk classes and input schemas. The proposed ID must resolve to an enabled registry entry. The result is an inert recommendation; it grants no permission and triggers no tool execution.
+
 ### ResearchCollection / Note
 Collection fields: id, workspace_id, name, description?, created_at, updated_at.
 Note fields: id, workspace_id, collection_id?, title, body, created_at, updated_at.
