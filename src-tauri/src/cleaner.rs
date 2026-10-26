@@ -366,7 +366,7 @@ pub enum CleanupDeletionError {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CleanupItemOutcome {
-    Deleted,
+    Deleted { actual_bytes: u64 },
     Skipped(CleanupRevalidationError),
     Failed(CleanupDeletionError),
 }
@@ -381,6 +381,10 @@ pub struct CleanupItemResult {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CleanupExecutionReport {
     pub preview_id: uuid::Uuid,
+    /// Sum of the approved preview sizes, regardless of each item's final outcome.
+    pub estimated_bytes: u64,
+    /// Logical file sizes for items whose deletion completed. This is not physical disk space.
+    pub actual_deleted_bytes: u64,
     pub items: Vec<CleanupItemResult>,
 }
 
@@ -443,6 +447,7 @@ pub fn execute_approved_cleanup(
     validate_cleanup_execution_request(approval, preview, candidates)?;
 
     let mut results = Vec::with_capacity(approval.candidate_ids.len());
+    let mut actual_deleted_bytes = 0_u64;
     for candidate_id in &approval.candidate_ids {
         let preview_item = preview
             .items
@@ -463,7 +468,14 @@ pub fn execute_approved_cleanup(
         ) {
             Err(error) => CleanupItemOutcome::Skipped(error),
             Ok(verified_path) => match delete_verified_cleanup_file(candidate, &verified_path) {
-                Ok(()) => CleanupItemOutcome::Deleted,
+                Ok(actual_bytes) => {
+                    // Preflight requires each candidate size to match the approved preview;
+                    // therefore this sum cannot exceed the already-checked estimated total.
+                    actual_deleted_bytes = actual_deleted_bytes
+                        .checked_add(actual_bytes)
+                        .expect("deleted file bytes cannot exceed the approved byte total");
+                    CleanupItemOutcome::Deleted { actual_bytes }
+                }
                 Err(error) => CleanupItemOutcome::Failed(error),
             },
         };
@@ -476,6 +488,8 @@ pub fn execute_approved_cleanup(
 
     Ok(CleanupExecutionReport {
         preview_id: approval.preview_id,
+        estimated_bytes: approval.estimated_bytes,
+        actual_deleted_bytes,
         items: results,
     })
 }
@@ -552,7 +566,7 @@ fn validate_cleanup_execution_request(
 fn delete_verified_cleanup_file(
     candidate: &CleanupCandidateIdentity,
     verified_path: &Path,
-) -> Result<(), CleanupDeletionError> {
+) -> Result<u64, CleanupDeletionError> {
     use std::os::windows::{ffi::OsStrExt, io::FromRawHandle};
     use windows_sys::Win32::{
         Foundation::INVALID_HANDLE_VALUE,
@@ -630,6 +644,7 @@ fn delete_verified_cleanup_file(
     {
         return Err(CleanupDeletionError::Changed);
     }
+    let actual_bytes = metadata.len();
     let disposition = FILE_DISPOSITION_INFO { DeleteFile: true };
     if unsafe {
         SetFileInformationByHandle(
@@ -643,7 +658,10 @@ fn delete_verified_cleanup_file(
         return Err(map_cleanup_io_error(std::io::Error::last_os_error()));
     }
     drop(file);
-    Ok(())
+    match verified_path.try_exists().map_err(map_cleanup_io_error)? {
+        false => Ok(actual_bytes),
+        true => Err(CleanupDeletionError::ResourceBusy),
+    }
 }
 
 #[cfg(windows)]
@@ -661,7 +679,7 @@ fn normalize_windows_final_path(path: &str) -> PathBuf {
 fn delete_verified_cleanup_file(
     _candidate: &CleanupCandidateIdentity,
     _verified_path: &Path,
-) -> Result<(), CleanupDeletionError> {
+) -> Result<u64, CleanupDeletionError> {
     Err(CleanupDeletionError::UnsupportedPlatform)
 }
 
@@ -1719,7 +1737,18 @@ mod tests {
             super::CleanupItemOutcome::Failed(super::CleanupDeletionError::ResourceBusy),
         );
         assert_eq!(report.items[1].candidate_id, removable.id);
-        assert_eq!(report.items[1].outcome, super::CleanupItemOutcome::Deleted);
+        assert_eq!(
+            report.items[1].outcome,
+            super::CleanupItemOutcome::Deleted {
+                actual_bytes: removable.metadata.size_bytes,
+            },
+        );
+        assert_eq!(
+            report.estimated_bytes,
+            locked.metadata.size_bytes + removable.metadata.size_bytes,
+        );
+        assert_eq!(report.actual_deleted_bytes, removable.metadata.size_bytes);
+        assert!(report.actual_deleted_bytes < report.estimated_bytes);
         assert!(root.join("locked.bin").exists());
         assert!(!root.join("removable.bin").exists());
         drop(_lock);
@@ -1752,6 +1781,8 @@ mod tests {
             report.items[0].outcome,
             super::CleanupItemOutcome::Failed(super::CleanupDeletionError::UnsupportedPlatform),
         );
+        assert_eq!(report.estimated_bytes, candidate.metadata.size_bytes);
+        assert_eq!(report.actual_deleted_bytes, 0);
         assert!(root.join("candidate.bin").exists());
         fs::remove_dir_all(fixture).expect("remove disposable execution fixture");
     }

@@ -178,6 +178,8 @@ M3-009 captures a platform file identity with the candidate: Windows volume seri
 
 M3-010 adds a native-only bounded executor for an exact approved preview and candidate selection (maximum 100 items). It rejects approval/preview total mismatches before mutation, revalidates each item independently and records deleted/skipped/failed outcomes so one item cannot abort the batch. Windows deletion uses a no-follow file handle, rechecks the handle's resolved path, identity and metadata against the validated snapshot, then marks only that handle for deletion; locked or denied items are reported individually. Deletion fails closed on platforms without the handle-safe adapter. Do not expose this executor directly to the renderer; only the native approval flow may call it. Per-item estimated bytes are retained for the follow-up report task; this executor does not claim those bytes were actually freed.
 
+M3-011 keeps the approved estimate separate from `actual_deleted_bytes`, which sums only logical file sizes whose deletion completed and whose path disappeared after the handle closed. Failed or skipped candidates contribute zero. This value describes removed file contents by logical size; it is not a measurement of physical disk space reclaimed, which varies with compression, sparse files and hard links.
+
 ## 7. Error model
 
 Use stable error codes/categories:
