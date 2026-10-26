@@ -535,6 +535,34 @@ mod tests {
     }
 
     #[test]
+    fn dns_request_validation_fails_before_any_resolver_work() {
+        let error = lookup_dns(NetworkDiagnosticRequest {
+            kind: NetworkDiagnosticKind::DnsLookup,
+            target_host: "bad host".to_string(),
+            port: None,
+            timeout_ms: 2_000,
+        })
+        .unwrap_err();
+        assert_eq!(
+            error,
+            DnsLookupError::InvalidRequest(NetworkDiagnosticValidationError::InvalidTarget)
+        );
+    }
+
+    #[test]
+    fn expired_local_tcp_deadline_returns_timeout_without_connecting() {
+        let error = super::connect_host("127.0.0.1", 9, Instant::now()).unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::TimedOut);
+        assert_eq!(
+            super::tcp_error(&error),
+            (
+                NetworkDiagnosticOutcome::TimedOut,
+                NetworkDiagnosticErrorCode::TimedOut
+            )
+        );
+    }
+
+    #[test]
     fn tcp_connect_reports_local_success_and_maps_refusal_and_timeout_separately() {
         let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
         let port = listener.local_addr().unwrap().port();
@@ -548,6 +576,29 @@ mod tests {
         assert_eq!(succeeded.outcome, NetworkDiagnosticOutcome::Succeeded);
         assert_eq!(succeeded.target_port, Some(port));
         drop(listener);
+
+        let refused_port = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
+            .unwrap()
+            .local_addr()
+            .unwrap()
+            .port();
+        let refused = super::test_tcp_connectivity(NetworkDiagnosticRequest {
+            kind: NetworkDiagnosticKind::TcpConnectivity,
+            target_host: "127.0.0.1".to_string(),
+            port: Some(refused_port),
+            timeout_ms: 2_000,
+        })
+        .unwrap();
+        assert!(matches!(
+            (refused.outcome, refused.error_code),
+            (
+                NetworkDiagnosticOutcome::Failed,
+                Some(NetworkDiagnosticErrorCode::ConnectionRefused)
+            ) | (
+                NetworkDiagnosticOutcome::TimedOut,
+                Some(NetworkDiagnosticErrorCode::TimedOut)
+            )
+        ));
 
         assert_eq!(
             super::tcp_error(&io::Error::new(io::ErrorKind::ConnectionRefused, "fixture")),

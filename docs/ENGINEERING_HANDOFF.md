@@ -441,3 +441,7 @@ Activity Center displays a disabled Cancel action for saved jobs and explains th
 ## M4-014 Network diagnostic follow-up Task — 2026-10-26
 
 Added a NetOps page for one DNS lookup or one TCP host/port check, calling the existing bounded adapter with a 2-second timeout. The native process caches at most 100 result handles; Task creation takes only a handle and constructs the summary from the stored native result. The inbox Task links target, outcome and observed time while omitting resolved addresses and raw system messages. Invalid, unavailable, rate-limited and expired-result cases are bounded and visible. Verification passed: Rust suite 159/159; frontend suite 184/184; `npm run check` (format, lint, repo tests, frontend tests, typecheck and production build); Clippy with warnings denied; Rust formatting; backlog validation; and `git diff --check`. Existing Biome schema/CLI compatibility notices are informational.
+
+## M4-015 Network diagnostic regression tests — 2026-10-26
+
+Added a malformed-DNS request test that stops before resolver work and an already-expired TCP deadline test using `127.0.0.1`. The local TCP integration test checks success and accepts the OS-specific refusal or timeout outcome after a loopback listener closes; closed error mapping is asserted independently. The rate window is tested with injected monotonic timestamps at the 60-second boundary. No test contacts a public host. Verification passed: Rust suite 161/161; Clippy with warnings denied; Rust formatting; backlog validation; and `git diff --check`.
