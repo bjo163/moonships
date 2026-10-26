@@ -266,12 +266,14 @@ fn is_public_address(ip: IpAddr) -> bool {
 
 /// Fetches and normalizes one configured feed after an explicit caller action.
 /// The feed must have reviewed terms and be enabled; no automatic schedule exists.
-pub fn fetch_rss(connector: &ConnectorDefinition) -> Result<Vec<IntelligenceItem>, RssFetchError> {
+pub fn fetch_rss(
+    connector: &mut ConnectorDefinition,
+) -> Result<Vec<IntelligenceItem>, RssFetchError> {
     fetch_rss_with_transport(connector, &HttpRssTransport)
 }
 
 fn fetch_rss_with_transport(
-    connector: &ConnectorDefinition,
+    connector: &mut ConnectorDefinition,
     transport: &impl RssTransport,
 ) -> Result<Vec<IntelligenceItem>, RssFetchError> {
     if !connector.is_enabled()
@@ -288,35 +290,61 @@ fn fetch_rss_with_transport(
         });
     }
     let limiter = POLL_LIMITER.get_or_init(|| Mutex::new(PollLimiter::default()));
-    limiter
+    let interval = Duration::from_secs(connector.minimum_poll_interval_seconds);
+    if let Err(error) = limiter
         .lock()
         .map_err(|_| RssFetchError::RateLimited)?
-        .claim(
-            &connector.id,
-            Duration::from_secs(connector.minimum_poll_interval_seconds),
-            Instant::now(),
-        )?;
+        .claim(&connector.id, interval, Instant::now())
+    {
+        if matches!(
+            error,
+            RssFetchError::RateLimited | RssFetchError::BackoffActive
+        ) {
+            connector.health = ConnectorHealth::RateLimited;
+        }
+        return Err(error);
+    }
 
+    let attempted_at = timestamp_now();
+    connector.last_attempt_at = Some(attempted_at);
     let result = transport.fetch(connector).and_then(|bytes| {
-        let observed_at = DateTime::<Utc>::from(std::time::SystemTime::now())
-            .to_rfc3339_opts(SecondsFormat::Millis, true);
+        let observed_at = timestamp_now();
         parse_rss(&bytes, connector, &observed_at)
     });
     let mut state = limiter.lock().map_err(|_| RssFetchError::BackoffActive)?;
     match result {
         Ok(items) => {
             state.record_success(&connector.id);
+            connector.health = ConnectorHealth::Healthy;
+            connector.last_success_at = Some(timestamp_now());
             Ok(items)
         }
         Err(error) => {
-            state.record_failure(
-                &connector.id,
-                Duration::from_secs(connector.minimum_poll_interval_seconds),
-                Instant::now(),
-            );
+            state.record_failure(&connector.id, interval, Instant::now());
+            connector.health = match error {
+                RssFetchError::RequestTimedOut
+                | RssFetchError::NetworkFailure
+                | RssFetchError::ResolutionFailed
+                | RssFetchError::ResolverBusy => ConnectorHealth::Unavailable,
+                RssFetchError::UnsafeAddress | RssFetchError::InvalidConnector => {
+                    ConnectorHealth::Blocked
+                }
+                RssFetchError::RateLimited | RssFetchError::BackoffActive => {
+                    ConnectorHealth::RateLimited
+                }
+                RssFetchError::Disabled => ConnectorHealth::Disabled,
+                RssFetchError::HttpStatus
+                | RssFetchError::ResponseTooLarge
+                | RssFetchError::MalformedFeed
+                | RssFetchError::InvalidItem => ConnectorHealth::Error,
+            };
             Err(error)
         }
     }
+}
+
+fn timestamp_now() -> String {
+    DateTime::<Utc>::from(std::time::SystemTime::now()).to_rfc3339_opts(SecondsFormat::Millis, true)
 }
 
 #[derive(Default)]
@@ -776,20 +804,55 @@ mod tests {
 
     #[test]
     fn timeout_and_rate_limit_failures_are_returned_as_stable_errors() {
-        let timeout_connector = connector("fixture.rss.timeout");
+        let mut timeout_connector = connector("fixture.rss.timeout");
+        timeout_connector.last_success_at = Some("2026-10-26T04:00:00Z".to_owned());
         assert_eq!(
             fetch_rss_with_transport(
-                &timeout_connector,
+                &mut timeout_connector,
                 &FixtureTransport(Err(RssFetchError::RequestTimedOut))
             ),
             Err(RssFetchError::RequestTimedOut)
         );
+        assert_eq!(timeout_connector.health, ConnectorHealth::Unavailable);
+        assert!(timeout_connector.last_attempt_at.is_some());
+        assert_eq!(
+            timeout_connector.last_success_at.as_deref(),
+            Some("2026-10-26T04:00:00Z")
+        );
         assert_eq!(
             fetch_rss_with_transport(
-                &timeout_connector,
+                &mut timeout_connector,
                 &FixtureTransport(Ok(NASA_CNEOS_RSS_FIXTURE.as_bytes().to_vec()))
             ),
             Err(RssFetchError::RateLimited)
+        );
+        assert_eq!(timeout_connector.health, ConnectorHealth::RateLimited);
+    }
+
+    #[test]
+    fn successful_fetch_updates_the_in_memory_last_success_state() {
+        let mut connector = connector("fixture.rss.freshness-success");
+        let items = fetch_rss_with_transport(
+            &mut connector,
+            &FixtureTransport(Ok(NASA_CNEOS_RSS_FIXTURE.as_bytes().to_vec())),
+        )
+        .unwrap();
+        assert_eq!(items.len(), 1);
+        assert_eq!(connector.health, ConnectorHealth::Healthy);
+        assert!(connector.last_attempt_at.is_some());
+        let last_success_at = connector.last_success_at.clone().unwrap();
+        let now = DateTime::parse_from_rfc3339(&last_success_at)
+            .unwrap()
+            .with_timezone(&Utc);
+        let view = crate::connector_freshness::ConnectorFreshnessView::evaluate(&connector, &now);
+        assert_eq!(
+            view.status,
+            crate::connector_freshness::ConnectorFreshness::Fresh
+        );
+        assert!(view.is_live);
+        assert_eq!(
+            view.last_success_at.as_deref(),
+            Some(last_success_at.as_str())
         );
     }
 
@@ -802,7 +865,7 @@ mod tests {
         disabled = serde_json::from_value(disabled_json).unwrap();
         assert_eq!(
             fetch_rss_with_transport(
-                &disabled,
+                &mut disabled,
                 &FixtureTransport(Err(RssFetchError::NetworkFailure))
             ),
             Err(RssFetchError::Disabled)

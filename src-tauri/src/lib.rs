@@ -3,6 +3,7 @@ pub mod cleaner;
 pub mod cleanup_reports;
 pub mod config;
 pub mod connection_profiles;
+pub mod connector_freshness;
 pub mod connectors;
 pub mod diagnostic_task;
 pub mod dns_adapter;

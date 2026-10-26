@@ -140,6 +140,11 @@ Risk class is separate from task priority, vulnerability severity and business i
 - Deduplication validates each bounded item before grouping and caps a batch at 2,000 records. It groups by exact canonical URL or a fingerprint recomputed from the bounded title/summary, not by an externally supplied hash. All original records and unique source IDs remain in the result; grouping does not delete or merge saved data.
 - A group is a navigation/aggregation aid, not evidence that its sources independently verify one another or that matching content is true. Source provenance stays available on every member record.
 
+### Connector freshness (M5-007)
+
+- `isLive` is true only for an enabled source with a valid successful timestamp no later than the configured freshness threshold and no blocked/error/rate-limit/unavailable/stale health state.
+- Missing, malformed or future last-success values cannot be presented as current. A failed fetch retains the prior success timestamp but updates health, so an earlier success never masks a current failure as live. UI consumers must render both status and timestamp from the typed freshness view.
+
 ### Read-only system inventory (M4-007)
 
 - Inventory reads only OS family/process architecture, available logical processors, physical memory counters and capacity/free bytes on the volume containing the Windows directory.

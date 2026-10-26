@@ -469,3 +469,7 @@ Added conservative HTTPS URL identity normalization while retaining each exact i
 ## M5-006 Source-preserving item deduplication — 2026-10-26
 
 Added a 2,000-record-bounded, in-memory grouping helper keyed by shared canonical URL or recomputed title/summary fingerprint. Every validated record remains in input order within its group, and each group exposes unique source IDs in first-seen order. External hashes are not trusted for identity. No persisted records are deleted or merged. Verification passed: Rust suite 192/192; four focused grouping tests for shared URLs, matching content, transitive groups, invalid/oversized batches and source-reference retention; Clippy with warnings denied; Rust formatting; backlog validation; and `git diff --check`.
+
+## M5-007 Connector freshness and last-success status — 2026-10-26
+
+Added a serializable freshness view with normalized last-success time and an `is_live` flag that is true only for an enabled source inside its freshness window. Missing, invalid and future timestamps, stale records, and blocked/rate-limited/unavailable/error states cannot appear live. RSS fetch attempts now update the supplied connector's in-memory attempt time, last success and health; failures preserve prior success while setting a non-live health state. These values are not persisted or rendered by a source screen yet; M5-008/M5-012 own those follow-ups. Verification passed: Rust suite 197/197; four freshness and eleven RSS tests; Clippy with warnings denied; Rust formatting; backlog validation; and `git diff --check`.

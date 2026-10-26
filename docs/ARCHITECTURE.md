@@ -311,6 +311,8 @@ M5-005 adds conservative HTTPS URL canonicalization and a versioned SHA-256 cont
 
 M5-006 groups a bounded in-memory batch of at most 2,000 items when they share a canonical URL or recomputed content fingerprint. Each group retains every validated item in input order and exposes all unique source IDs in first-seen order; supplied external hashes are not trusted as a grouping key. This creates an aggregation view only, not a persisted merge or deletion.
 
+M5-007 derives a serializable freshness view from connector enablement, health, last-success time and its declared freshness threshold. Only `fresh` sets `isLive`; stale, failed, blocked, rate-limited, disabled, missing, invalid and future timestamps never claim live data. RSS attempts update the caller's in-memory last-attempt/last-success timestamps and health. Source persistence/settings and the screens that render this view are later tasks.
+
 ## 11. AI adapter boundary
 
 AI consumes a limited context assembled by Moonships and can request only registered tools. Keep provider request/response types behind an internal interface. Persist prompt/output only when configured and necessary; redact secrets and minimize sensitive data.

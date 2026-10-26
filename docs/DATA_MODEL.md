@@ -120,6 +120,8 @@ M5-005 stores each item's exact `original_url` alongside its `canonical_url`; va
 
 M5-006 groups at most 2,000 validated item records by shared canonical URL or recomputed content fingerprint. The output keeps all original item records (including source ID, feed URL, original item URL and timestamps) and lists each distinct source ID once. It does not overwrite, delete or persist any source item; the first record in each group is only the display representative.
 
+M5-007 exposes a `ConnectorFreshnessView` with status, normalized `lastSuccessAt`, and an `isLive` guard. Freshness is computed against the connector's configured threshold; future/invalid/missing timestamps fail closed. A successful in-memory RSS call updates health and last-success time; a failed request updates health/last-attempt while retaining the previous last success. These values are not yet persisted; M5-008/M5-012 screens consume the view later.
+
 ### Connection profile contract (M4-011)
 Profiles have a UUID ID, bounded display name and one tagged allowlisted transport: a known local terminal enum, SSH or RDP. Remote transports use a strict single host, nonzero port, optional username and optional opaque UUID secret reference. No password, private key, command line or arbitrary executable path field exists. The dedicated export DTO omits secret references; the safe log projection omits user content and target details. M4-011 defines the contract only: saved profile persistence, OS secret-store integration and transport execution remain future reviewed work.
 
