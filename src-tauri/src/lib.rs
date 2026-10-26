@@ -1,6 +1,7 @@
 pub mod config;
 pub mod domain;
 pub mod local_logging;
+pub mod projects;
 
 use std::{
     fs,
@@ -45,7 +46,7 @@ fn open_database_in(app_data_dir: &Path) -> Result<Connection, String> {
 const CURRENT_SCHEMA_VERSION: i64 = 4;
 const PERSONAL_WORKSPACE_ID: &str = "00000000-0000-4000-8000-000000000001";
 
-fn run_migrations(connection: &mut Connection) -> Result<(), String> {
+pub(crate) fn run_migrations(connection: &mut Connection) -> Result<(), String> {
     let transaction = connection
         .transaction()
         .map_err(|error| format!("Could not begin schema migration transaction: {error}"))?;
