@@ -35,6 +35,30 @@ impl RiskClass {
     }
 }
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum IdempotencyClass {
+    Idempotent,
+    NonIdempotent,
+    #[default]
+    Unknown,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(
+    tag = "mode",
+    rename_all = "snake_case",
+    rename_all_fields = "camelCase",
+    deny_unknown_fields
+)]
+pub enum RetryPolicy {
+    #[default]
+    Never,
+    TransientFailures {
+        max_retries: u8,
+    },
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ToolDefinition {
@@ -44,6 +68,10 @@ pub struct ToolDefinition {
     pub input_schema: Value,
     pub output_schema: Value,
     pub risk_class: RiskClass,
+    #[serde(default)]
+    pub idempotency: IdempotencyClass,
+    #[serde(default)]
+    pub retry_policy: RetryPolicy,
     pub permissions: Vec<String>,
     pub enabled: bool,
 }
@@ -79,6 +107,7 @@ impl ToolRegistry {
         if definition.version.trim().is_empty() || definition.api_version == 0 {
             return Err("Tool and API versions must be explicit".to_string());
         }
+        definition.validate_retry_policy()?;
         if self.tools.contains_key(&definition.id) {
             return Err(format!("Tool ID already registered: {}", definition.id));
         }
@@ -88,6 +117,29 @@ impl ToolRegistry {
 
     pub fn get(&self, id: &str) -> Option<&ToolDefinition> {
         self.tools.get(id)
+    }
+}
+
+impl ToolDefinition {
+    pub fn validate_retry_policy(&self) -> Result<(), String> {
+        let RetryPolicy::TransientFailures { max_retries } = self.retry_policy else {
+            return Ok(());
+        };
+        if !(1..=5).contains(&max_retries) {
+            return Err("Retry count must be between 1 and 5".to_string());
+        }
+        if self.idempotency != IdempotencyClass::Idempotent {
+            return Err("Automatic retry requires an explicitly idempotent tool".to_string());
+        }
+        if matches!(
+            self.risk_class,
+            RiskClass::Destructive | RiskClass::Privileged | RiskClass::Remote
+        ) {
+            return Err(
+                "Automatic retry is disabled for high-impact tool risk classes".to_string(),
+            );
+        }
+        Ok(())
     }
 }
 
@@ -227,6 +279,8 @@ mod tests {
             input_schema: json!({"type": "object"}),
             output_schema: json!({"type": "object"}),
             risk_class: RiskClass::ReadOnly,
+            idempotency: IdempotencyClass::Unknown,
+            retry_policy: RetryPolicy::Never,
             permissions: vec!["workspace.read".to_string()],
             enabled: true,
         };
@@ -234,6 +288,54 @@ mod tests {
         registry.register(definition.clone()).unwrap();
         assert_eq!(registry.get("workspace.inspect"), Some(&definition));
         assert!(registry.register(definition).is_err());
+    }
+
+    #[test]
+    fn tool_retry_defaults_are_never_even_for_destructive_operations() {
+        let mut value = json!({
+            "id": "storage.delete",
+            "version": "1.0.0",
+            "apiVersion": 1,
+            "inputSchema": {"type": "object"},
+            "outputSchema": {"type": "object"},
+            "riskClass": "destructive",
+            "permissions": ["filesystem.delete"],
+            "enabled": true
+        });
+        let definition: ToolDefinition = serde_json::from_value(value.clone()).unwrap();
+        assert_eq!(definition.idempotency, IdempotencyClass::Unknown);
+        assert_eq!(definition.retry_policy, RetryPolicy::Never);
+        definition.validate_retry_policy().unwrap();
+
+        value["retryPolicy"] = json!({"mode":"transient_failures","maxRetries":1});
+        let definition: ToolDefinition = serde_json::from_value(value).unwrap();
+        assert!(definition.validate_retry_policy().is_err());
+    }
+
+    #[test]
+    fn explicit_retries_require_idempotency_bounded_attempts_and_safe_risk() {
+        let mut definition = ToolDefinition {
+            id: "workspace.refresh".to_string(),
+            version: "1.0.0".to_string(),
+            api_version: 1,
+            input_schema: json!({"type":"object"}),
+            output_schema: json!({"type":"object"}),
+            risk_class: RiskClass::StateChanging,
+            idempotency: IdempotencyClass::Idempotent,
+            retry_policy: RetryPolicy::TransientFailures { max_retries: 2 },
+            permissions: Vec::new(),
+            enabled: true,
+        };
+        assert!(definition.validate_retry_policy().is_ok());
+
+        definition.idempotency = IdempotencyClass::Unknown;
+        assert!(definition.validate_retry_policy().is_err());
+        definition.idempotency = IdempotencyClass::Idempotent;
+        definition.retry_policy = RetryPolicy::TransientFailures { max_retries: 6 };
+        assert!(definition.validate_retry_policy().is_err());
+        definition.retry_policy = RetryPolicy::TransientFailures { max_retries: 1 };
+        definition.risk_class = RiskClass::Destructive;
+        assert!(definition.validate_retry_policy().is_err());
     }
 
     #[test]

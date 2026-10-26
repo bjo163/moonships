@@ -116,8 +116,8 @@ Fields: key, value_json, schema_version, updated_at.
 Only non-secret preferences; secrets use OS credential storage or a dedicated secure abstraction. The initial typed config schema is version 1 with dark theme, Developer profile, Info logging and hide-to-tray disabled by default. Reject unknown fields and unsupported schema versions rather than silently coercing them.
 
 ### ToolDefinition (registered tool metadata)
-Fields: id, version, api_version, name, description, category, platform_support, input_schema_json, output_schema_json, permissions_json, risk_class, enabled, source_type, created_at.
-Do not store executable code in the registry. MVP tool definitions are compiled-in. The native contract includes ID, semantic version, API version, input/output schemas, risk class, required permissions and enabled state.
+Fields: id, version, api_version, name, description, category, platform_support, input_schema_json, output_schema_json, permissions_json, risk_class, idempotency_class, retry_policy, enabled, source_type, created_at.
+Do not store executable code in the registry. MVP tool definitions are compiled-in. The native contract includes ID, semantic version, API version, input/output schemas, risk class, required permissions, enabled state and explicit idempotency/retry declarations. Missing idempotency defaults to `unknown`; missing retry policy defaults to `never`.
 
 ### ToolRun / Job
 Fields: id, tool_id, tool_version, input_redacted_json, status, started_at?, finished_at?, duration_ms?, output_summary?, error_code?, error_redacted?, initiated_by, approval_id?, correlation_id?, cancellability, created_at.

@@ -605,3 +605,9 @@ Workflow schema version 2 now requires each step to declare a 100–300,000 ms t
 Timeout is cooperative: the synchronous runner cannot safely preempt a handler that ignores its deadline. Production handlers must enforce the deadline in their underlying operation and must not be registered if they can block without bound. No production tools or IPC entry point were added.
 
 Verification passed: workflow schema tests 6/6; workflow runner tests 5/5; full Rust library suite 281/281; `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`; `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`; backlog validation (151/238 checked); and `git diff --check`.
+
+## M7-005 Tool idempotency and retry declarations — 2026-10-26
+
+Extended `ToolDefinition` with explicit idempotency class (`idempotent`, `non_idempotent`, `unknown`) and a closed retry policy. Missing metadata defaults to `unknown` and `never`. The validator permits 1–5 transient-failure retries only for explicitly idempotent tools; automatic retry is rejected for destructive, privileged and remote risk classes. Tool registration validates the declaration. This is contract metadata only: no retry loop or automatic retry behavior is introduced.
+
+Verification passed: focused domain tests 6/6; full Rust library suite 283/283; `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`; `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`; backlog validation (152/238 checked); and `git diff --check`.

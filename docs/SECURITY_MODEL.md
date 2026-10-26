@@ -389,6 +389,7 @@ Before executing an assessment:
 - M7-002 rejects workflow graphs above 128 steps, duplicate IDs, missing/duplicate dependency references and dependency cycles before a future runner can consider execution. DAG validity does not authorize a tool; registry version matching, capability checks, target scope and approval are still required at execution time.
 - M7-003's runner only invokes an exact registered in-process handler version; no production handler or IPC workflow entry point is added. A future production handler must check capabilities, target scope and approval independently before consequential work.
 - M7-004 requires explicit per-step timeouts and stop/continue policy for executable schema-v2 workflows. A handler receives its deadline, and the runner detects a late return, but a synchronous handler cannot be preempted; only bounded/cooperative handlers may be registered. Continue policy may proceed only to independent steps after a failure; dependent steps are skipped. Policy still cannot override capability, target scope or approval checks.
+- M7-005 tool metadata defaults to unknown idempotency and `never` retry. A retry policy must name transient failures and a bounded count (1–5), and is accepted only for an explicitly idempotent tool; destructive, privileged and remote risk classes reject automatic retries. These fields do not themselves trigger retries; the future executor must honor the declared policy and recheck safety before each attempt.
 
 ## 8. Secrets and privacy
 
