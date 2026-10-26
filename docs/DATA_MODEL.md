@@ -116,6 +116,8 @@ M5-003 reads one user-enabled RSS 2.0 feed on an explicit native call and return
 
 M5-004 tracks per-connector failure count and retry eligibility in memory. After a failed fetch, retry is blocked until both the declared minimum poll interval and an exponential delay have elapsed; delay starts at 60 seconds and caps at one hour. Success clears the failure count. No retry is started automatically, and the state resets on app restart until connector persistence is added.
 
+M5-005 stores each item's exact `original_url` alongside its `canonical_url`; validation checks that canonical URL is the conservative normalization of the original. Canonicalization lowercases/normalizes URL syntax and removes fragments plus known analytics parameters (`utm_*`, `fbclid`, `gclid`, `dclid`, `msclkid`, `mc_cid`, `mc_eid`) while retaining path and all other query pairs. A version-tagged SHA-256 fingerprint is computed from title and optional summary after Unicode whitespace is collapsed; letter case and punctuation are retained. Deduplication and source relationship grouping remain separate work.
+
 ### Connection profile contract (M4-011)
 Profiles have a UUID ID, bounded display name and one tagged allowlisted transport: a known local terminal enum, SSH or RDP. Remote transports use a strict single host, nonzero port, optional username and optional opaque UUID secret reference. No password, private key, command line or arbitrary executable path field exists. The dedicated export DTO omits secret references; the safe log projection omits user content and target details. M4-011 defines the contract only: saved profile persistence, OS secret-store integration and transport execution remain future reviewed work.
 

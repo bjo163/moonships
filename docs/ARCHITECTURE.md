@@ -307,6 +307,8 @@ M5-003 adds a native RSS 2.0 adapter callable for one explicitly enabled user so
 
 M5-004 adds in-memory transient-failure backoff to the RSS request boundary. Retry eligibility is the later of the user-declared minimum poll interval and an exponential delay that starts at 60 seconds and caps at one hour; no automatic retry is performed. Successful fetches reset the failure count, and timeout/oversize errors remain stable typed outcomes. Backoff state is process-local until source state persistence is implemented.
 
+M5-005 adds conservative HTTPS URL canonicalization and a versioned SHA-256 content fingerprint. Item records retain the exact source-provided item URL separately from the canonical identity URL; only URL syntax, fragments and a fixed list of tracking parameters are normalized. Fingerprints preserve case/punctuation, collapse whitespace, and encode title/summary boundaries explicitly. The RSS adapter uses both helpers; no deduplication is performed here.
+
 ## 11. AI adapter boundary
 
 AI consumes a limited context assembled by Moonships and can request only registered tools. Keep provider request/response types behind an internal interface. Persist prompt/output only when configured and necessary; redact secrets and minimize sensitive data.

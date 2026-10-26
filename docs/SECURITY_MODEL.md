@@ -130,6 +130,11 @@ Risk class is separate from task priority, vulnerability severity and business i
 - Enforce the connector timeout and response-byte ceiling while reading the body; a known oversized content length is rejected before reading. Slow reads, transport failures, non-success HTTP status and malformed/oversized RSS return stable error codes and no partial item set.
 - Failed attempts count toward per-source exponential backoff (60 seconds doubling to a one-hour cap) and the declared minimum poll interval. The next allowed manual request is the later of those two deadlines. Success clears failure history; the adapter never retries automatically. This rate/backoff state is process-local and bounded to 256 connector IDs.
 
+### Intelligence identity (M5-005)
+
+- Canonicalization accepts only validated HTTPS URLs without credentials and preserves the exact original item URL. It removes fragments and only the documented analytics parameter allowlist; it does not rewrite other query fields, path semantics or source attribution.
+- Content fingerprints are deterministic SHA-256 values over a versioned, length-delimited title/optional-summary representation. Whitespace is collapsed within each field; case and punctuation are unchanged. Fingerprints identify matching content only and do not establish truth, authorship or independent verification.
+
 ### Read-only system inventory (M4-007)
 
 - Inventory reads only OS family/process architecture, available logical processors, physical memory counters and capacity/free bytes on the volume containing the Windows directory.

@@ -1,5 +1,6 @@
 //! Bounded normalized intelligence item schema. Items remain untrusted source data.
 use crate::connectors::{valid_https_url, valid_id};
+use crate::intelligence_identity::{canonicalize_item_url, content_fingerprint};
 use chrono::{DateTime, SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -34,6 +35,7 @@ pub struct IntelligenceItem {
     pub source_id: String,
     pub source_url: String,
     pub external_id: Option<String>,
+    pub original_url: String,
     pub canonical_url: String,
     pub title: String,
     pub summary: Option<String>,
@@ -51,6 +53,7 @@ pub enum ItemValidationError {
     InvalidId,
     InvalidSourceId,
     InvalidSourceUrl,
+    InvalidOriginalUrl,
     InvalidCanonicalUrl,
     InvalidExternalId,
     InvalidTitle,
@@ -86,6 +89,14 @@ impl IntelligenceItem {
             return Err(ItemValidationError::InvalidSourceUrl);
         }
         if !valid_https_url(&self.canonical_url) {
+            return Err(ItemValidationError::InvalidCanonicalUrl);
+        }
+        if !valid_https_url(&self.original_url) {
+            return Err(ItemValidationError::InvalidOriginalUrl);
+        }
+        let url_identity = canonicalize_item_url(&self.original_url)
+            .map_err(|_| ItemValidationError::InvalidOriginalUrl)?;
+        if url_identity.canonical != self.canonical_url {
             return Err(ItemValidationError::InvalidCanonicalUrl);
         }
         if self.external_id.as_ref().is_some_and(|value| {
@@ -133,6 +144,12 @@ impl IntelligenceItem {
         if let Some(hash) = self.content_hash.as_mut() {
             hash.make_ascii_lowercase();
         }
+        if self.content_hash.is_none() {
+            self.content_hash = Some(
+                content_fingerprint(&self.title, self.summary.as_deref())
+                    .map_err(|_| ItemValidationError::InvalidContentHash)?,
+            );
+        }
         Ok(())
     }
 }
@@ -148,6 +165,7 @@ mod tests {
             source_id: "example.status-feed".to_string(),
             source_url: "https://status.example/feed.xml".to_string(),
             external_id: Some("entry-42".to_string()),
+            original_url: "https://status.example/incidents/42?utm_source=fixture#top".to_string(),
             canonical_url: "https://status.example/incidents/42".to_string(),
             title: "Service degraded".to_string(),
             summary: Some("Regional request failures".to_string()),
@@ -208,6 +226,27 @@ mod tests {
         assert_eq!(
             oversized.validate(),
             Err(ItemValidationError::InvalidSummary)
+        );
+    }
+
+    #[test]
+    fn original_item_url_is_retained_and_missing_fingerprint_is_filled() {
+        let mut item = item();
+        let original_url = item.original_url.clone();
+        let expected = content_fingerprint(&item.title, item.summary.as_deref()).unwrap();
+        item.content_hash = None;
+        item.validate().unwrap();
+        assert_eq!(item.original_url, original_url);
+        assert_eq!(item.content_hash.as_deref(), Some(expected.as_str()));
+    }
+
+    #[test]
+    fn canonical_url_must_match_the_original_after_conservative_normalization() {
+        let mut item = item();
+        item.canonical_url = "https://other.example/article".to_string();
+        assert_eq!(
+            item.validate(),
+            Err(ItemValidationError::InvalidCanonicalUrl)
         );
     }
 }

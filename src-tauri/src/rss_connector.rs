@@ -2,6 +2,7 @@
 use crate::connectors::{
     AccessMethod, ConnectorDefinition, ConnectorHealth, ConnectorKind, TermsReview,
 };
+use crate::intelligence_identity::{canonicalize_item_url, content_fingerprint};
 use crate::intelligence_items::{
     IntelligenceItem, ItemFreshness, ItemVerification, MAX_EXTERNAL_ID_CHARS,
     MAX_ITEM_SUMMARY_CHARS, MAX_ITEM_TITLE_CHARS,
@@ -509,7 +510,8 @@ fn normalize_entry(
     observed_at: &str,
 ) -> Result<IntelligenceItem, RssFetchError> {
     let title = entry.title.ok_or(RssFetchError::InvalidItem)?;
-    let canonical_url = entry.link.ok_or(RssFetchError::InvalidItem)?;
+    let url_identity = canonicalize_item_url(&entry.link.ok_or(RssFetchError::InvalidItem)?)
+        .map_err(|_| RssFetchError::InvalidItem)?;
     let published_at = match entry.pub_date.filter(|date| !date.is_empty()) {
         Some(date) => Some(
             DateTime::parse_from_rfc2822(&date)
@@ -519,19 +521,23 @@ fn normalize_entry(
         ),
         None => None,
     };
+    let summary = entry.description.filter(|value| !value.is_empty());
+    let content_hash =
+        content_fingerprint(&title, summary.as_deref()).map_err(|_| RssFetchError::InvalidItem)?;
     let mut item = IntelligenceItem {
         id: Uuid::new_v4().to_string(),
         source_id: connector.id.clone(),
         source_url: connector.source_url.clone(),
         external_id: entry.guid.filter(|value| !value.is_empty()),
-        canonical_url,
+        original_url: url_identity.original,
+        canonical_url: url_identity.canonical,
         title,
-        summary: entry.description.filter(|value| !value.is_empty()),
+        summary,
         published_at,
         observed_at: observed_at.to_owned(),
         event_time: None,
         category: "general".to_owned(),
-        content_hash: None,
+        content_hash: Some(content_hash),
         freshness_state: ItemFreshness::Fresh,
         verification_state: ItemVerification::SourceAttributed,
     };
@@ -544,7 +550,7 @@ mod tests {
     use super::*;
     const NASA_CNEOS_RSS_FIXTURE: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"><channel><title>Recent CNEOS News Stories</title>
-<item><title>Example &amp; fixture</title><link>https://cneos.jpl.nasa.gov/news/example</link>
+<item><title>Example &amp; fixture</title><link>https://CNEOS.JPL.NASA.GOV/news/./example?utm_source=test&amp;id=4#section</link>
 <guid>cneos-example-1</guid><pubDate>Mon, 26 Oct 2026 04:00:00 +0000</pubDate>
 <description><![CDATA[A bounded local test fixture.]]></description></item></channel></rss>"#;
 
@@ -591,6 +597,15 @@ mod tests {
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].title, "Example & fixture");
         assert_eq!(items[0].source_url, connector.source_url);
+        assert_eq!(
+            items[0].original_url,
+            "https://CNEOS.JPL.NASA.GOV/news/./example?utm_source=test&id=4#section"
+        );
+        assert_eq!(
+            items[0].canonical_url,
+            "https://cneos.jpl.nasa.gov/news/example?id=4"
+        );
+        assert!(items[0].content_hash.is_some());
         assert_eq!(items[0].external_id.as_deref(), Some("cneos-example-1"));
         assert_eq!(
             items[0].published_at.as_deref(),
