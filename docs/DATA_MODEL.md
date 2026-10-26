@@ -26,7 +26,7 @@ Optional in MVP if it would delay basic project/task delivery.
 
 ### Project
 Fields: id, workspace_id, key?, name, description?, goal?, status, color_token?, start_date?, target_date?, archived_at?, created_at, updated_at.
-Project key is user-friendly metadata, not the primary ID. Avoid forcing a repository path or Git provider. The M2-002 schema-v3 migration creates a workspace-scoped `projects` table with `project_key` optional and unique when supplied within a workspace; `name` cannot be blank, `status` defaults to `planned`, and workspace references are foreign-key enforced. The project UUID/ULID identifier will be supplied by the future create service; this migration does not generate entities or grant permissions.
+Project key is user-friendly metadata, not the primary ID. Avoid forcing a repository path or Git provider. The M2-002 schema-v3 migration creates a workspace-scoped `projects` table with `project_key` optional and unique when supplied within a workspace; `name` cannot be blank, `status` defaults to `planned`, and workspace references are foreign-key enforced. The M2-007 native service now supplies a random UUID v4, validates fields and active workspace membership, and creates the project transactionally. The migration itself does not generate entities or grant permissions; the UI is still pending.
 Statuses: planned, active, paused, completed, archived.
 
 ### Milestone
@@ -37,7 +37,7 @@ Milestone can group tasks by release/outcome. Do not make milestone date a hidde
 Fields: id, workspace_id, project_id?, parent_task_id?, title, description?, status, priority, due_at?, estimate_minutes?, completed_at?, created_at, updated_at, archived_at?.
 Canonical statuses: backlog, todo, in_progress, blocked, in_review, done, cancelled.
 Canonical priorities: p0, p1, p2, p3. Priority is not security severity or execution risk.
-Task must be creatable with a title alone and defaults. Project is optional for a personal inbox task.
+Task must be creatable with a title alone and defaults. Project is optional for a personal inbox task. The implemented M2-003 schema-v4 migration adds checked `backlog`/`p2` defaults, nonblank task titles, optional project/parent links, and workspace-scoped composite foreign keys. UTC timestamps use the existing SQLite convention. The M2-009 create service validates fields and generates UUID v4 IDs; the UI is not wired yet.
 
 ### TaskDependency
 Fields: task_id, depends_on_task_id, dependency_type, created_at.

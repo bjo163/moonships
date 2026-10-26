@@ -91,14 +91,14 @@
 
 ### Data and domain services
 - [x] **M2-001 — Add Workspace model/migration** [S] [depends: M1-023] — Seed one Personal workspace. **AC:** fresh DB includes exactly one documented default workspace.
-- [ ] **M2-002 — Add Project model/migration** [S] [depends: M2-001] — Name, goal/description, status and timestamps. **AC:** constraints and defaults are tested.
-- [ ] **M2-003 — Add Task model/migration** [S] [depends: M2-001] — Project optional; title required; canonical status/priority. **AC:** task can exist in the personal inbox without a project.
+- [x] **M2-002 — Add Project model/migration** [S] [depends: M2-001] — Name, goal/description, status and timestamps. **AC:** constraints and defaults are tested.
+- [x] **M2-003 — Add Task model/migration** [S] [depends: M2-001] — Project optional; title required; canonical status/priority. **AC:** task can exist in the personal inbox without a project.
 - [ ] **M2-004 — Add Label and task-label relationship** [S] [depends: M2-003] — Workspace-scoped labels. **AC:** duplicate label rules are documented and tested.
 - [ ] **M2-005 — Add TaskDependency model** [S] [depends: M2-003] — Prevent self-dependency. **AC:** self-dependency is rejected and tested.
 - [ ] **M2-006 — Add ActivityEvent storage** [S] [depends: M1-023] — Link events to project/task updates. **AC:** event timestamp and entity reference are persisted.
-- [ ] **M2-007 — Add repository/service for creating a project** [S] [depends: M2-002] — No UI coupling. **AC:** unit test covers create and validation.
+- [x] **M2-007 — Add repository/service for creating a project** [S] [depends: M2-002] — No UI coupling. **AC:** unit test covers create and validation.
 - [ ] **M2-008 — Add repository/service for updating/archiving a project** [S] [depends: M2-007] — Avoid accidental hard deletion. **AC:** update/archive behavior is tested.
-- [ ] **M2-009 — Add repository/service for creating a task** [S] [depends: M2-003] — Apply canonical defaults. **AC:** minimal title-only create works.
+- [x] **M2-009 — Add repository/service for creating a task** [S] [depends: M2-003] — Apply canonical defaults. **AC:** minimal title-only create works.
 - [ ] **M2-010 — Add repository/service for updating a task** [S] [depends: M2-009] — Validate state transitions. **AC:** invalid status/priority is rejected.
 - [ ] **M2-011 — Add task archive/restore behavior** [S] [depends: M2-010] — Keep history. **AC:** archived items can be filtered and restored.
 - [ ] **M2-012 — Add task status transition helper** [S] [depends: M2-003] — One canonical transition policy. **AC:** views cannot define their own incompatible status set.

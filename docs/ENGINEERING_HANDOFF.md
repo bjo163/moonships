@@ -1,5 +1,25 @@
 # Moonships — Engineering Continuity & Foundation Evidence
 
+## Current M2 checkpoint — 2026-10-26
+
+**Canonical branch:** `main`. **Code commit:** [9ce3718](https://github.com/bjo163/moonships/commit/9ce3718f425366f8681a0732fd1d6fb6f2f12134). **Verified CI:** [40248122958](https://github.com/bjo163/moonships/actions/runs/40248122958) — SUCCESS, all 5/5 required jobs; Rust 33/33 tests, formatting and Clippy, frontend production build, repository regression and Windows MSI/NSIS packaging all PASS.
+
+**Accepted and now checked in canonical backlog:**
+- M2-002 (#36): schema-v3 Project constraints/defaults, v2 preservation, idempotence and deliberate transactional rollback, verified by Rust tests in `src-tauri/src/lib.rs`.
+- M2-003 (#37): schema-v4 Tasks with nullable project inbox, canonical `backlog`/`p2` defaults, composite workspace FKs, v3 upgrade/reopen and rollback tests.
+- M2-007 (#41): `src-tauri/src/projects.rs` transactional Project create with UUID v4, validation, active-workspace check, duplicate-key rejection and no partial writes.
+- M2-009 (#43): `src-tauri/src/tasks.rs` transactional Task create with title-only inbox, optional valid project, workspace isolation, UUID v4, validated status/priority and no writes on invalid requests.
+
+**Issue reconciliation:** This checkpoint updates `docs/TASK_BACKLOG.md`, the canonical source. Check the existing idempotent sync workflow for closure of #36, #37, #41 and #43. No duplicate issue or branch was created.
+
+**Release readiness: NOT READY.** The project/task service layer is not wired to Tauri commands or React screens yet. Installer packaging is not a real Windows installation/usability test. The latest confirmed published release remains `v0.1.0-alpha.2`; no stable release or new tag is authorized by these results.
+
+**Exact next unblocked task:** M2-006 ActivityEvent storage with no secret metadata; then M2-008 and M2-010/011/012/013 service work followed by M2-014/015/016/017/018/028/032 for the real persisted Project → Task UI flow. M1 Windows manual runtime, accessibility, screenshots and release gates remain outstanding.
+
+---
+
+## Historical M1 checkpoint (superseded below)
+
 **Checkpoint:** 2026-10-26. **Milestone:** M1 — Desktop Foundation (**not complete**).  
 **Latest implementation commit under evaluation:** `0d0a7c3f8c9323dadc847c86a4eea4fbe91bd26f` (M1-032/033 behavior tests and focus fixes).  
 **Last fully successful repository CI:** [40239724966](https://github.com/bjo163/moonships/actions/runs/40239724966) — **SUCCESS, 5/5 jobs**, including M1-032 browser-interaction tests and Windows MSI/NSIS packaging. **Latest code CI:** [40240662226](https://github.com/bjo163/moonships/actions/runs/40240662226) — frontend formatting, lint, behavior tests, typecheck and build **PASS** at the time of this checkpoint; native/installer jobs require their own final status check.  
