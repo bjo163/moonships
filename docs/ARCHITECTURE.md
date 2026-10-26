@@ -188,6 +188,8 @@ M3-015 adds an in-process JSON formatter/validator with a 1 MiB UTF-8 input limi
 
 M3-016 uses the explicitly selected, exact-pinned `yaml@2.9.1` parser/stringifier from eemeli/yaml under ISC license (see [third-party notices](THIRD_PARTY_NOTICES.md)). Parsing is YAML 1.2/core, strict, duplicate-key checked and uses `parseDocument` so syntax errors return structured parser codes and positions rather than throwing through the UI. Input is limited to 1 MiB; formatted output is limited to 4 million characters. YAML text is handled locally and never converted to arbitrary application objects or sent to a provider.
 
+M3-017 adds local Base64 conversion for UTF-8 text and explicit hexadecimal byte input, plus strict padded-standard-Base64 decoding. Inputs/decoded bytes are capped at 1 MiB; decoding uses fatal UTF-8 validation, so non-text data is labelled binary and shown as a 64-byte-limited hex preview. Encoding and decoding stay in memory and make no filesystem, network or provider calls.
+
 ## 7. Error model
 
 Use stable error codes/categories:

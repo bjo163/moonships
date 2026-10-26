@@ -95,7 +95,7 @@
 
 **Navigation rule:** the IA is a target map, not permission to ship empty pages. Hide unavailable modules or mark them clearly as “Planned”; never present placeholder screens as working tools.
 
-M3-015 and M3-016 expose local JSON and YAML formatter/validators under one DevTools navigation item. Each tool has a labelled input, a validate-and-format action, accessible result/error feedback and a bounded scrollable output. YAML parser errors include stable parser codes and source positions. The page states that content stays local; other listed DevTools remain planned until implemented.
+M3-015 through M3-017 expose local JSON, YAML and Base64 tools under one DevTools navigation item. Each tool has labelled inputs, accessible result/error feedback and bounded output. YAML parser errors include stable parser codes and source positions. Base64 offers UTF-8 text, hexadecimal byte and decode modes; non-UTF-8 decoded data is clearly identified as binary. The page states that content stays local; other listed DevTools remain planned until implemented.
 
 ## 3. Home dashboard
 

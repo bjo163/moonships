@@ -8,7 +8,7 @@ import { TaskListPage } from "./TaskListPage";
 import { TaskDetailPage } from "./TaskDetailPage";
 import { TaskCreateDialog } from "./TaskCreateDialog";
 import { CleanerPreviewPage } from "./CleanerPreviewPage";
-import { JsonDevToolsPage } from "./JsonDevToolsPage";
+import { DevToolsPage } from "./DevToolsPage";
 import { HomeDashboardPage } from "./HomeDashboardPage";
 import { Button } from "./ui-primitives";
 import { CommandPalette, type PaletteCommand } from "./CommandPalette";
@@ -818,7 +818,7 @@ export default function App() {
       ) : route.kind === "page" && route.id === "cleaner" ? (
         <CleanerPreviewPage preview={null} />
       ) : route.kind === "page" && route.id === "devtools" ? (
-        <JsonDevToolsPage />
+        <DevToolsPage />
       ) : route.kind === "task-detail" ? (
         <TaskDetailPage taskId={route.taskId} />
       ) : (

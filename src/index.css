@@ -292,6 +292,9 @@ h1 { font-size: var(--text-xl); letter-spacing: -.035em; margin: .45rem 0 0; }
 .json-devtools__error { color: var(--color-status-danger-text); }
 .json-devtools__error p { margin: 0; }
 .json-devtools__error ul { margin: var(--space-2) 0 0; padding-left: var(--space-5); color: var(--color-text-muted); }
+.base64-devtools__binary h3 { margin: 0 0 var(--space-2); color: var(--color-status-info-text); font-size: var(--text-sm); }
+.base64-devtools__binary p { margin: 0; color: var(--color-text-muted); font-size: var(--text-sm); overflow-wrap: anywhere; }
+.base64-devtools__binary code { font-family: var(--font-mono); color: var(--color-text-primary); }
 .card-index { color: var(--color-index); font-size: var(--text-xs); letter-spacing: .12em; margin-bottom: 1.2rem; }
 .status-card h3 { font-size: var(--text-base); margin-bottom: .45rem; }
 .status-card p { color: var(--color-text-muted); font-size: var(--text-sm); min-height: 1.25rem; }

@@ -1,10 +1,11 @@
 import { useState } from "react";
+import { Base64DevToolsPanel } from "./Base64DevToolsPanel";
 import { formatJsonInput, MAX_JSON_INPUT_BYTES } from "./json-formatter";
 import { Button } from "./ui-primitives";
 import { YamlDevToolsPanel } from "./YamlDevToolsPanel";
 
-export function JsonDevToolsPage() {
-  const [activeTool, setActiveTool] = useState<"json" | "yaml">("json");
+export function DevToolsPage() {
+  const [activeTool, setActiveTool] = useState<"json" | "yaml" | "base64">("json");
 
   return (
     <section className="json-devtools" aria-labelledby="devtools-title">
@@ -18,7 +19,7 @@ export function JsonDevToolsPage() {
         </div>
       </header>
       <fieldset className="json-devtools__tabs">
-        <legend className="visually-hidden">Select a local formatter</legend>
+        <legend className="visually-hidden">Select a local DevTool</legend>
         <Button
           variant={activeTool === "json" ? "primary" : "secondary"}
           aria-pressed={activeTool === "json"}
@@ -33,8 +34,21 @@ export function JsonDevToolsPage() {
         >
           YAML formatter
         </Button>
+        <Button
+          variant={activeTool === "base64" ? "primary" : "secondary"}
+          aria-pressed={activeTool === "base64"}
+          onClick={() => setActiveTool("base64")}
+        >
+          Base64
+        </Button>
       </fieldset>
-      {activeTool === "json" ? <JsonFormatterPanel /> : <YamlDevToolsPanel />}
+      {activeTool === "json" ? (
+        <JsonFormatterPanel />
+      ) : activeTool === "yaml" ? (
+        <YamlDevToolsPanel />
+      ) : (
+        <Base64DevToolsPanel />
+      )}
     </section>
   );
 }

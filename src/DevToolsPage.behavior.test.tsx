@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import { JsonDevToolsPage } from "./JsonDevToolsPage";
+import { DevToolsPage } from "./DevToolsPage";
 
 afterEach(cleanup);
 
-describe("M3-015 JSON DevTools page", () => {
+describe("offline DevTools page", () => {
   it("validates and formats input locally while preserving numeric tokens", () => {
-    render(<JsonDevToolsPage />);
+    render(<DevToolsPage />);
     fireEvent.change(screen.getByLabelText("JSON input"), {
       target: { value: '{"n":9007199254740993}' },
     });
@@ -21,7 +21,7 @@ describe("M3-015 JSON DevTools page", () => {
   });
 
   it("shows a clear validation error for malformed input", () => {
-    render(<JsonDevToolsPage />);
+    render(<DevToolsPage />);
     fireEvent.change(screen.getByLabelText("JSON input"), { target: { value: "{bad}" } });
     fireEvent.click(screen.getByRole("button", { name: "Validate & format" }));
 
@@ -30,7 +30,7 @@ describe("M3-015 JSON DevTools page", () => {
   });
 
   it("returns parser codes and source positions for invalid YAML", () => {
-    render(<JsonDevToolsPage />);
+    render(<DevToolsPage />);
     fireEvent.click(screen.getByRole("button", { name: "YAML formatter" }));
     fireEvent.change(screen.getByLabelText("YAML input"), {
       target: { value: "items: [unterminated\n" },
@@ -41,5 +41,18 @@ describe("M3-015 JSON DevTools page", () => {
     expect(screen.getByRole("list", { name: "YAML parser issues" }).textContent).toMatch(
       /[A-Z_]+ · line \d+, column \d+/,
     );
+  });
+
+  it("keeps binary Base64 decoding distinct from UTF-8 text", () => {
+    render(<DevToolsPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Base64" }));
+    fireEvent.click(screen.getByRole("button", { name: "Base64 → bytes" }));
+    fireEvent.change(screen.getByLabelText("Base64 input"), {
+      target: { value: "AH+A/w==" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Decode Base64" }));
+
+    expect(screen.getByRole("status").textContent).toContain("Decoded as binary");
+    expect(screen.getByText(/00 7f 80 ff/).textContent).toContain("00 7f 80 ff");
   });
 });
