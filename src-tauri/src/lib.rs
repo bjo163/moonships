@@ -13,6 +13,7 @@ pub mod dns_adapter;
 pub mod domain;
 pub mod event_log_adapter;
 pub mod evidence_manifest;
+pub mod export_integrity;
 pub mod hash_tools;
 pub mod home_dashboard;
 pub mod http_inspection;

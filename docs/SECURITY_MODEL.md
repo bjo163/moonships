@@ -87,6 +87,12 @@ A capability describes authority; it does not by itself authorize every target o
 - Only the narrow native operation that needs a secret may retrieve it. A future OS-backed implementation must keep bytes within native code, use the OS secure store, and document user consent, replacement/deletion behavior and platform availability. No secret value is returned to the renderer.
 - The current interface and mock provider are contract/test infrastructure only. No OS secure-store backend, IPC command, persistence, UI or credential read/write is registered.
 
+### Export integrity manifest (M6-014)
+
+- The strict v1 manifest binds an allowlisted-format identifier and nonzero artifact version to the exact payload byte count and lowercase SHA-256 digest; payloads are capped at 2 GiB and unknown fields/manifest versions fail validation.
+- Verification fails on size or digest mismatch. The verifier consumes caller-supplied bytes and does not open paths, restore data, or modify files.
+- A checksum detects accidental changes only if the manifest itself is trusted. It is not a signature, provenance proof, encryption or tamper-proof backup; no existing export flow or backup UI is wired to it yet.
+
 ### HTTP Inspector (M6-002)
 
 - The only method is an explicit user-submitted HTTPS GET to one URL on port 443. Other ports, embedded credentials and fragments are rejected; the user sends no custom headers, authorization or cookies. Each request resolves one host once, rejects any private/local/reserved address and pins the HTTP connection to the accepted public addresses. HTTPS is required; proxies and redirects are disabled.
