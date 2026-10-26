@@ -48,7 +48,10 @@ fn nonempty_optional(value: Option<String>, limit: usize) -> Result<Option<Strin
         .map(|value| value.flatten())
 }
 
-pub fn create_project(connection: &mut Connection, request: CreateProject) -> Result<Project, String> {
+pub fn create_project(
+    connection: &mut Connection,
+    request: CreateProject,
+) -> Result<Project, String> {
     let workspace_id = request.workspace_id.trim();
     let name = request.name.trim();
     if workspace_id.is_empty() || name.is_empty() || name.chars().count() > MAX_NAME_CHARS {
@@ -56,7 +59,10 @@ pub fn create_project(connection: &mut Connection, request: CreateProject) -> Re
     }
 
     let status = request.status.as_deref().unwrap_or("planned");
-    if !matches!(status, "planned" | "active" | "paused" | "completed" | "archived") {
+    if !matches!(
+        status,
+        "planned" | "active" | "paused" | "completed" | "archived"
+    ) {
         return Err("VALIDATION_FAILED: unsupported project status".to_string());
     }
     let project_key = nonempty_optional(request.project_key, MAX_KEY_CHARS)?;
@@ -141,7 +147,9 @@ mod tests {
 
     fn fixture() -> Connection {
         let mut connection = Connection::open_in_memory().expect("disposable memory database");
-        connection.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
+        connection
+            .execute_batch("PRAGMA foreign_keys = ON;")
+            .unwrap();
         crate::run_migrations(&mut connection).expect("schema");
         connection
     }
@@ -219,7 +227,10 @@ mod tests {
     fn create_project_does_not_write_to_archived_workspace() {
         let mut connection = fixture();
         connection
-            .execute("UPDATE workspaces SET archived_at = '2026-01-01' WHERE id = ?1", params![PERSONAL])
+            .execute(
+                "UPDATE workspaces SET archived_at = '2026-01-01' WHERE id = ?1",
+                params![PERSONAL],
+            )
             .unwrap();
         let failure = create_project(&mut connection, request()).unwrap_err();
         assert!(failure.starts_with("NOT_FOUND:"));

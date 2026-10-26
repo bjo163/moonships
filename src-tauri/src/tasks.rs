@@ -150,7 +150,9 @@ mod tests {
 
     fn fixture() -> Connection {
         let mut connection = Connection::open_in_memory().expect("disposable memory database");
-        connection.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
+        connection
+            .execute_batch("PRAGMA foreign_keys = ON;")
+            .unwrap();
         crate::run_migrations(&mut connection).expect("schema");
         connection
     }
