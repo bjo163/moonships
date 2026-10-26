@@ -87,6 +87,12 @@ A capability describes authority; it does not by itself authorize every target o
 - One request is active at a time, with a process-local minimum five-second interval, 10-second total request timeout and 256 KiB response cap. No automatic retry, route-open request or background fetch occurs.
 - The response body is shown only in the current UI result and is not saved to history. History is capped at 200 and stores status, byte count, UTC observation time and bounded request/response headers only after case-insensitive redaction of authorization, proxy authorization, cookie, set-cookie, token, API-key, secret and password headers. Sensitive URL query keys (token, API key, key, secret, password, auth, signature) are redacted in history; the original query is still sent only because the user explicitly submitted the URL. Unknown headers/paths are not assumed safe when exported in a future task.
 
+### HTTP inspection Task handoff (M6-004)
+
+- The renderer submits only a UUID result handle. Native code reloads the saved history record; it never accepts a renderer-provided URL, status, header, or body as evidence.
+- The Task contains only the result ID, redacted URL, status or closed error code, observation timestamp and bounded response byte count. It never includes response body, request/response headers or original unredacted URL/query values.
+- Both stored history JSON (256 KiB) and the Task description (10,000 characters) are bounded. An evicted or malformed history row fails closed; no Task is created.
+
 ### OpenAPI document viewer (M6-003)
 
 - A user action opens the native Windows file picker; renderer code cannot supply a path. Native code reads at most 1 MiB, rejects non-UTF-8 and oversized files, and returns only the filename plus bounded text. No database persistence or network access is performed.

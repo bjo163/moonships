@@ -1,5 +1,6 @@
 //! One explicit, bounded HTTPS GET inspection. Response bodies are returned to the UI only in memory.
 use crate::rss_connector::{self, RssFetchError};
+use crate::tasks::{self, CreateTask, Task};
 use reqwest::{blocking::Client, redirect::Policy, Url};
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
@@ -260,6 +261,68 @@ pub fn list_history(connection: &Connection) -> Result<Vec<InspectionHistory>, S
     Ok(history)
 }
 
+/// Create a local Task from persisted, already-redacted inspection metadata.
+/// The result body is never read from storage or accepted from the renderer.
+pub fn create_task_from_history(
+    connection: &mut Connection,
+    history_id: &str,
+) -> Result<Task, String> {
+    let id = Uuid::parse_str(history_id)
+        .map_err(|_| "VALIDATION_FAILED: inspection result ID is invalid".to_owned())?
+        .to_string();
+    let history = connection
+        .query_row(
+            "SELECT history_json FROM http_inspection_history WHERE id = ?1",
+            [&id],
+            |row| row.get::<_, String>(0),
+        )
+        .map_err(|_| "NOT_FOUND: saved inspection result is unavailable".to_owned())?;
+    if history.len() > 256 * 1024 {
+        return Err("LIMIT_REACHED: inspection metadata exceeds its limit".to_owned());
+    }
+    let mut history: InspectionHistory = serde_json::from_str(&history)
+        .map_err(|_| "DATA_ERROR: saved inspection metadata is invalid".to_owned())?;
+    if history.id != id
+        || history.response_size_bytes as usize > MAX_RESPONSE_BYTES
+        || history.observed_at.chars().count() > 64
+        || chrono::DateTime::parse_from_rfc3339(&history.observed_at).is_err()
+    {
+        return Err("DATA_ERROR: saved inspection metadata is invalid".to_owned());
+    }
+    let mut url = Url::parse(&history.requested_url)
+        .map_err(|_| "DATA_ERROR: saved inspection metadata is invalid".to_owned())?;
+    if url.scheme() != "https" || !url.username().is_empty() || url.password().is_some() {
+        return Err("DATA_ERROR: saved inspection metadata is invalid".to_owned());
+    }
+    history.requested_url = redact_url(&mut url);
+    let description = format!(
+        "HTTP inspection result\nResult ID: {}\nURL: {}\nStatus: {}\nObserved: {}\nResponse size: {} bytes",
+        history.id,
+        history.requested_url,
+            history.status.map_or_else(|| "Failed".to_owned(), |status| format!("HTTP {status}")),
+        history.observed_at,
+        history.response_size_bytes,
+    );
+    if description.len() > 10_000 {
+        return Err(
+            "LIMIT_REACHED: inspection metadata exceeds the Task description limit".to_owned(),
+        );
+    }
+    tasks::create_task(
+        connection,
+        CreateTask {
+            workspace_id: crate::PERSONAL_WORKSPACE_ID.to_owned(),
+            project_id: None,
+            parent_task_id: None,
+            title: "Follow up HTTP inspection".to_owned(),
+            description: Some(description),
+            due_at: None,
+            status: Some("todo".to_owned()),
+            priority: Some("p2".to_owned()),
+        },
+    )
+}
+
 pub fn redact_headers<'a>(headers: impl Iterator<Item = (&'a str, &'a str)>) -> Vec<SafeHeader> {
     headers
         .take(MAX_HEADERS)
@@ -418,5 +481,47 @@ mod tests {
             .unwrap();
         assert!(!json.contains("sensitive"));
         assert!(!json.contains("bodyText"));
+    }
+
+    #[test]
+    fn follow_up_task_uses_only_saved_redacted_bounded_metadata() {
+        let mut connection = rusqlite::Connection::open_in_memory().unwrap();
+        run_migrations(&mut connection).unwrap();
+        let history = InspectionHistory {
+            id: Uuid::new_v4().to_string(),
+            requested_url: "https://example.test/status?token=%5BREDACTED%5D".to_owned(),
+            observed_at: "2026-10-26T12:00:00Z".to_owned(),
+            status: Some(200),
+            request_headers: vec![],
+            response_headers: vec![SafeHeader {
+                name: "set-cookie".to_owned(),
+                value: "[REDACTED]".to_owned(),
+            }],
+            response_size_bytes: 12,
+            error_code: None,
+        };
+        persist_history(&connection, &history).unwrap();
+        connection
+            .execute(
+                "UPDATE http_inspection_history SET history_json = replace(history_json, '%5BREDACTED%5D', 'secret') WHERE id = ?1",
+                [&history.id],
+            )
+            .unwrap();
+        let task = create_task_from_history(&mut connection, &history.id).unwrap();
+        let description = task.description.unwrap();
+        assert!(description.contains(&history.id));
+        assert!(description.contains("token=%5BREDACTED%5D"));
+        assert!(!description.contains("secret"));
+        assert!(description.contains("Response size: 12 bytes"));
+        assert!(!description.contains("REDACTED]"));
+        assert!(!description.contains("body"));
+    }
+
+    #[test]
+    fn follow_up_task_rejects_unknown_or_invalid_result_handles() {
+        let mut connection = rusqlite::Connection::open_in_memory().unwrap();
+        run_migrations(&mut connection).unwrap();
+        assert!(create_task_from_history(&mut connection, "not-a-uuid").is_err());
+        assert!(create_task_from_history(&mut connection, &Uuid::new_v4().to_string()).is_err());
     }
 }

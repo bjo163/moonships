@@ -32,6 +32,7 @@ describe("M6-002 HTTP Inspector", () => {
           bodyIsUtf8: true,
         });
       if (command === undefined) return Promise.resolve([]);
+      if (command === "create_task_from_http_inspection") return Promise.resolve({ id: "task-1" });
       return Promise.reject(new Error(`Unexpected ${command}`));
     });
 
@@ -50,6 +51,11 @@ describe("M6-002 HTTP Inspector", () => {
     });
     expect(await screen.findByText("HTTP 200")).toBeTruthy();
     expect(screen.getAllByText("[REDACTED]").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: "Create follow-up Task" }));
+    expect(await screen.findByText("Task created: task-1")).toBeTruthy();
+    expect(invokeMock).toHaveBeenCalledWith("create_task_from_http_inspection", {
+      request: { historyId: "inspection-1" },
+    });
   });
 
   it("shows history read failures instead of a false empty state", async () => {

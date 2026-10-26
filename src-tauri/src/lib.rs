@@ -268,6 +268,12 @@ struct CreateTaskFromDiagnosticRequestDto {
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct CreateTaskFromHttpInspectionRequestDto {
+    history_id: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct ListTasksRequestDto {}
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
@@ -783,6 +789,15 @@ fn list_http_inspection_history(
 ) -> Result<Vec<http_inspection::InspectionHistory>, String> {
     let connection = open_personal_workspace_database(&app)?;
     http_inspection::list_history(&connection)
+}
+
+#[tauri::command]
+fn create_task_from_http_inspection(
+    app: AppHandle,
+    request: CreateTaskFromHttpInspectionRequestDto,
+) -> Result<TaskDto, String> {
+    let mut connection = open_personal_workspace_database(&app)?;
+    http_inspection::create_task_from_history(&mut connection, &request.history_id).map(Into::into)
 }
 
 #[tauri::command]
@@ -1923,6 +1938,7 @@ pub fn run() {
             export_intelligence_source,
             inspect_http_response,
             list_http_inspection_history,
+            create_task_from_http_inspection,
             select_openapi_document,
             set_intelligence_source_enabled,
             list_intelligence_watchlists,

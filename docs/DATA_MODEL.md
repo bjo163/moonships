@@ -21,6 +21,8 @@ M6-002 schema v16 adds a bounded local HTTP inspection history of at most 200 ro
 
 M6-003 creates no database records. A native picker returns a bounded UTF-8 document and leaf filename for the current view only. The parsed OpenAPI metadata and original text are in-memory UI state and are discarded when the page is left; no paths, source contents or resolved references are persisted.
 
+M6-004 stores no new link table: a follow-up Task description records the opaque HTTP history ID and a bounded metadata snapshot (redacted URL, status/error, observation time and response byte count). The source history remains separately capped at 200 rows; if it is evicted, the ID remains in the Task as provenance, but its history detail is no longer available. Response bodies and headers are excluded.
+
 ### Workspace
 Purpose: local grouping of projects, settings and views.
 Fields: id, name, description?, profile_type?, created_at, updated_at, archived_at?.

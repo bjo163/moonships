@@ -23,6 +23,7 @@ export function HttpInspectorPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [taskCreated, setTaskCreated] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -46,6 +47,7 @@ export function HttpInspectorPage() {
     if (busy) return;
     setBusy(true);
     setError(null);
+    setTaskCreated(null);
     setResult(null);
     try {
       const response = await invoke<Result>("inspect_http_response", { request: { url } });
@@ -63,6 +65,29 @@ export function HttpInspectorPage() {
           : reason instanceof Error
             ? reason.message
             : "HTTP inspection failed.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const createFollowUpTask = async () => {
+    if (!result || busy) return;
+    setBusy(true);
+    setError(null);
+    setTaskCreated(null);
+    try {
+      const task = await invoke<{ id: string }>("create_task_from_http_inspection", {
+        request: { historyId: result.history.id },
+      });
+      setTaskCreated(task.id);
+    } catch (reason) {
+      setError(
+        typeof reason === "string"
+          ? reason
+          : reason instanceof Error
+            ? reason.message
+            : "Could not create a follow-up Task.",
       );
     } finally {
       setBusy(false);
@@ -113,6 +138,15 @@ export function HttpInspectorPage() {
             Observed {new Date(result.history.observedAt).toLocaleString()} ·{" "}
             {result.history.responseSizeBytes} bytes
           </p>
+          <p>Saved result ID: {result.history.id}</p>
+          <p className="muted">
+            A follow-up Task includes only this saved redacted metadata. The response body is never
+            attached.
+          </p>
+          <Button type="button" disabled={busy} onClick={() => void createFollowUpTask()}>
+            Create follow-up Task
+          </Button>
+          {taskCreated ? <p role="status">Task created: {taskCreated}</p> : null}
           <h4>Response headers</h4>
           <dl className="intelligence-metadata">
             {result.history.responseHeaders.map((header) => (
