@@ -164,6 +164,9 @@ The global New task button and registered New Task palette command open the same
 ### M2-018 persisted Task List
 The Tasks navigation and registered Open Tasks command lead to the Personal workspace's persisted active tasks. The table shows title, Project or Personal inbox, canonical status, priority, due date and last update. Column controls expose the active sort direction to assistive technology; sorting uses a copied array and stable ID tie-breaker, with no storage mutation. Initial order is title ascending. Loading, empty and database error states remain distinct with a retry; if optional Project names cannot load, the task records remain visible with that limitation explained. Search, combined filters, archived-task browsing and task editing are later slices.
 
+### M2-019 Task Board
+The Tasks page switches between List and Board using one shared set of persisted Task records. Board columns follow all seven canonical statuses. A card can move by drag-and-drop or by its labelled status select, which provides keyboard operation. Both paths update through the existing native Task update command and display the returned saved record; a failed update leaves the Task in its prior status and reports the failure. Board and List must not keep separate status state.
+
 ## 5. Command Palette (Ctrl+K)
 
 Search categories:

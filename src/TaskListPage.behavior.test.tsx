@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TaskListPage } from "./TaskListPage";
@@ -99,6 +99,132 @@ describe("M2-018 persisted Task List", () => {
         .map((row) => row.textContent),
     ).toEqual(["Zeta task", "Alpha task", "alpha task"]);
     expect(sampleTasks.map((task) => task.id)).toEqual(originalOrder);
+  });
+
+  it("groups tasks by canonical status and saves a Board status move through Task IPC", async () => {
+    const user = userEvent.setup();
+    let tasks = [...sampleTasks];
+    invokeMock.mockImplementation(
+      async (
+        command: string,
+        args?: { request?: { id: string; status: TaskRecord["status"] } },
+      ) => {
+        if (command === "list_tasks") return { tasks };
+        if (command === "list_projects") return { projects: [project] };
+        if (command === undefined) return { tasks };
+        if (command === "update_task") {
+          const request = args?.request;
+          const saved = {
+            ...tasks.find((task) => task.id === request?.id)!,
+            status: request!.status,
+          };
+          tasks = tasks.map((task) => (task.id === saved.id ? saved : task));
+          return saved;
+        }
+        throw new Error(`Unexpected command: ${command}`);
+      },
+    );
+    render(<TaskListPage onCreateTask={() => undefined} onOpenTask={() => undefined} />);
+
+    await user.click(await screen.findByRole("button", { name: "Board" }));
+    const board = screen.getByRole("region", { name: "Tasks grouped by status" });
+    expect(within(board).getByRole("region", { name: "Blocked" })).toBeTruthy();
+    expect(within(board).getByRole("region", { name: "Todo" })).toBeTruthy();
+    expect(
+      within(screen.getByRole("region", { name: "Blocked" })).getByRole("button", {
+        name: "Alpha task",
+      }),
+    ).toBeTruthy();
+
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Move Zeta task to status" }),
+      "done",
+    );
+    expect(invokeMock).toHaveBeenCalledWith("update_task", {
+      request: {
+        id: "task-z",
+        projectId: "project-1",
+        title: "Zeta task",
+        description: null,
+        dueAt: null,
+        status: "done",
+        priority: "p2",
+      },
+    });
+    expect(await screen.findByText("Zeta task moved to Done and saved.")).toBeTruthy();
+    expect(
+      within(screen.getByRole("region", { name: "Done" })).getByRole("button", {
+        name: "Zeta task",
+      }),
+    ).toBeTruthy();
+    expect(tasks.find((task) => task.id === "task-z")?.status).toBe("done");
+  });
+
+  it("keeps a task in its saved column and reports an update failure", async () => {
+    const user = userEvent.setup();
+    invokeMock.mockImplementation(async (command: string) => {
+      if (command === "list_tasks") return { tasks: sampleTasks };
+      if (command === "list_projects") return { projects: [project] };
+      if (command === undefined) return { tasks: sampleTasks };
+      if (command === "update_task") throw new Error("database unavailable");
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    render(<TaskListPage onCreateTask={() => undefined} onOpenTask={() => undefined} />);
+
+    await user.click(await screen.findByRole("button", { name: "Board" }));
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Move Zeta task to status" }),
+      "done",
+    );
+    expect((await screen.findByRole("status")).textContent).toContain(
+      "The Board stays on Todo until a saved update is confirmed.",
+    );
+    expect(
+      (screen.getByRole("combobox", { name: "Move Zeta task to status" }) as HTMLSelectElement)
+        .value,
+    ).toBe("todo");
+    expect(
+      within(screen.getByRole("region", { name: "Todo" })).getByRole("button", {
+        name: "Zeta task",
+      }),
+    ).toBeTruthy();
+  });
+
+  it("persists a drag-and-drop move through the same Task update command", async () => {
+    let tasks = [...sampleTasks];
+    invokeMock.mockImplementation(
+      async (
+        command: string,
+        args?: { request?: { id: string; status: TaskRecord["status"] } },
+      ) => {
+        if (command === "list_tasks" || command === undefined) return { tasks };
+        if (command === "list_projects") return { projects: [project] };
+        if (command === "update_task") {
+          const request = args?.request;
+          const saved = {
+            ...tasks.find((task) => task.id === request?.id)!,
+            status: request!.status,
+          };
+          tasks = tasks.map((task) => (task.id === saved.id ? saved : task));
+          return saved;
+        }
+        throw new Error(`Unexpected command: ${command}`);
+      },
+    );
+    render(<TaskListPage onCreateTask={() => undefined} onOpenTask={() => undefined} />);
+
+    await userEvent.setup().click(await screen.findByRole("button", { name: "Board" }));
+    const dataTransfer = { getData: () => "task-z" };
+    fireEvent.drop(screen.getByRole("region", { name: "Done" }), { dataTransfer });
+
+    expect(await screen.findByText("Zeta task moved to Done and saved.")).toBeTruthy();
+    expect(invokeMock).toHaveBeenCalledWith(
+      "update_task",
+      expect.objectContaining({
+        request: expect.objectContaining({ id: "task-z", status: "done" }),
+      }),
+    );
+    expect(tasks.find((task) => task.id === "task-z")?.status).toBe("done");
   });
 
   it("distinguishes an empty persisted list from an unavailable list and retries", async () => {
