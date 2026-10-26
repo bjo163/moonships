@@ -45,7 +45,7 @@ M2-013 `due_at` contract: the JSON field is `dueAt` and carries either `null`/om
 
 ### TaskDependency
 Fields: task_id, depends_on_task_id, dependency_type, created_at.
-MVP dependency type: blocks/blocked_by via one canonical directed relation. Enforce no self-dependency and prevent cycles if dependencies affect scheduling. Keep dependency semantics documented.
+M2-005 migration v7 stores one directed relation: `task_id` is `blocked_by` its prerequisite `depends_on_task_id`; the inverse “blocks” wording is derived and is not stored as a second edge. Both Task references are constrained to the same workspace, the self-edge is rejected by both the service and SQLite, and repeating the same edge is idempotent. The current model does not use dependency edges for scheduling or reject longer cycles. If scheduling starts consuming the graph, cycle rejection must be added before that behavior ships.
 
 ### TaskLabel / Label
 Labels have a workspace-scoped identity and many-to-many Task associations through `task_labels`; do not store label arrays in Task rows. M2-004 migration v6 uses a composite workspace foreign key for both sides of the relationship. A label's duplicate identity is its trimmed display name after internal whitespace is collapsed to one ASCII space and Unicode lowercase conversion is applied. Thus `Needs Review`, ` needs   review ` and `NEEDS REVIEW` conflict within the same workspace. The first label's trimmed, whitespace-collapsed spelling is retained for display. The same normalized name is allowed in another workspace. This rule does not perform Unicode canonical-equivalence normalization. Repeating the same Task-label association is idempotent.

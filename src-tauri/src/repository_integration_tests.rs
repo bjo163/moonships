@@ -2,7 +2,7 @@
 
 use rusqlite::{params, Connection};
 
-use crate::{labels, projects, run_migrations, tasks};
+use crate::{labels, projects, run_migrations, task_dependencies, tasks};
 
 const PERSONAL: &str = "00000000-0000-4000-8000-000000000001";
 
@@ -172,6 +172,63 @@ fn labels_are_workspace_unique_and_task_relationships_are_scoped_and_idempotent(
     assert!(labels::list_task_labels(&connection, PERSONAL, &task.id)
         .expect("read after remove")
         .is_empty());
+}
+
+#[test]
+fn task_dependencies_reject_self_and_cross_workspace_links() {
+    let mut connection = disposable_database();
+    connection
+        .execute(
+            "INSERT INTO workspaces (id, name) VALUES ('other-workspace', 'Other')",
+            [],
+        )
+        .expect("other workspace");
+    let task = create_task(&mut connection, PERSONAL, None, "Blocked task");
+    let prerequisite = create_task(&mut connection, PERSONAL, None, "Prerequisite task");
+    let other_task = create_task(&mut connection, "other-workspace", None, "Other task");
+
+    assert_eq!(
+        task_dependencies::add_dependency(&connection, PERSONAL, &task.id, &task.id)
+            .expect_err("self dependency is rejected"),
+        "VALIDATION_FAILED: a Task cannot depend on itself"
+    );
+    assert!(
+        task_dependencies::add_dependency(&connection, PERSONAL, &task.id, &other_task.id).is_err()
+    );
+
+    let dependency =
+        task_dependencies::add_dependency(&connection, PERSONAL, &task.id, &prerequisite.id)
+            .expect("create directed dependency");
+    assert_eq!(dependency.task_id, task.id);
+    assert_eq!(dependency.depends_on_task_id, prerequisite.id);
+    assert_eq!(dependency.dependency_type, "blocked_by");
+    assert_eq!(
+        task_dependencies::add_dependency(&connection, PERSONAL, &task.id, &prerequisite.id)
+            .expect("repeated dependency is idempotent"),
+        dependency
+    );
+    assert_eq!(
+        task_dependencies::list_dependencies_for_task(&connection, PERSONAL, &task.id)
+            .expect("list Task dependencies"),
+        vec![dependency]
+    );
+
+    assert!(connection
+        .execute(
+            "INSERT INTO task_dependencies (workspace_id, task_id, depends_on_task_id)
+             VALUES (?1, ?2, ?2)",
+            params![PERSONAL, task.id],
+        )
+        .is_err());
+    task_dependencies::remove_dependency(&connection, PERSONAL, &task.id, &prerequisite.id)
+        .expect("remove dependency");
+    task_dependencies::remove_dependency(&connection, PERSONAL, &task.id, &prerequisite.id)
+        .expect("repeated removal is idempotent");
+    assert!(
+        task_dependencies::list_dependencies_for_task(&connection, PERSONAL, &task.id)
+            .expect("list after removal")
+            .is_empty()
+    );
 }
 
 #[test]

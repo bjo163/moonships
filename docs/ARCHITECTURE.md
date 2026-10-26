@@ -92,6 +92,8 @@ The native SQLite initializer runs a versioned migration runner before the app f
 
 M2-004 migration v6 adds `labels` with a workspace-scoped normalized-name uniqueness constraint and `task_labels` with composite workspace foreign keys to both Tasks and Labels. The native labels service collapses surrounding/internal whitespace, applies Unicode lowercase for duplicate identity, and retains the first trimmed/collapsed display spelling. Repeating the same Task-label link is idempotent. The service does not expose arbitrary paths or SQL; UI/IPC integration and label deletion remain future work.
 
+M2-005 migration v7 adds a directed `task_dependencies` relation with composite workspace foreign keys to both Tasks, a database/service self-dependency guard, and one canonical `blocked_by` row per edge. The reverse `blocks` relation is derived. Dependency edges are not used for scheduling yet; cycle rejection is required before a future scheduler consumes them.
+
 ## Tauri command DTO conventions
 
 Every frontend-to-native command must use an explicit, named request/response contract once it crosses the Tauri IPC boundary. Do not expose internal domain structs directly as a long-lived IPC schema.

@@ -4,6 +4,7 @@ pub mod domain;
 pub mod labels;
 pub mod local_logging;
 pub mod projects;
+pub mod task_dependencies;
 pub mod task_status;
 pub mod tasks;
 
@@ -50,7 +51,7 @@ fn open_database_in(app_data_dir: &Path) -> Result<Connection, String> {
     Ok(connection)
 }
 
-const CURRENT_SCHEMA_VERSION: i64 = 6;
+const CURRENT_SCHEMA_VERSION: i64 = 7;
 const PERSONAL_WORKSPACE_ID: &str = "00000000-0000-4000-8000-000000000001";
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
@@ -423,6 +424,32 @@ pub(crate) fn run_migrations(connection: &mut Connection) -> Result<(), String> 
                 INSERT INTO schema_migrations (version) VALUES (6);",
             )
             .map_err(|error| format!("Could not apply label schema migration: {error}"))?;
+    }
+
+    if current_version < 7 {
+        transaction
+            .execute_batch(
+                "CREATE TABLE task_dependencies (
+                    workspace_id TEXT NOT NULL,
+                    task_id TEXT NOT NULL,
+                    depends_on_task_id TEXT NOT NULL,
+                    dependency_type TEXT NOT NULL DEFAULT 'blocked_by'
+                        CHECK (dependency_type = 'blocked_by'),
+                    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+                    PRIMARY KEY (workspace_id, task_id, depends_on_task_id),
+                    FOREIGN KEY (workspace_id, task_id)
+                        REFERENCES tasks (workspace_id, id) ON DELETE CASCADE,
+                    FOREIGN KEY (workspace_id, depends_on_task_id)
+                        REFERENCES tasks (workspace_id, id) ON DELETE CASCADE,
+                    CHECK (task_id != depends_on_task_id)
+                );
+                CREATE INDEX idx_task_dependencies_workspace_prerequisite
+                    ON task_dependencies (workspace_id, depends_on_task_id, task_id);
+                INSERT INTO schema_migrations (version) VALUES (7);",
+            )
+            .map_err(|error| {
+                format!("Could not apply Task dependency schema migration: {error}")
+            })?;
     }
 
     transaction
@@ -1232,7 +1259,8 @@ mod tests {
         // index name so schema v3 fails *after* CREATE TABLE projects succeeds.
         connection
             .execute_batch(
-                "DROP TABLE task_labels;
+                "DROP TABLE task_dependencies;
+                 DROP TABLE task_labels;
                  DROP TABLE labels;
                  DROP TABLE activity_events;
                  DROP TABLE tasks;
@@ -1443,7 +1471,8 @@ mod tests {
         run_migrations(&mut connection).expect("create schema fixture");
         connection
             .execute_batch(
-                "DROP TABLE task_labels;
+                "DROP TABLE task_dependencies;
+                 DROP TABLE task_labels;
                  DROP TABLE labels;
                  DROP TABLE activity_events;
                  DROP TABLE tasks;
@@ -1490,7 +1519,8 @@ mod tests {
         run_migrations(&mut connection).expect("create fixture");
         connection
             .execute_batch(
-                "DROP TABLE task_labels;
+                "DROP TABLE task_dependencies;
+                 DROP TABLE task_labels;
                  DROP TABLE labels;
                  DROP TABLE activity_events;
                  DROP TABLE tasks;
@@ -1547,7 +1577,8 @@ mod tests {
         run_migrations(&mut connection).expect("fresh baseline");
         connection
             .execute_batch(
-                "DROP TABLE task_labels;
+                "DROP TABLE task_dependencies;
+                 DROP TABLE task_labels;
                  DROP TABLE labels;
                  DROP TABLE activity_events;
                  DELETE FROM schema_migrations WHERE version >= 5;
@@ -1595,7 +1626,8 @@ mod tests {
         run_migrations(&mut connection).expect("baseline");
         connection
             .execute_batch(
-                "DROP TABLE task_labels;
+                "DROP TABLE task_dependencies;
+                 DROP TABLE task_labels;
                  DROP TABLE labels;
                  DROP TABLE activity_events;
                  DELETE FROM schema_migrations WHERE version >= 5;
@@ -1634,15 +1666,16 @@ mod tests {
     }
 
     #[test]
-    fn upgrading_v5_adds_workspace_scoped_labels_without_changing_existing_data() {
+    fn upgrading_v5_adds_labels_and_dependencies_without_changing_existing_data() {
         let dir = unique_temp_dir("labels-upgrade");
         let mut connection = open_database_in(&dir).expect("disposable connection");
         run_migrations(&mut connection).expect("create current baseline");
         connection
             .execute_batch(
-                "DROP TABLE task_labels;
+                "DROP TABLE task_dependencies;
+                 DROP TABLE task_labels;
                  DROP TABLE labels;
-                 DELETE FROM schema_migrations WHERE version = 6;
+                 DELETE FROM schema_migrations WHERE version >= 6;
                  INSERT INTO projects (id, workspace_id, name)
                  VALUES ('label-project', '00000000-0000-4000-8000-000000000001', 'Preserve');
                  INSERT INTO tasks (id, workspace_id, project_id, title)
@@ -1659,7 +1692,7 @@ mod tests {
                 row.get(0)
             })
             .expect("schema version");
-        assert_eq!(version, 6);
+        assert_eq!(version, CURRENT_SCHEMA_VERSION);
         let preserved: (String, String, String) = connection
             .query_row(
                 "SELECT p.name, t.title, m.value
@@ -1689,9 +1722,10 @@ mod tests {
         run_migrations(&mut connection).expect("create current baseline");
         connection
             .execute_batch(
-                "DROP TABLE task_labels;
+                "DROP TABLE task_dependencies;
+                 DROP TABLE task_labels;
                  DROP TABLE labels;
-                 DELETE FROM schema_migrations WHERE version = 6;
+                 DELETE FROM schema_migrations WHERE version >= 6;
                  INSERT INTO app_metadata (key, value) VALUES ('keep-label-data', 'original');
                  CREATE TABLE unrelated_label_fixture (id TEXT);
                  CREATE INDEX idx_labels_workspace_name
@@ -1718,6 +1752,89 @@ mod tests {
         let saved: String = connection
             .query_row(
                 "SELECT value FROM app_metadata WHERE key = 'keep-label-data'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("existing metadata preserved");
+        assert_eq!(saved, "original");
+        drop(connection);
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn upgrading_v6_adds_task_dependencies_without_changing_existing_labels() {
+        let dir = unique_temp_dir("dependencies-upgrade");
+        let mut connection = open_database_in(&dir).expect("disposable connection");
+        run_migrations(&mut connection).expect("create current baseline");
+        connection
+            .execute_batch(
+                "DROP TABLE task_dependencies;
+                 DELETE FROM schema_migrations WHERE version = 7;
+                 INSERT INTO tasks (id, workspace_id, title)
+                 VALUES ('blocked-task', '00000000-0000-4000-8000-000000000001', 'Blocked');
+                 INSERT INTO tasks (id, workspace_id, title)
+                 VALUES ('prerequisite-task', '00000000-0000-4000-8000-000000000001', 'Prerequisite');
+                 INSERT INTO labels (id, workspace_id, name, normalized_name)
+                 VALUES ('saved-label', '00000000-0000-4000-8000-000000000001', 'Keep', 'keep');
+                 INSERT INTO task_labels (workspace_id, task_id, label_id)
+                 VALUES ('00000000-0000-4000-8000-000000000001', 'blocked-task', 'saved-label');",
+            )
+            .expect("v6 fixture with existing labeled task");
+
+        run_migrations(&mut connection).expect("v6 to v7");
+        run_migrations(&mut connection).expect("idempotent v7");
+        let dependency_exists: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master
+                 WHERE type = 'table' AND name = 'task_dependencies'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("dependency schema exists");
+        assert_eq!(dependency_exists, 1);
+        let label_link_count: i64 = connection
+            .query_row("SELECT COUNT(*) FROM task_labels", [], |row| row.get(0))
+            .expect("existing Task-label links survive");
+        assert_eq!(label_link_count, 1);
+        drop(connection);
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn failed_task_dependency_migration_rolls_back_schema_and_version() {
+        let dir = unique_temp_dir("dependencies-rollback");
+        let mut connection = open_database_in(&dir).expect("disposable connection");
+        run_migrations(&mut connection).expect("create current baseline");
+        connection
+            .execute_batch(
+                "DROP TABLE task_dependencies;
+                 DELETE FROM schema_migrations WHERE version = 7;
+                 INSERT INTO app_metadata (key, value) VALUES ('keep-dependency-data', 'original');
+                 CREATE TABLE unrelated_dependency_fixture (id TEXT);
+                 CREATE INDEX idx_task_dependencies_workspace_prerequisite
+                    ON unrelated_dependency_fixture (id);",
+            )
+            .expect("reserved index collision fixture");
+
+        assert!(run_migrations(&mut connection).is_err());
+        let table_count: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master
+                 WHERE type = 'table' AND name = 'task_dependencies'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("schema inspection");
+        assert_eq!(table_count, 0, "failed migration table must roll back");
+        let version: i64 = connection
+            .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| {
+                row.get(0)
+            })
+            .expect("schema version");
+        assert_eq!(version, 6, "failed migration must not record version 7");
+        let saved: String = connection
+            .query_row(
+                "SELECT value FROM app_metadata WHERE key = 'keep-dependency-data'",
                 [],
                 |row| row.get(0),
             )
