@@ -154,6 +154,9 @@ Priority describes importance; it is not the same as security severity or execut
 5. Optional: description, due date, labels, parent task, dependencies
 6. Save; keyboard escape cancels without persisting accidental partial data.
 
+### M2-016 persisted Task creation slice
+The global New task button and registered New Task palette command open the same accessible dialog. It requires a nonblank title, offers active Personal-workspace Projects or the Personal inbox, and defaults status/priority to Todo/P2 Normal. The form saves through typed native IPC; success is shown only after the local Task service returns the created record. Failed Project loading is distinct from an empty project list and leaves inbox creation available with a retry for the optional list. Validation is attached to the title field and announced; Escape and Cancel close without invoking the create command. The form prevents closing during an in-flight save to avoid ambiguity about an operation that may already have persisted.
+
 ## 5. Command Palette (Ctrl+K)
 
 Search categories:
