@@ -133,6 +133,8 @@ M6-007 defines the security assessment setup contract: authorized host/IP target
 
 M6-008 adds a native policy check for request and redirect destinations against that validated scope. Out-of-scope, excluded and unsupported URLs fail before a network request; this task adds no scanner or request runner.
 
+M6-009 adds the finding data contract and a reusable presentation fragment. Severity (impact) and Likelihood (chance) appear as separate labelled rows; Task priority is not used as a substitute. There is no persisted findings list or fabricated sample data in this task.
+
 M6-003 adds **OpenAPI Viewer** under Toolbox. A user selects a local JSON/YAML file through the native picker. Loading, cancellation, parse/validation failure and a valid summary are distinct. The screen displays spec version, title, API version and path count, then offers the source text in a collapsed, escaped-text viewer. It states the 1 MiB limit and that validation is structural/local, does not resolve references and never contacts API servers.
 
 ## 4. Project & task UX

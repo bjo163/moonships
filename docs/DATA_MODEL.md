@@ -31,6 +31,8 @@ M6-007 assessment scope is a strict declaration containing up to 100 exact hostn
 
 M6-008 uses the validated scope to check an HTTP(S) URL host before a request and to resolve/recheck each redirect URL before following. Matching is exact host/IP identity; exclusions take precedence. This is an in-memory policy gate, not a request client, and does not resolve DNS or persist targets.
 
+M6-009 `SecurityFinding` carries a UUID, bounded title/summary, `severity`, `likelihood`, lifecycle state, validated exact target and RFC 3339 observation time. Severity and likelihood are separate closed enums; neither is collapsed into task priority or a computed risk value. Evidence references, persistence and assessment run linkage are deferred.
+
 ### Workspace
 Purpose: local grouping of projects, settings and views.
 Fields: id, name, description?, profile_type?, created_at, updated_at, archived_at?.

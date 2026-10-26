@@ -347,6 +347,8 @@ M6-007 defines a strict security-assessment scope declaration with exact hostnam
 
 M6-008 adds a pre-request URL scope gate. It matches canonical hostnames/IP literals exactly, gives explicit exclusions precedence, rejects unsupported schemes/credentials/fragments, checks expiry at request time, and resolves then revalidates each redirect destination before a caller may follow it. The gate makes no request itself; any future executor must call it before every request and redirect.
 
+M6-009 defines a bounded typed finding with closed severity, likelihood and lifecycle enums, scoped target identity and observation time. Severity and likelihood are independent required fields; there is no derived risk/priority field. A reusable UI summary renders the two dimensions in separate labelled rows; persistence and the assessment findings screen remain future work.
+
 M6-003 adds a local OpenAPI document viewer. A native file chooser reads at most 1 MiB of UTF-8 text and returns no path; parsing/validation runs locally with YAML 1.2 duplicate-key rejection and aliases disabled. The validator checks OpenAPI 3.0/3.1 version, `info.title`, `info.version` and a bounded `paths` object. The original file text is shown as escaped text only. It neither resolves `$ref`, loads remote schemas, nor contacts API servers; this is a bounded structural validator, not full OpenAPI conformance.
 
 ## 11. AI adapter boundary

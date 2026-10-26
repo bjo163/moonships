@@ -34,6 +34,7 @@ pub mod project_task_export;
 pub mod projects;
 pub mod research_notes;
 pub mod rss_connector;
+pub mod security_findings;
 pub mod service_inventory;
 pub mod subnet_calculator;
 pub mod system_inventory;

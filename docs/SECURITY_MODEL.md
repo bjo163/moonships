@@ -117,6 +117,12 @@ A capability describes authority; it does not by itself authorize every target o
 - Permit only HTTP(S) URLs without embedded credentials or fragments. Resolve relative redirects against the current URL, then apply the same scope check to the resolved destination before following; reject external, excluded or unsupported destinations before network activity.
 - The gate performs no DNS lookup or request and is not a complete SSRF control by itself. Future network execution must additionally pin/validate resolved addresses, restrict ports, enforce deadlines/rate limits and disable unchecked redirects.
 
+### Security finding model (M6-009)
+
+- Severity and likelihood are independent required closed enums; do not substitute Task priority for either or present one combined value as if it were both.
+- Finding title/summary lengths, canonical UUID, exact target and RFC 3339 observation time are validated. Free-form provider payloads, credentials and evidence blobs are not fields in this model.
+- The reusable UI presents Severity and Likelihood as separate named rows. This model does not establish exploitability or automatically compute a risk score.
+
 ### OpenAPI document viewer (M6-003)
 
 - A user action opens the native Windows file picker; renderer code cannot supply a path. Native code reads at most 1 MiB, rejects non-UTF-8 and oversized files, and returns only the filename plus bounded text. No database persistence or network access is performed.

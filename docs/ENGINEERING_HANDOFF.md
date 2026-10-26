@@ -549,3 +549,7 @@ Added a strict declaration and pre-start validator for exact hostname/IP targets
 ## M6-008 Out-of-scope destination checks — 2026-10-26
 
 Added exact normalized host/IP request validation against a validated assessment scope. Exclusions take precedence; unsupported schemes, credentials and fragments are denied; scope expiry is checked again before each request. Redirect locations resolve relative to the current URL and pass the same gate before a future caller could follow them. Verification passed: assessment-scope suite 9/9; full Rust suite 254/254; Clippy with warnings denied; Rust formatting; backlog validation (142/238 checked); and `git diff --check`. The gate performs no DNS lookup or network request and still requires a future executor to validate resolved addresses and enforce port/deadline limits.
+
+## M6-009 Security finding model — 2026-10-26
+
+Added a strict finding DTO with bounded title/summary, UUID, validated target and RFC 3339 observation time. Severity and likelihood are independent required closed enums, separate from Task priority and any computed risk score. A reusable React fragment displays Severity and Likelihood in distinct labelled rows; no persisted findings screen or sample finding is added. Verification passed: finding model tests 3/3; finding-fields UI test 1/1; full frontend suite 215/215; repository tests 8/8; typecheck and production build via `npm run check`; full Rust suite 257/257; Clippy with warnings denied; Rust formatting; backlog validation (143/238 checked); and `git diff --check`.
