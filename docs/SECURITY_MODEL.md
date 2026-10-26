@@ -145,6 +145,13 @@ Risk class is separate from task priority, vulnerability severity and business i
 - `isLive` is true only for an enabled source with a valid successful timestamp no later than the configured freshness threshold and no blocked/error/rate-limit/unavailable/stale health state.
 - Missing, malformed or future last-success values cannot be presented as current. A failed fetch retains the prior success timestamp but updates health, so an earlier success never masks a current failure as live. UI consumers must render both status and timestamp from the typed freshness view.
 
+### Source settings and controls (M5-008)
+
+- Connector declarations are stored only in the app-owned SQLite database. Native commands accept strict typed payloads, validate the full connector contract, cap the source count, and expose no renderer-supplied path, SQL, host scope, or request limits.
+- New sources remain disabled. Enablement requires a user declaration that terms were reviewed; restricted or unreviewed sources cannot be enabled. Changing a feed URL disables the source and clears its old freshness timestamps.
+- The displayed polling interval is a minimum-cadence setting, not a scheduler. This milestone adds no startup fetch, page-open fetch, timer, background polling or automatic retry. Any future scheduler requires a separate explicit opt-in and review. A disabled declaration cannot pass the RSS fetch boundary.
+- The renderer displays source URLs and terms notes as text and links only to validated HTTPS URLs. Failure to read persisted settings is shown as unavailable rather than as an empty list.
+
 ### Read-only system inventory (M4-007)
 
 - Inventory reads only OS family/process architecture, available logical processors, physical memory counters and capacity/free bytes on the volume containing the Windows directory.

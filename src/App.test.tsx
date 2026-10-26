@@ -89,15 +89,7 @@ describe("Moonships application shell", () => {
     expect(markup).toContain("DevTools");
     expect(markup).toContain("Clean &amp; Storage");
     expect(markup).toContain('aria-current="page"');
-    for (const label of [
-      "My Work",
-      "Toolbox",
-      "Security",
-      "Intelligence",
-      "Operations",
-      "Knowledge",
-      "Settings",
-    ]) {
+    for (const label of ["My Work", "Toolbox", "Security", "Operations", "Knowledge", "Settings"]) {
       expect(markup).toContain(label);
     }
 
@@ -106,7 +98,8 @@ describe("Moonships application shell", () => {
     expect(navigation).not.toContain('href="#"');
     expect(navigation).toContain('href="#/projects"');
     expect(navigation).toContain('href="#/tasks"');
-    expect(navigation?.match(/class="nav-state">Planned<\/span>/g)).toHaveLength(7);
+    expect(navigation).toContain('href="#/intelligence-sources"');
+    expect(navigation?.match(/class="nav-state">Planned<\/span>/g)).toHaveLength(6);
   });
 
   it("resolves registered route IDs and keeps the legacy home hash compatible", () => {
@@ -116,6 +109,10 @@ describe("Moonships application shell", () => {
     expect(resolveRoute("#/tasks")).toEqual({ kind: "page", id: "tasks" });
     expect(resolveRoute("#/cleaner")).toEqual({ kind: "page", id: "cleaner" });
     expect(resolveRoute("#/devtools")).toEqual({ kind: "page", id: "devtools" });
+    expect(resolveRoute("#/intelligence-sources")).toEqual({
+      kind: "page",
+      id: "intelligence-sources",
+    });
     expect(resolveRoute("#/projects/project-id")).toEqual({
       kind: "project-overview",
       projectId: "project-id",

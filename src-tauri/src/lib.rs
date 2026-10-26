@@ -14,6 +14,7 @@ pub mod home_dashboard;
 pub mod intelligence_dedupe;
 pub mod intelligence_identity;
 pub mod intelligence_items;
+pub mod intelligence_sources;
 pub mod jobs;
 pub mod labels;
 pub mod local_logging;
@@ -76,7 +77,7 @@ fn open_database_in(app_data_dir: &Path) -> Result<Connection, String> {
     Ok(connection)
 }
 
-const CURRENT_SCHEMA_VERSION: i64 = 10;
+const CURRENT_SCHEMA_VERSION: i64 = 11;
 const PERSONAL_WORKSPACE_ID: &str = "00000000-0000-4000-8000-000000000001";
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
@@ -457,6 +458,85 @@ struct MilestoneListResponseDto {
     milestones: Vec<MilestoneDto>,
 }
 
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct SaveConnectorSettingsDto {
+    id: Option<String>,
+    display_name: String,
+    source_url: String,
+    terms_url: Option<String>,
+    terms_notes: String,
+    terms_review: connectors::TermsReview,
+    minimum_poll_interval_seconds: u64,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct SetConnectorEnabledDto {
+    id: String,
+    enabled: bool,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ConnectorSourceDto {
+    connector: connectors::ConnectorDefinition,
+    freshness: connector_freshness::ConnectorFreshnessView,
+}
+
+fn connector_source_dto(connector: connectors::ConnectorDefinition) -> ConnectorSourceDto {
+    let now = chrono::DateTime::<chrono::Utc>::from(std::time::SystemTime::now());
+    let freshness = connector_freshness::ConnectorFreshnessView::evaluate(&connector, &now);
+    ConnectorSourceDto {
+        connector,
+        freshness,
+    }
+}
+
+#[tauri::command]
+fn list_intelligence_sources(app: AppHandle) -> Result<Vec<ConnectorSourceDto>, String> {
+    let connection = open_personal_workspace_database(&app)?;
+    let mut sources = intelligence_sources::list_sources(&connection)?;
+    sources.sort_by(|left, right| {
+        left.display_name
+            .to_lowercase()
+            .cmp(&right.display_name.to_lowercase())
+            .then_with(|| left.id.cmp(&right.id))
+    });
+    Ok(sources.into_iter().map(connector_source_dto).collect())
+}
+
+#[tauri::command]
+fn save_intelligence_source(
+    app: AppHandle,
+    request: SaveConnectorSettingsDto,
+) -> Result<ConnectorSourceDto, String> {
+    let mut connection = open_personal_workspace_database(&app)?;
+    intelligence_sources::save_source(
+        &mut connection,
+        intelligence_sources::SaveConnectorSettings {
+            id: request.id,
+            display_name: request.display_name,
+            source_url: request.source_url,
+            terms_url: request.terms_url,
+            terms_notes: request.terms_notes,
+            terms_review: request.terms_review,
+            minimum_poll_interval_seconds: request.minimum_poll_interval_seconds,
+        },
+    )
+    .map(connector_source_dto)
+}
+
+#[tauri::command]
+fn set_intelligence_source_enabled(
+    app: AppHandle,
+    request: SetConnectorEnabledDto,
+) -> Result<ConnectorSourceDto, String> {
+    let mut connection = open_personal_workspace_database(&app)?;
+    intelligence_sources::set_enabled(&mut connection, &request.id, request.enabled)
+        .map(connector_source_dto)
+}
+
 impl From<tasks::Task> for TaskDto {
     fn from(task: tasks::Task) -> Self {
         Self {
@@ -795,6 +875,22 @@ pub(crate) fn run_migrations(connection: &mut Connection) -> Result<(), String> 
             CREATE INDEX IF NOT EXISTS idx_jobs_created ON jobs(created_at DESC,id DESC);
             INSERT OR IGNORE INTO schema_migrations (version) VALUES (10);"
         ).map_err(|error| format!("Could not apply job migration: {error}"))?;
+    }
+
+    if current_version < 11 {
+        transaction
+            .execute_batch(
+                "CREATE TABLE IF NOT EXISTS intelligence_connectors (
+                    id TEXT PRIMARY KEY NOT NULL CHECK (length(id) BETWEEN 1 AND 64),
+                    connector_json TEXT NOT NULL CHECK (length(connector_json) BETWEEN 2 AND 65536),
+                    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+                    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+                );
+                INSERT OR IGNORE INTO schema_migrations (version) VALUES (11);",
+            )
+            .map_err(|error| {
+                format!("Could not apply intelligence connector migration: {error}")
+            })?;
     }
 
     transaction
@@ -1331,6 +1427,9 @@ pub fn run() {
             associate_milestone_task,
             update_milestone,
             list_cleanup_reports,
+            list_intelligence_sources,
+            save_intelligence_source,
+            set_intelligence_source_enabled,
             hash_sha256_text,
             hash_sha256_selected_file
         ])
@@ -1415,14 +1514,15 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::{
-        database_path, hide_to_tray_enabled, open_database_in, run_migrations,
-        AssociateMilestoneTaskRequestDto, CreateMilestoneRequestDto, CreateProjectRequestDto,
-        CreateTaskRequestDto, ListMilestonesRequestDto, ListProjectsRequestDto,
-        ListTasksRequestDto, MilestoneDto, MilestoneListResponseDto, ProjectActivityDto,
-        ProjectDto, ProjectListResponseDto, ProjectOverviewRequestDto, ProjectOverviewResponseDto,
-        TaskActivityDto, TaskActivityListResponseDto, TaskDto, TaskListResponseDto, TaskRequestDto,
-        UpdateTaskRequestDto, CURRENT_SCHEMA_VERSION, DATABASE_BUSY_TIMEOUT_MS, DATABASE_FILE_NAME,
-        PERSONAL_WORKSPACE_ID,
+        connector_source_dto, database_path, hide_to_tray_enabled, open_database_in,
+        run_migrations, AssociateMilestoneTaskRequestDto, ConnectorSourceDto,
+        CreateMilestoneRequestDto, CreateProjectRequestDto, CreateTaskRequestDto,
+        ListMilestonesRequestDto, ListProjectsRequestDto, ListTasksRequestDto, MilestoneDto,
+        MilestoneListResponseDto, ProjectActivityDto, ProjectDto, ProjectListResponseDto,
+        ProjectOverviewRequestDto, ProjectOverviewResponseDto, SaveConnectorSettingsDto,
+        SetConnectorEnabledDto, TaskActivityDto, TaskActivityListResponseDto, TaskDto,
+        TaskListResponseDto, TaskRequestDto, UpdateTaskRequestDto, CURRENT_SCHEMA_VERSION,
+        DATABASE_BUSY_TIMEOUT_MS, DATABASE_FILE_NAME, PERSONAL_WORKSPACE_ID,
     };
     use std::{
         fs,
@@ -1554,6 +1654,43 @@ mod tests {
             r#"{"id":"task-id","projectId":null,"title":"Task","description":null,"dueAt":null,"status":"todo","priority":"p2","path":"C:/data"}"#
         )
         .is_err());
+    }
+
+    #[test]
+    fn intelligence_source_ipc_requests_are_narrow_and_response_is_stable() {
+        let request: SaveConnectorSettingsDto = serde_json::from_str(
+            r#"{"id":null,"displayName":"JPL feed","sourceUrl":"https://cneos.jpl.nasa.gov/feed/news.xml","termsUrl":null,"termsNotes":"Public feed; respect terms.","termsReview":"unreviewed","minimumPollIntervalSeconds":900}"#,
+        )
+        .expect("typed connector settings");
+        assert_eq!(request.minimum_poll_interval_seconds, 900);
+        assert!(serde_json::from_str::<SaveConnectorSettingsDto>(
+            r#"{"id":null,"displayName":"JPL feed","sourceUrl":"https://cneos.jpl.nasa.gov/feed/news.xml","termsUrl":null,"termsNotes":"Public feed; respect terms.","termsReview":"unreviewed","minimumPollIntervalSeconds":900,"path":"C:/data"}"#
+        )
+        .is_err());
+        let toggle: SetConnectorEnabledDto =
+            serde_json::from_str(r#"{"id":"rss-example","enabled":false}"#)
+                .expect("typed enable request");
+        assert!(!toggle.enabled);
+        assert!(serde_json::from_str::<SetConnectorEnabledDto>(
+            r#"{"id":"rss-example","enabled":false,"url":"https://attacker.example"}"#
+        )
+        .is_err());
+
+        let connector = crate::connectors::ConnectorDefinition::user_configured_rss(
+            "rss-example".to_owned(),
+            "Example feed".to_owned(),
+            "https://example.test/feed.xml".to_owned(),
+            None,
+            "Terms reviewed separately.".to_owned(),
+            crate::connectors::TermsReview::Unreviewed,
+            900,
+        );
+        let response: ConnectorSourceDto = connector_source_dto(connector);
+        let json = serde_json::to_value(response).expect("serialize source view");
+        assert_eq!(json["connector"]["enabled"], false);
+        assert_eq!(json["connector"]["minimumPollIntervalSeconds"], 900);
+        assert_eq!(json["freshness"]["status"], "disabled");
+        assert_eq!(json["freshness"]["isLive"], false);
     }
 
     #[test]

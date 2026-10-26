@@ -8,6 +8,7 @@ import { getPaletteCommands, getRegisteredCommand } from "./command-registry";
 import { DevToolsPage } from "./DevToolsPage";
 import { type GlobalSearchResult, loadGlobalSearch } from "./global-search";
 import { HomeDashboardPage } from "./HomeDashboardPage";
+import { IntelligenceSourcesPage } from "./IntelligenceSourcesPage";
 import { NetOpsPage } from "./NetOpsPage";
 import { ProcessesPage } from "./ProcessesPage";
 import { ProjectOverviewPage } from "./ProjectOverviewPage";
@@ -36,7 +37,6 @@ const plannedNavigationItems = [
   "My Work",
   "Toolbox",
   "Security",
-  "Intelligence",
   "Operations",
   "Knowledge",
   "Settings",
@@ -143,6 +143,13 @@ export function AppShell({
             aria-current={activeRoute === "netops" ? "page" : undefined}
           >
             <span>NetOps</span>
+          </a>
+          <a
+            className={`nav-item${activeRoute === "intelligence-sources" ? " nav-item-active" : ""}`}
+            href="#/intelligence-sources"
+            aria-current={activeRoute === "intelligence-sources" ? "page" : undefined}
+          >
+            <span>Intelligence Sources</span>
           </a>
           {plannedNavigationItems.map((label) => (
             <div
@@ -859,6 +866,8 @@ export default function App() {
         <ActivityCenterPage />
       ) : route.kind === "page" && route.id === "netops" ? (
         <NetOpsPage />
+      ) : route.kind === "page" && route.id === "intelligence-sources" ? (
+        <IntelligenceSourcesPage />
       ) : route.kind === "task-detail" ? (
         <TaskDetailPage taskId={route.taskId} />
       ) : (

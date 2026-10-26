@@ -443,6 +443,12 @@ M3-007 exposes Clean & Storage as a workspace route and adds a read-only preview
 
 A map is optional until source location precision, rights, coverage and update cadence are documented. List/timeline remains useful when mapping data is unavailable.
 
+### Intelligence sources (M5-008)
+
+The implemented route is **Intelligence Sources** (`#/intelligence-sources`). It lists only locally saved RSS declarations with enablement, terms-review state, minimum poll interval, freshness and last-success time. An honest loading, unavailable/retry and empty state are distinct. Add/edit controls collect a display name, HTTPS feed URL, optional terms URL, user-entered access notes, terms-review choice and minimum interval. New sources begin disabled; enabling is a separate action. Changing the URL disables the source and clears its previous freshness.
+
+The interval is not a background schedule. The page does not fetch when opened, and it offers no automatic polling until a later task adds a separately reviewed opt-in scheduler. Enabled means eligible for an explicit manual fetch only. Do not imply fresh/live data without the typed freshness view.
+
 ### Settings
 
 ```text

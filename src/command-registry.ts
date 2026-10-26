@@ -33,6 +33,16 @@ export type RegisteredCommand =
       keywords: string[];
     }
   | {
+      id: "navigation.intelligence-sources";
+      kind: "navigate";
+      route: RouteId;
+      title: string;
+      description: string;
+      category: string;
+      risk: "read-only";
+      keywords: string[];
+    }
+  | {
       id: "settings.open";
       kind: "settings";
       title: string;
@@ -100,6 +110,16 @@ export const COMMAND_REGISTRY: readonly RegisteredCommand[] = [
     category: "Navigation",
     risk: "read-only",
     keywords: ["tasks", "todo", "work"],
+  },
+  {
+    id: "navigation.intelligence-sources",
+    kind: "navigate",
+    route: "intelligence-sources",
+    title: "Open Intelligence Sources",
+    description: "Manage locally saved RSS source settings",
+    category: "Navigation",
+    risk: "read-only",
+    keywords: ["intelligence", "sources", "rss", "feeds"],
   },
   {
     id: "settings.open",

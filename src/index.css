@@ -103,6 +103,189 @@
   --color-orbit-glow: #a783ed40;
 }
 
+.intelligence-sources-page {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.intelligence-sources-page .page-header h2,
+.intelligence-sources-page .section-heading h3 {
+  margin: 0;
+}
+
+.intelligence-sources-page .page-description,
+.field-help {
+  color: var(--color-text-muted);
+  line-height: var(--line-height-body);
+}
+
+.notice-card,
+.empty-state,
+.source-card,
+.source-form-section {
+  background: var(--color-surface);
+  border: var(--border-width-default) solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: var(--space-5);
+}
+
+.notice-card {
+  color: var(--color-status-info-text);
+  background: var(--color-status-info-surface);
+}
+
+.section-heading,
+.source-card-heading,
+.source-actions,
+.source-form-actions {
+  align-items: center;
+  display: flex;
+  gap: var(--space-3);
+  justify-content: space-between;
+}
+
+.source-list,
+.source-form-section {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.source-cards {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+}
+
+.source-card {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.source-card h4,
+.empty-state h4 {
+  margin: 0 0 var(--space-2);
+}
+
+.source-card-heading a {
+  color: var(--color-link);
+  overflow-wrap: anywhere;
+}
+
+.source-status {
+  background: var(--color-status-info-surface);
+  border-radius: var(--radius-pill);
+  color: var(--color-status-info-text);
+  flex: 0 0 auto;
+  font-size: var(--text-xs);
+  padding: var(--space-1) var(--space-3);
+  text-transform: capitalize;
+}
+
+.source-status-fresh {
+  background: var(--color-status-success-surface);
+  color: var(--color-status-success-text);
+}
+
+.source-status-stale,
+.source-status-unknown,
+.source-status-rate_limited {
+  background: var(--color-status-warning-surface);
+  color: var(--color-status-warning-text);
+}
+
+.source-status-blocked,
+.source-status-error,
+.source-status-disabled,
+.source-status-unavailable {
+  background: var(--color-status-danger-surface);
+  color: var(--color-status-danger-text);
+}
+
+.source-details {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  margin: 0;
+}
+
+.source-details dt {
+  color: var(--color-text-subtle);
+  font-size: var(--text-xs);
+  margin-bottom: var(--space-1);
+}
+
+.source-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.source-form {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.source-form label {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.source-form input,
+.source-form textarea,
+.source-form select {
+  background: var(--color-canvas);
+  border: var(--border-width-default) solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  font: inherit;
+  min-height: 2.5rem;
+  padding: var(--space-2) var(--space-3);
+  width: 100%;
+}
+
+.source-form textarea {
+  resize: vertical;
+}
+
+.source-form > #source-url-help,
+.source-form > label:has(textarea),
+.source-form > label:has(textarea) + label,
+.source-form-actions {
+  grid-column: 1 / -1;
+}
+
+.source-form-actions {
+  justify-content: flex-start;
+}
+
+.inline-alert,
+.inline-status {
+  align-items: center;
+  display: flex;
+  gap: var(--space-3);
+}
+
+.inline-alert {
+  color: var(--color-status-danger-text);
+}
+
+.inline-status {
+  color: var(--color-status-success-text);
+  margin: 0;
+}
+
+@media (max-width: 700px) {
+  .source-form {
+    grid-template-columns: 1fr;
+  }
+  .source-form > * {
+    grid-column: 1 / -1;
+  }
+  .source-card-heading {
+    align-items: flex-start;
+  }
+}
+
 /* Light theme is selectable through data-theme; M1-012 adds the persisted UI control. */
 :root[data-theme="light"] {
   color-scheme: light;

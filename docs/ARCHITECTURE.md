@@ -311,7 +311,9 @@ M5-005 adds conservative HTTPS URL canonicalization and a versioned SHA-256 cont
 
 M5-006 groups a bounded in-memory batch of at most 2,000 items when they share a canonical URL or recomputed content fingerprint. Each group retains every validated item in input order and exposes all unique source IDs in first-seen order; supplied external hashes are not trusted as a grouping key. This creates an aggregation view only, not a persisted merge or deletion.
 
-M5-007 derives a serializable freshness view from connector enablement, health, last-success time and its declared freshness threshold. Only `fresh` sets `isLive`; stale, failed, blocked, rate-limited, disabled, missing, invalid and future timestamps never claim live data. RSS attempts update the caller's in-memory last-attempt/last-success timestamps and health. Source persistence/settings and the screens that render this view are later tasks.
+M5-007 derives a serializable freshness view from connector enablement, health, last-success time and its declared freshness threshold. Only `fresh` sets `isLive`; stale, failed, blocked, rate-limited, disabled, missing, invalid and future timestamps never claim live data. RSS attempts update the caller's in-memory last-attempt/last-success timestamps and health.
+
+M5-008 adds a versioned SQLite table for bounded, user-configured RSS declarations and narrow native list/save/enable commands. The renderer cannot supply storage paths or SQL. New sources are disabled, must be explicitly marked terms-reviewed before enablement, and are reset to disabled when the feed URL changes. The Intelligence Sources page displays persisted settings and freshness, provides cadence and terms controls, and does not fetch on open. Poll cadence is configuration metadata only; there is no background scheduler or startup request, and disabled sources are rejected by the RSS adapter.
 
 ## 11. AI adapter boundary
 

@@ -149,8 +149,43 @@ pub enum ConnectorValidationError {
 }
 
 impl ConnectorDefinition {
+    pub fn user_configured_rss(
+        id: String,
+        display_name: String,
+        source_url: String,
+        terms_url: Option<String>,
+        terms_notes: String,
+        terms_review: TermsReview,
+        minimum_poll_interval_seconds: u64,
+    ) -> Self {
+        Self {
+            id,
+            kind: ConnectorKind::Rss,
+            display_name,
+            source_url,
+            access_method: AccessMethod::PublicRss,
+            terms_review,
+            terms_url,
+            terms_notes,
+            minimum_poll_interval_seconds,
+            request_timeout_ms: 5_000,
+            maximum_response_bytes: 512_000,
+            maximum_items_per_run: 100,
+            freshness_threshold_seconds: 3_600.max(minimum_poll_interval_seconds),
+            enabled: false,
+            health: ConnectorHealth::NotConfigured,
+            last_attempt_at: None,
+            last_success_at: None,
+        }
+    }
+
     pub fn is_enabled(&self) -> bool {
         self.enabled
+    }
+
+    pub fn disable(&mut self) {
+        self.enabled = false;
+        self.health = ConnectorHealth::Disabled;
     }
 
     pub fn validate(&self) -> Result<(), ConnectorValidationError> {
