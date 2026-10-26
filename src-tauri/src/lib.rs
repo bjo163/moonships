@@ -32,6 +32,8 @@ pub mod jobs;
 pub mod labels;
 pub mod local_logging;
 pub mod local_metrics;
+#[cfg(feature = "mcp")]
+pub mod mcp_adapter;
 pub mod milestones;
 pub mod network_diagnostics;
 pub mod notification_preferences;

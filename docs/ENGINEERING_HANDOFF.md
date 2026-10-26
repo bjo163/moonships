@@ -659,3 +659,9 @@ Verification passed: AI summary-attribution tests 3/3; full Rust library suite 3
 Added a synthetic untrusted-text attack asking the model to invent a secret-export tool. Exact registry matching rejects the invented tool, the synthetic credential is not sent in provider context, and the rejected output is not returned. These local fake-provider checks verify the current boundary only; there is no production AI model connected.
 
 Verification passed: focused adversarial fixture test 1/1; full Rust library suite 305/305; `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`; `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`; backlog validation (161/238 checked); and `git diff --check`. Backlog before this task: 160/238 checked (67.2%); after this task: 161/238 checked (67.6%). M2-035 remains open by direction.
+
+## M7-014 Feature-gated MCP adapter contract spike — 2026-10-26
+
+Pinned the optional MCP contract spike to protocol `2026-07-28` and official Rust SDK `rmcp` 3.7.0. Cargo feature `mcp` is off by default. The adapter parses SDK-typed `tools/list` results, filters them to an explicit server/tool allowlist, drops remote descriptions and annotations, and enforces response/tool/schema limits. It has no transport, process launch, network or tool-call path. SDK 3.7.0 is above the published 3.6.0 security fix floor.
+
+Verification passed: feature-gated MCP contract tests 3/3; full default-feature Rust suite 305/305; full MCP-enabled Rust suite 308/308; `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`; Clippy with and without `--features mcp`; backlog validation (162/238 checked); and `git diff --check`. Backlog before this task: 161/238 checked (67.6%); after this task: 162/238 checked (68.1%). M2-035 remains open by direction.
