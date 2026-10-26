@@ -128,6 +128,9 @@ The M2-017 initial detail route opens from a Task title in the active Tasks list
 
 Future detail fields may include parent/subtasks, assignee, labels, estimate, dependencies, comments, linked artifacts/references and activity. Duplicate, archive, link-artifact, dependency and export actions remain scheduled separately.
 
+### Shared Project & Task data states — M2-028
+Projects, Project Overview, Task List and Task detail show loading while reads are pending. A successful empty result has purpose-specific empty copy; a failed database read has an error state instead of the empty state. Read-only lists/overviews offer retry. Task detail keeps loaded form values available after a save failure for another attempt. Failure to load optional Project names or the Project picker is shown separately from a Task/database failure, so valid Task data remains usable.
+
 ### Default status set
 - Backlog
 - Todo
