@@ -1,12 +1,21 @@
 # Moonships — Engineering Continuity & Foundation Evidence
 
+## M2-032 Project-to-Task persistence smoke — 2026-10-26
+
+`project_to_task_status_flow_persists_after_database_reopen` uses a disposable file-backed database, real schema migrations, and the validated Project/Task services. It creates a Project and linked Task, updates Task description/status/priority, closes the connection, reopens the same database, and verifies both persisted records and their association. The temporary database is removed afterward. This verifies native persistence across a database reopen; manual Windows UI restart/accessibility evidence remains open.
+
+**Verification passed:** targeted smoke test (1/1); `cargo test --manifest-path src-tauri/Cargo.toml --all-targets` (73 passed); `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`; Rust format check; and `git diff --check`. Implementation commit `f9daa55` passed Repository regression checks CI [40270033159](https://github.com/bjo163/moonships/actions/runs/40270033159), all 5/5 jobs including Windows packaging. Documentation/backlog commit `4b2836b` passed docs CI [40270601676](https://github.com/bjo163/moonships/actions/runs/40270601676) (5/5 jobs). Backlog sync [40270601714](https://github.com/bjo163/moonships/actions/runs/40270601714) succeeded and closed existing issue #66.
+
+The requested P0 sequence M2-011, M2-013, M2-031, M2-014, M2-016, M2-018, M2-015, M2-017, M2-028 and M2-032 is complete. Manual Windows runtime/accessibility validation and M2 milestone exit gates remain open. No secondary task is included in this checkpoint.
+
+
 ## M2-028 persisted Project/Task states — 2026-10-26
 
 Explicit state behavior across Projects, Project Overview, Task List, Task detail and Task creation now has behavioral coverage. Loading reads show a loading state; successful zero results show accurate empty copy; read failures show error content rather than an empty list, with retry on safe reads. Project activity's empty result is distinct from activity-read failure. Supplemental Project-name/picker failures are separate and leave Task data usable; failed Task edits retain form values for retry. No code behavior change was needed for this acceptance task: the behaviors landed with M2-014/015/016/017/018 and this task verifies their shared acceptance.
 
 **Verification passed:** `npm run check` (8 repository tests, 86 frontend tests, typecheck and production build); `git diff --check`. The behavior suite includes Projects unavailable-vs-empty/retry, Task List unavailable-vs-empty/retry, Project Overview empty-activity-vs-failure/retry, Task detail read failure/retry and Task creation optional-Project failure. Biome prints the existing CLI/config version warning. Documentation checkpoint CI [40269028326](https://github.com/bjo163/moonships/actions/runs/40269028326) passed 5/5 jobs; issue #51 is closed and issue #62 is closed through backlog-sync run [40269028296](https://github.com/bjo163/moonships/actions/runs/40269028296).
 
-**Exact next task in the requested order:** M2-032 — Project-to-Task end-to-end smoke; existing issue #66. Manual Windows runtime/accessibility and M2 exit gates remain open.
+**At this checkpoint, the requested P0 sequence is complete; M2-032 is documented below. Manual Windows runtime/accessibility and M2 exit gates remain open.**
 
 ## M2-017 persisted Task detail/edit — 2026-10-26
 
