@@ -224,7 +224,7 @@ mod tests {
         CleanupRoot, CleanupRule, EligibilityDecision, EligibilityExclusion, RuleValidationError,
     };
     use std::time::{Duration, SystemTime};
-    use std::{fs, io::Write};
+    use std::{fs, io, io::Write, path::Path};
 
     const NOW: SystemTime = SystemTime::UNIX_EPOCH;
 
@@ -524,5 +524,53 @@ mod tests {
         );
 
         fs::remove_dir_all(fixture).expect("remove disposable path fixture");
+    }
+
+    #[test]
+    fn outside_directory_link_is_skipped_and_cannot_escape_allowed_root() {
+        let fixture = std::env::temp_dir().join(format!("moonships-link-{}", uuid::Uuid::new_v4()));
+        let root = fixture.join("root");
+        let outside = fixture.join("outside");
+        fs::create_dir_all(&root).expect("create allowed root");
+        fs::create_dir(&outside).expect("create outside target");
+        let outside_file = outside.join("keep.txt");
+        fs::write(&outside_file, b"outside target remains intact").expect("write outside target");
+        let link = root.join("redirect");
+        create_directory_symlink(&outside, &link).expect("create directory link fixture");
+
+        assert_eq!(
+            super::validate_cleanup_path(&root, &link, &[]),
+            Err(super::CleanupPathError::OutsideAllowedRoot),
+        );
+        let candidates = super::scan_read_only(&root, CleanupRoot::AppTemporary)
+            .expect("scan root with external directory link");
+        assert!(candidates.is_empty(), "scanner must not follow the link");
+        assert_eq!(
+            fs::read(&outside_file).expect("read outside target after scan"),
+            b"outside target remains intact",
+        );
+
+        fs::remove_dir_all(fixture).expect("remove disposable link fixture");
+    }
+
+    #[cfg(windows)]
+    fn create_directory_symlink(target: &Path, link: &Path) -> io::Result<()> {
+        let status = std::process::Command::new("cmd")
+            .args(["/C", "mklink", "/J"])
+            .arg(link)
+            .arg(target)
+            .status()?;
+        if status.success() {
+            Ok(())
+        } else {
+            Err(io::Error::other(
+                "could not create Windows junction fixture",
+            ))
+        }
+    }
+
+    #[cfg(unix)]
+    fn create_directory_symlink(target: &Path, link: &Path) -> io::Result<()> {
+        std::os::unix::fs::symlink(target, link)
     }
 }

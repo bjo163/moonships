@@ -305,3 +305,7 @@ Added a test-only metadata traversal helper beneath a disposable fixture root. I
 ## M3-003 Cleaner path containment — 2026-10-26
 
 Added `validate_cleanup_path`: canonicalizes an existing allowed root, candidate and native-policy protected paths; rejects unresolved paths, invalid roots, the root itself, outside-root traversal and protected descendants. Tests use disposable fixtures for valid paths, `..` escape, protected target, root target and missing-path fail-closed behavior. This is metadata/path resolution only and performs no mutation. Canonicalization does not close link or TOCTOU races; M3-004 and later revalidation remain required. Full Rust tests passed 105/105, Clippy with warnings denied, formatting and `git diff --check` passed. **Next task:** M3-004 symlink/junction escape behavior.
+
+## M3-004 Cleaner junction policy — 2026-10-26
+
+The read-only fixture test now creates a Windows directory junction pointing outside the allowlisted root. Path canonicalization rejects the junction target as outside-root, and traversal sees no candidates because it skips the junction rather than recursing. The external fixture file remains byte-identical. This Windows junction test passed locally. The test uses a fixed `mklink /J` invocation with generated disposable paths; no product code launches a process. Broader checks and backlog validation are being rerun. **Next task:** M3-005 candidate identity contract.
