@@ -46,6 +46,7 @@ pub mod task_status;
 pub mod tasks;
 pub mod traceroute_adapter;
 pub mod trend_calculation;
+pub mod workflow_schema;
 
 #[cfg(test)]
 mod repository_integration_tests;

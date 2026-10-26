@@ -385,6 +385,7 @@ Before executing an assessment:
 - Store only necessary AI traces; redact tokens, personal data and local paths where possible.
 - Provide local-only/no-AI mode.
 - If a model is unavailable or returns invalid output, fail closed for that AI-dependent operation while preserving ordinary non-AI tools.
+- M7-001 workflow documents are bounded to 1 MiB, reject unknown fields and value tags, and require explicit tool ID/version plus typed input values. The schema parser does not grant tool authority or perform registry lookup/execution; later workflow validation and the independent policy gate remain mandatory.
 
 ## 8. Secrets and privacy
 
