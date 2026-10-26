@@ -55,8 +55,8 @@ describe("Moonships application shell", () => {
     expect(markup).toContain("Hide to tray on close");
     expect(markup).toContain('role="status" aria-live="polite"');
     expect(markup).toContain("Notification and permission controls");
-    expect(markup).toContain("These capabilities are not connected yet.");
-    expect(markup).toContain('aria-label="Desktop notifications (Planned)"');
+    expect(markup).toContain("They are sent only");
+    expect(markup).toContain('aria-label="Desktop notifications after manual Intelligence fetch"');
     expect(markup).toContain('aria-label="Background monitoring permission (Planned)"');
     expect(markup).toContain('class="nav-state">Planned</span>');
   });

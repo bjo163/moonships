@@ -160,6 +160,8 @@ Link notes to sources/artifacts through a join table to preserve provenance.
 
 M5-013 adds a bounded local ResearchNote linked to one IntelligenceItem ID and a typed reference snapshot of source ID, source/original URLs, publication/observation times and verification state. The note does not copy the item body. Version-1 research export contains the note plus that attribution snapshot; an `itemAvailable` flag reflects retention without deleting the note/reference. Collections and general Notes CRUD remain future M10 work.
 
+M5-014 stores `app.notifications.v1` as strict non-secret app metadata with its own schema version and an `enabled` flag that defaults to `false`. It contains no source content or permission tokens; system permission remains owned by the operating system.
+
 ## 3. Relationship summary
 
 - Workspace 1:N Projects, Tasks, SavedViews, Notes, Settings (app-wide settings may be separate).

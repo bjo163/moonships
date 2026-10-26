@@ -22,6 +22,7 @@ pub mod labels;
 pub mod local_logging;
 pub mod milestones;
 pub mod network_diagnostics;
+pub mod notification_preferences;
 pub mod ping_adapter;
 pub mod process_inventory;
 pub mod project_task_export;
@@ -542,6 +543,23 @@ fn fetch_intelligence_source(
     let result = intelligence_item_store::fetch_and_store(&mut connection, &mut source);
     intelligence_sources::save_runtime_state(&mut connection, &source)?;
     let fetched_count = result.map_err(|error| format!("FETCH_ERROR: {error:?}"))?;
+    let notifications_enabled = notification_preferences::load(&connection)
+        .map(|preferences| preferences.enabled)
+        .unwrap_or(false);
+    if notification_preferences::should_notify_after_manual_fetch(
+        notifications_enabled,
+        fetched_count,
+    ) {
+        use tauri_plugin_notification::NotificationExt;
+        let _ = app
+            .notification()
+            .builder()
+            .title("Moonships Intelligence")
+            .body(format!(
+                "Your manual fetch returned {fetched_count} intelligence items."
+            ))
+            .show();
+    }
     Ok(FetchIntelligenceResultDto {
         source_id: request.id,
         fetched_count,
@@ -1646,6 +1664,23 @@ fn set_hide_to_tray(
     Ok(request)
 }
 
+#[tauri::command]
+fn get_notification_preferences(
+    app: AppHandle,
+) -> Result<notification_preferences::NotificationPreferences, String> {
+    let connection = open_personal_workspace_database(&app)?;
+    notification_preferences::load(&connection)
+}
+
+#[tauri::command]
+fn set_notification_preferences(
+    app: AppHandle,
+    request: notification_preferences::SetNotificationPreferencesRequest,
+) -> Result<notification_preferences::NotificationPreferences, String> {
+    let connection = open_personal_workspace_database(&app)?;
+    notification_preferences::save(&connection, request)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     use tauri::{
@@ -1663,9 +1698,12 @@ pub fn run() {
                 let _ = window.set_focus();
             }
         }))
+        .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![
             get_hide_to_tray,
             set_hide_to_tray,
+            get_notification_preferences,
+            set_notification_preferences,
             get_app_config,
             set_app_config,
             list_projects,

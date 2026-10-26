@@ -175,6 +175,12 @@ Risk class is separate from task priority, vulnerability severity and business i
 - Save accepts only a validated stored item ID; the native service creates an app-generated note ID and a typed source-attribution snapshot. The note body does not duplicate fetched item text, source content remains untrusted, and saves are idempotent per item.
 - Export serializes a bounded versioned note/reference document and opens only a native save dialog. The renderer supplies a note ID, never a path. Cancellation writes nothing; an existing selected destination is rejected rather than overwritten. The reference snapshot remains if the bounded item store later evicts its item, and export declares item availability.
 
+### Desktop notifications (M5-014)
+
+- Notification delivery defaults off and is checked in the native fetch command. Only a successful user-triggered fetch with returned items can produce a generic notification; permission or notification API failures never fail the fetch. The notification contains no feed title, item title, URL or source content.
+- OS permission is requested only from the Settings enable action. The renderer receives only permission-check/request APIs, not notification-send authority; native code owns sending and reads the strict persisted preference. Disabling the preference suppresses future notifications even if OS permission remains granted.
+- Enabling notifications does not enable connectors, start network access, or schedule work. No startup, timer, background, or notification-triggered fetch is implemented.
+
 ### Read-only system inventory (M4-007)
 
 - Inventory reads only OS family/process architecture, available logical processors, physical memory counters and capacity/free bytes on the volume containing the Windows directory.

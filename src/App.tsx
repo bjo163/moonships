@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { isPermissionGranted, requestPermission } from "@tauri-apps/plugin-notification";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { ActivityCenterPage } from "./ActivityCenterPage";
 import { CleanerPreviewPage } from "./CleanerPreviewPage";
@@ -270,6 +271,71 @@ export function SettingsDialog({
   onToggleHideToTray: () => void;
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [notificationsStatus, setNotificationsStatus] = useState(
+    "Loading notification preference…",
+  );
+  const [notificationsAvailable, setNotificationsAvailable] = useState(false);
+  const [notificationsLoading, setNotificationsLoading] = useState(true);
+  const [notificationsSaving, setNotificationsSaving] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void invoke<{ enabled: boolean }>("get_notification_preferences")
+      .then(({ enabled }) => {
+        if (!cancelled) {
+          setNotificationsEnabled(enabled);
+          setNotificationsAvailable(true);
+          setNotificationsStatus(
+            enabled
+              ? "Notifications are enabled for items returned by your manual fetches."
+              : "Notifications are off. No background fetch or monitoring runs.",
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled)
+          setNotificationsStatus("Notification preferences require the Moonships desktop app.");
+      })
+      .finally(() => {
+        if (!cancelled) setNotificationsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const toggleNotifications = async () => {
+    const enabled = !notificationsEnabled;
+    setNotificationsSaving(true);
+    setNotificationsStatus("Saving notification preference…");
+    try {
+      if (enabled) {
+        let granted = await isPermissionGranted();
+        if (!granted) granted = (await requestPermission()) === "granted";
+        if (!granted) {
+          setNotificationsStatus(
+            "System notification permission was not granted; notifications remain off.",
+          );
+          return;
+        }
+      }
+      const saved = await invoke<{ enabled: boolean }>("set_notification_preferences", {
+        request: { enabled },
+      });
+      setNotificationsEnabled(saved.enabled);
+      setNotificationsStatus(
+        saved.enabled
+          ? "Enabled. Notifications appear only after a manual fetch returns items."
+          : "Disabled. No desktop notifications will be sent.",
+      );
+    } catch {
+      setNotificationsStatus("Could not update notification settings on this device.");
+    } finally {
+      setNotificationsSaving(false);
+    }
+  };
+
   useEffect(() => {
     closeRef.current?.focus();
   }, []);
@@ -333,18 +399,27 @@ export function SettingsDialog({
               <p className="eyebrow">NOTIFICATIONS / PERMISSIONS</p>
               <h3 id="notifications-title">Notification and permission controls</h3>
             </div>
-            <span className="nav-state">Planned</span>
           </div>
           <p className="settings-note">
-            These capabilities are not connected yet. Controls stay disabled until a real permission
-            flow and user-visible behavior are implemented.
+            Desktop notifications are optional and require system permission. They are sent only
+            after an explicit manual Intelligence fetch returns items; enabling this preference does
+            not start fetching or background monitoring.
           </p>
-          <label className="settings-checkbox settings-checkbox-disabled">
-            <input type="checkbox" disabled aria-label="Desktop notifications (Planned)" />
-            <span>
-              Desktop notifications <span className="nav-state">Planned</span>
-            </span>
+          <label
+            className={`settings-checkbox${notificationsLoading ? " settings-checkbox-disabled" : ""}`}
+          >
+            <input
+              type="checkbox"
+              checked={notificationsEnabled}
+              disabled={!notificationsAvailable || notificationsLoading || notificationsSaving}
+              onChange={() => void toggleNotifications()}
+              aria-label="Desktop notifications after manual Intelligence fetch"
+            />
+            <span>Desktop notifications after manual Intelligence fetch</span>
           </label>
+          <p className="settings-note" role="status" aria-live="polite">
+            {notificationsStatus}
+          </p>
           <label className="settings-checkbox settings-checkbox-disabled">
             <input
               type="checkbox"

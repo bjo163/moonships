@@ -47,6 +47,8 @@ The UI requests semantic event IDs through one central SoundService. Components 
 
 Essential-only means a small subset of meaningful job/connection/approval events, never an alarm channel. It never overrides master-off. Keep event IDs stable once implemented.
 
+M5-014's opt-in desktop notification is an OS notification, not an app-owned SFX. Its eligibility follows the persisted notification preference; OS quiet hours and presentation settings remain authoritative. Moonships adds no audio asset or component-level playback.
+
 ## 4. Playback rules
 
 - One semantic event at most per transition; use an idempotency key for repeated job/notification events.

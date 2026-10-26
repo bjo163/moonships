@@ -459,6 +459,8 @@ The **Intelligence** route (`#/intelligence`) lists only locally persisted sourc
 
 Fetching is a separate explicit **Fetch now** action shown beside configured sources. It is available only for enabled, terms-reviewed sources, uses the bounded native RSS policy, persists a complete successful result locally and displays last attempt/success and health. Opening the list or detail never fetches or polls. The list shows at most 200 recent records from a bounded local retention set; data remains on this device.
 
+Desktop notifications (M5-014) are off by default. Enabling them in Settings requests OS permission from that action. Moonships sends a generic notification only after a successful manual fetch returns items; the notice contains no feed or item text. This setting does not start fetching or background monitoring. The OS controls quiet hours and notification presentation; the separate background-monitoring control remains Planned.
+
 ### Research Desk source notes (M5-013)
 
 From an Intelligence item detail, **Save to Research** creates or opens one local note with an ID-based item link and source attribution. The Research Desk list links back to the item and offers an explicit **Export note with provenance** action. Versioned export preserves source ID, validated source and original URLs, publication/observation timestamps and verification state without copying the fetched item body. If item retention later removes the linked item, the note remains and displays the reference as unavailable. Export cancellation and failures are reported; an existing file is never silently replaced.

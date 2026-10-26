@@ -197,7 +197,7 @@ unsafe fn bounded_wide_string(
     let start = buffer_start as usize;
     let pointer = value as usize;
     let end = start.checked_add(buffer_len)?;
-    if pointer < start || pointer >= end || pointer % size_of::<u16>() != 0 {
+    if pointer < start || pointer >= end || !pointer.is_multiple_of(size_of::<u16>()) {
         return None;
     }
     let max_units = (end - pointer) / size_of::<u16>();

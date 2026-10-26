@@ -325,6 +325,8 @@ M5-012 persists only complete successful results of explicit user-triggered fetc
 
 M5-013 adds app-owned local research notes with a typed one-to-one intelligence item reference and a source attribution snapshot. Save is idempotent per item and does not duplicate source content. A version-1 JSON export uses a native user-selected save dialog and fails if the chosen path already exists. Notes survive item retention; exports state whether the referenced item is still available. This does not implement general-purpose Notes or Collections CRUD.
 
+M5-014 stores a strict, versioned desktop-notification preference in app-owned metadata and defaults it off. The native fetch path emits a generic OS notification only after a user-triggered fetch succeeds with at least one returned item and the preference is enabled; notification errors do not fail the fetch. Notification settings request OS permission only from the user's enable action. No startup, timer, background, or notification-triggered fetch is registered.
+
 ## 11. AI adapter boundary
 
 AI consumes a limited context assembled by Moonships and can request only registered tools. Keep provider request/response types behind an internal interface. Persist prompt/output only when configured and necessary; redact secrets and minimize sensitive data.
