@@ -1,5 +1,6 @@
 pub mod activity;
 pub mod adapter_manifest;
+pub mod ai_action_preview;
 pub mod ai_provider;
 pub mod ai_registry_discovery;
 pub mod ai_structured_output;

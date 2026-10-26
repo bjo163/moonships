@@ -188,6 +188,9 @@ Strict schema version 1 contains a bounded tool ID and object of bounded JSON ar
 ### AiToolRecommendation
 Read-only AI discovery combines a bounded prompt with a stable catalog of enabled registered tool IDs, versions, API versions, risk classes and input schemas. The proposed ID must resolve to an enabled registry entry. The result is an inert recommendation; it grants no permission and triggers no tool execution.
 
+### AiActionPreview / AiActionApproval
+An in-memory preview binds preview ID, exact tool ID/version/API version, optional target and arguments through a SHA-256 binding hash. Approval is constructed only against the exact displayed preview ID and stores that binding plus approval time. Verification recomputes the hash; mutation of arguments, target, tool version or preview ID rejects approval. Neither record is persisted or executable by itself.
+
 ### ResearchCollection / Note
 Collection fields: id, workspace_id, name, description?, created_at, updated_at.
 Note fields: id, workspace_id, collection_id?, title, body, created_at, updated_at.
