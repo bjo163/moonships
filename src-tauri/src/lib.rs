@@ -2,6 +2,7 @@ pub mod activity;
 pub mod cleaner;
 pub mod cleanup_reports;
 pub mod config;
+pub mod dns_adapter;
 pub mod domain;
 pub mod hash_tools;
 pub mod home_dashboard;

@@ -40,6 +40,7 @@ pub enum NetworkDiagnosticValidationError {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NetworkDiagnosticSource {
+    IpLiteral,
     SystemResolver,
     OperatingSystemTcpConnect,
 }
@@ -47,6 +48,7 @@ pub enum NetworkDiagnosticSource {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NetworkDiagnosticOutcome {
     Succeeded,
+    Partial,
     Failed,
     TimedOut,
     Unsupported,
@@ -63,7 +65,7 @@ pub enum NetworkDiagnosticErrorCode {
     Unsupported,
 }
 
-/// Provenance-bearing result contract for future native DNS/TCP adapters.
+/// Provenance-bearing result for bounded native DNS/TCP adapters.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NetworkDiagnosticResult {
     pub kind: NetworkDiagnosticKind,
