@@ -176,6 +176,8 @@ M3-008 adds an explicit review dialog for selected eligible rows. Its approval r
 
 M3-009 captures a platform file identity with the candidate: Windows volume serial plus file index, or Unix device plus inode. Before proceeding, revalidation rejects missing identities, path changes, links/non-files, changed identity or metadata, protected/outside paths and candidates no longer eligible under the current rule. On unsupported platforms it fails closed. The verified path is for immediate use only; a later executor must revalidate immediately before mutation and must not cache it.
 
+M3-010 adds a native-only bounded executor for an exact approved preview and candidate selection (maximum 100 items). It rejects approval/preview total mismatches before mutation, revalidates each item independently and records deleted/skipped/failed outcomes so one item cannot abort the batch. Windows deletion uses a no-follow file handle, rechecks the handle's resolved path, identity and metadata against the validated snapshot, then marks only that handle for deletion; locked or denied items are reported individually. Deletion fails closed on platforms without the handle-safe adapter. Do not expose this executor directly to the renderer; only the native approval flow may call it. Per-item estimated bytes are retained for the follow-up report task; this executor does not claim those bytes were actually freed.
+
 ## 7. Error model
 
 Use stable error codes/categories:

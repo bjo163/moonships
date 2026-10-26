@@ -339,6 +339,51 @@ pub struct CleanupApprovalRequestDto {
     pub estimated_bytes: u64,
 }
 
+/// A single run is intentionally small so an approval can only authorize a bounded batch.
+pub const MAX_CLEANUP_ITEMS_PER_EXECUTION: usize = 100;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CleanupExecutionValidationError {
+    EmptySelection,
+    TooManyCandidates,
+    PreviewMismatch,
+    DuplicateCandidate,
+    CandidateNotEligible,
+    CandidateIdentityMismatch,
+    SizeOverflow,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CleanupDeletionError {
+    UnsupportedPlatform,
+    PermissionDenied,
+    ResourceBusy,
+    NotFound,
+    Changed,
+    NotRegularFile,
+    IoFailure,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CleanupItemOutcome {
+    Deleted,
+    Skipped(CleanupRevalidationError),
+    Failed(CleanupDeletionError),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CleanupItemResult {
+    pub candidate_id: uuid::Uuid,
+    pub estimated_bytes: u64,
+    pub outcome: CleanupItemOutcome,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CleanupExecutionReport {
+    pub preview_id: uuid::Uuid,
+    pub items: Vec<CleanupItemResult>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CleanupApprovalValidationError {
     EmptySelection,
@@ -379,6 +424,269 @@ impl CleanupApprovalRequestDto {
             candidate_ids,
             estimated_bytes,
         })
+    }
+}
+
+/// Executes only the bounded, exact selection represented by the preview and approval DTO.
+/// This is a native-only operation: it must not be registered as a renderer command. The
+/// caller is responsible for invoking it only after the native approval flow has confirmed
+/// this exact preview and selection.
+pub fn execute_approved_cleanup(
+    approval: &CleanupApprovalRequestDto,
+    preview: &CleanupPreviewDto,
+    candidates: &[CleanupCandidateIdentity],
+    rule: &CleanupRule,
+    allowed_root: &Path,
+    protected_paths: &[PathBuf],
+    observed_at: SystemTime,
+) -> Result<CleanupExecutionReport, CleanupExecutionValidationError> {
+    validate_cleanup_execution_request(approval, preview, candidates)?;
+
+    let mut results = Vec::with_capacity(approval.candidate_ids.len());
+    for candidate_id in &approval.candidate_ids {
+        let preview_item = preview
+            .items
+            .iter()
+            .find(|item| item.candidate_id == *candidate_id)
+            .expect("request validation guarantees a matching preview item");
+        let candidate = candidates
+            .iter()
+            .find(|item| item.id == *candidate_id)
+            .expect("request validation guarantees the exact candidate set");
+
+        let outcome = match revalidate_cleanup_candidate(
+            candidate,
+            rule,
+            allowed_root,
+            protected_paths,
+            observed_at,
+        ) {
+            Err(error) => CleanupItemOutcome::Skipped(error),
+            Ok(verified_path) => match delete_verified_cleanup_file(candidate, &verified_path) {
+                Ok(()) => CleanupItemOutcome::Deleted,
+                Err(error) => CleanupItemOutcome::Failed(error),
+            },
+        };
+        results.push(CleanupItemResult {
+            candidate_id: *candidate_id,
+            estimated_bytes: preview_item.size_bytes,
+            outcome,
+        });
+    }
+
+    Ok(CleanupExecutionReport {
+        preview_id: approval.preview_id,
+        items: results,
+    })
+}
+
+fn validate_cleanup_execution_request(
+    approval: &CleanupApprovalRequestDto,
+    preview: &CleanupPreviewDto,
+    candidates: &[CleanupCandidateIdentity],
+) -> Result<(), CleanupExecutionValidationError> {
+    if approval.candidate_ids.is_empty() {
+        return Err(CleanupExecutionValidationError::EmptySelection);
+    }
+    if approval.candidate_ids.len() > MAX_CLEANUP_ITEMS_PER_EXECUTION {
+        return Err(CleanupExecutionValidationError::TooManyCandidates);
+    }
+    if approval.preview_id != preview.preview_id {
+        return Err(CleanupExecutionValidationError::PreviewMismatch);
+    }
+    if candidates.len() != approval.candidate_ids.len() {
+        return Err(CleanupExecutionValidationError::CandidateIdentityMismatch);
+    }
+
+    let mut estimated_bytes = 0_u64;
+    for (index, candidate_id) in approval.candidate_ids.iter().enumerate() {
+        if approval.candidate_ids[..index].contains(candidate_id) {
+            return Err(CleanupExecutionValidationError::DuplicateCandidate);
+        }
+        let item = preview
+            .items
+            .iter()
+            .find(|item| item.candidate_id == *candidate_id)
+            .ok_or(CleanupExecutionValidationError::CandidateNotEligible)?;
+        if item.disposition != CleanupPreviewDisposition::Eligible {
+            return Err(CleanupExecutionValidationError::CandidateNotEligible);
+        }
+        estimated_bytes = estimated_bytes
+            .checked_add(item.size_bytes)
+            .ok_or(CleanupExecutionValidationError::SizeOverflow)?;
+    }
+    if estimated_bytes != approval.estimated_bytes {
+        return Err(CleanupExecutionValidationError::PreviewMismatch);
+    }
+    for (index, candidate) in candidates.iter().enumerate() {
+        if candidates[..index]
+            .iter()
+            .any(|previous| previous.id == candidate.id)
+        {
+            return Err(CleanupExecutionValidationError::DuplicateCandidate);
+        }
+        if !approval.candidate_ids.contains(&candidate.id) {
+            return Err(CleanupExecutionValidationError::CandidateIdentityMismatch);
+        }
+    }
+    for candidate_id in &approval.candidate_ids {
+        let candidate = candidates
+            .iter()
+            .find(|candidate| candidate.id == *candidate_id)
+            .ok_or(CleanupExecutionValidationError::CandidateIdentityMismatch)?;
+        if candidate.metadata.size_bytes
+            != preview
+                .items
+                .iter()
+                .find(|item| item.candidate_id == *candidate_id)
+                .expect("matching preview item checked above")
+                .size_bytes
+        {
+            return Err(CleanupExecutionValidationError::CandidateIdentityMismatch);
+        }
+    }
+    Ok(())
+}
+
+#[cfg(windows)]
+fn delete_verified_cleanup_file(
+    candidate: &CleanupCandidateIdentity,
+    verified_path: &Path,
+) -> Result<(), CleanupDeletionError> {
+    use std::os::windows::{ffi::OsStrExt, io::FromRawHandle};
+    use windows_sys::Win32::{
+        Foundation::INVALID_HANDLE_VALUE,
+        Storage::FileSystem::{
+            CreateFileW, FileDispositionInfo, GetFileInformationByHandle,
+            GetFinalPathNameByHandleW, SetFileInformationByHandle, BY_HANDLE_FILE_INFORMATION,
+            DELETE, FILE_ATTRIBUTE_DIRECTORY, FILE_ATTRIBUTE_REPARSE_POINT, FILE_DISPOSITION_INFO,
+            FILE_FLAG_OPEN_REPARSE_POINT, FILE_NAME_NORMALIZED, FILE_READ_ATTRIBUTES,
+            FILE_SHARE_READ, OPEN_EXISTING, VOLUME_NAME_DOS,
+        },
+    };
+
+    let path = verified_path
+        .as_os_str()
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect::<Vec<_>>();
+    // Deny concurrent writers and name replacement while this exact file handle is checked
+    // and marked for deletion. A locked or incompatible file becomes a per-item failure.
+    let raw_handle = unsafe {
+        CreateFileW(
+            path.as_ptr(),
+            DELETE | FILE_READ_ATTRIBUTES,
+            FILE_SHARE_READ,
+            std::ptr::null(),
+            OPEN_EXISTING,
+            FILE_FLAG_OPEN_REPARSE_POINT,
+            std::ptr::null_mut(),
+        )
+    };
+    if raw_handle == INVALID_HANDLE_VALUE {
+        return Err(map_cleanup_io_error(std::io::Error::last_os_error()));
+    }
+    let file = unsafe { std::fs::File::from_raw_handle(raw_handle) };
+    let mut information = BY_HANDLE_FILE_INFORMATION::default();
+    if unsafe { GetFileInformationByHandle(raw_handle, &mut information) } == 0 {
+        return Err(map_cleanup_io_error(std::io::Error::last_os_error()));
+    }
+    if information.dwFileAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT) != 0
+    {
+        return Err(CleanupDeletionError::NotRegularFile);
+    }
+    let current_identity = CleanupPlatformFileIdentity {
+        volume_id: u64::from(information.dwVolumeSerialNumber),
+        file_id: (u64::from(information.nFileIndexHigh) << 32)
+            | u64::from(information.nFileIndexLow),
+    };
+    if candidate.platform_identity != Some(current_identity) {
+        return Err(CleanupDeletionError::Changed);
+    }
+    let mut final_path_buffer = vec![0_u16; 32_768];
+    let final_path_length = unsafe {
+        GetFinalPathNameByHandleW(
+            raw_handle,
+            final_path_buffer.as_mut_ptr(),
+            final_path_buffer.len() as u32,
+            FILE_NAME_NORMALIZED | VOLUME_NAME_DOS,
+        )
+    } as usize;
+    if final_path_length == 0 || final_path_length >= final_path_buffer.len() {
+        return Err(map_cleanup_io_error(std::io::Error::last_os_error()));
+    }
+    let actual_path = normalize_windows_final_path(&String::from_utf16_lossy(
+        &final_path_buffer[..final_path_length],
+    ));
+    let expected_path = normalize_windows_final_path(&verified_path.to_string_lossy());
+    if actual_path != expected_path {
+        return Err(CleanupDeletionError::Changed);
+    }
+    let metadata = file.metadata().map_err(map_cleanup_io_error)?;
+    let created_at = metadata.created().map_err(map_cleanup_io_error)?;
+    if metadata.len() != candidate.metadata.size_bytes
+        || metadata.modified().map_err(map_cleanup_io_error)? != candidate.metadata.modified_at
+        || Some(created_at) != candidate.metadata.created_at
+    {
+        return Err(CleanupDeletionError::Changed);
+    }
+    let disposition = FILE_DISPOSITION_INFO { DeleteFile: true };
+    if unsafe {
+        SetFileInformationByHandle(
+            raw_handle,
+            FileDispositionInfo,
+            (&disposition as *const FILE_DISPOSITION_INFO).cast(),
+            std::mem::size_of::<FILE_DISPOSITION_INFO>() as u32,
+        )
+    } == 0
+    {
+        return Err(map_cleanup_io_error(std::io::Error::last_os_error()));
+    }
+    drop(file);
+    Ok(())
+}
+
+#[cfg(windows)]
+fn normalize_windows_final_path(path: &str) -> PathBuf {
+    if let Some(unc_path) = path.strip_prefix("\\\\?\\UNC\\") {
+        PathBuf::from(format!("\\\\{unc_path}"))
+    } else if let Some(dos_path) = path.strip_prefix("\\\\?\\") {
+        PathBuf::from(dos_path)
+    } else {
+        PathBuf::from(path)
+    }
+}
+
+#[cfg(not(windows))]
+fn delete_verified_cleanup_file(
+    _candidate: &CleanupCandidateIdentity,
+    _verified_path: &Path,
+) -> Result<(), CleanupDeletionError> {
+    Err(CleanupDeletionError::UnsupportedPlatform)
+}
+
+#[cfg(windows)]
+fn map_cleanup_io_error(error: std::io::Error) -> CleanupDeletionError {
+    if matches!(error.raw_os_error(), Some(32 | 33)) {
+        return CleanupDeletionError::ResourceBusy;
+    }
+    match error.kind() {
+        std::io::ErrorKind::PermissionDenied => CleanupDeletionError::PermissionDenied,
+        std::io::ErrorKind::WouldBlock => CleanupDeletionError::ResourceBusy,
+        std::io::ErrorKind::NotFound => CleanupDeletionError::NotFound,
+        _ => CleanupDeletionError::IoFailure,
+    }
+}
+
+#[cfg(windows)]
+fn map_cleanup_revalidation_io_error(error: std::io::Error) -> CleanupRevalidationError {
+    if matches!(error.raw_os_error(), Some(32 | 33)) {
+        return CleanupRevalidationError::ResourceBusy;
+    }
+    match error.kind() {
+        std::io::ErrorKind::PermissionDenied => CleanupRevalidationError::PermissionDenied,
+        std::io::ErrorKind::NotFound => CleanupRevalidationError::PathUnavailable,
+        _ => CleanupRevalidationError::IdentityUnavailable,
     }
 }
 
@@ -438,6 +746,8 @@ pub enum CleanupRevalidationError {
     NotRegularFile,
     MetadataUnavailable,
     IdentityUnavailable,
+    PermissionDenied,
+    ResourceBusy,
     PathUnavailable,
     InvalidRoot,
     OutsideAllowedRoot,
@@ -478,7 +788,9 @@ fn capture_platform_file_identity(
         )
     };
     if raw_handle == INVALID_HANDLE_VALUE {
-        return Err(CleanupRevalidationError::PathUnavailable);
+        return Err(map_cleanup_revalidation_io_error(
+            std::io::Error::last_os_error(),
+        ));
     }
     let file = unsafe { std::fs::File::from_raw_handle(raw_handle) };
     let mut information = BY_HANDLE_FILE_INFORMATION::default();
@@ -1297,6 +1609,151 @@ mod tests {
         );
 
         fs::remove_dir_all(fixture).expect("remove disposable revalidation fixture");
+    }
+
+    fn make_old_candidate(root: &Path, name: &str) -> super::CleanupCandidateIdentity {
+        let target = root.join(name);
+        fs::write(&target, format!("disposable fixture: {name}"))
+            .expect("write disposable execution fixture");
+        fs::OpenOptions::new()
+            .write(true)
+            .open(&target)
+            .expect("open disposable execution fixture")
+            .set_times(
+                fs::FileTimes::new().set_modified(SystemTime::now() - Duration::from_secs(120)),
+            )
+            .expect("age disposable execution fixture");
+        super::CleanupCandidateIdentity::capture(root, CleanupRoot::AppTemporary, name)
+            .expect("capture disposable candidate")
+    }
+
+    fn make_execution_preview(
+        candidates: &[super::CleanupCandidateIdentity],
+    ) -> super::CleanupPreviewDto {
+        super::CleanupPreviewDto {
+            preview_id: uuid::Uuid::new_v4(),
+            generated_at: "2026-10-26T00:00:00Z".to_string(),
+            items: candidates
+                .iter()
+                .map(|candidate| {
+                    super::CleanupPreviewItemDto::from_candidate(
+                        candidate,
+                        CleanupCategory::TemporaryFiles,
+                        super::CleanupPreviewDisposition::Eligible,
+                        None,
+                    )
+                    .expect("make preview item")
+                })
+                .collect(),
+        }
+    }
+
+    #[test]
+    fn cleanup_executor_rejects_tampered_approval_before_mutation() {
+        let fixture =
+            std::env::temp_dir().join(format!("moonships-executor-{}", uuid::Uuid::new_v4()));
+        let root = fixture.join("root");
+        fs::create_dir_all(&root).expect("create disposable execution root");
+        let candidate = make_old_candidate(&root, "approved.bin");
+        let preview = make_execution_preview(std::slice::from_ref(&candidate));
+        let mut approval =
+            super::CleanupApprovalRequestDto::from_selection(&preview, &[candidate.id])
+                .expect("build approved selection");
+        approval.estimated_bytes += 1;
+
+        assert_eq!(
+            super::execute_approved_cleanup(
+                &approval,
+                &preview,
+                std::slice::from_ref(&candidate),
+                &temporary_rule(),
+                &root,
+                &[],
+                SystemTime::now(),
+            ),
+            Err(super::CleanupExecutionValidationError::PreviewMismatch),
+        );
+        assert!(root.join("approved.bin").exists());
+        fs::remove_dir_all(fixture).expect("remove disposable execution fixture");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn cleanup_executor_reports_locked_file_and_continues_to_next_candidate() {
+        use std::os::windows::fs::OpenOptionsExt;
+        use windows_sys::Win32::Storage::FileSystem::{FILE_SHARE_READ, FILE_SHARE_WRITE};
+
+        let fixture =
+            std::env::temp_dir().join(format!("moonships-executor-{}", uuid::Uuid::new_v4()));
+        let root = fixture.join("root");
+        fs::create_dir_all(&root).expect("create disposable execution root");
+        let locked = make_old_candidate(&root, "locked.bin");
+        let removable = make_old_candidate(&root, "removable.bin");
+        let candidates = vec![locked.clone(), removable.clone()];
+        let preview = make_execution_preview(&candidates);
+        let approval =
+            super::CleanupApprovalRequestDto::from_selection(&preview, &[locked.id, removable.id])
+                .expect("approve both disposable candidates");
+        // Existing Windows handle deliberately denies delete sharing.
+        let _lock = fs::OpenOptions::new()
+            .read(true)
+            .share_mode(FILE_SHARE_READ | FILE_SHARE_WRITE)
+            .open(root.join("locked.bin"))
+            .expect("lock disposable candidate against deletion");
+
+        let report = super::execute_approved_cleanup(
+            &approval,
+            &preview,
+            &candidates,
+            &temporary_rule(),
+            &root,
+            &[],
+            SystemTime::now(),
+        )
+        .expect("execute bounded disposable selection");
+
+        assert_eq!(report.items.len(), 2);
+        assert_eq!(report.items[0].candidate_id, locked.id);
+        assert_eq!(
+            report.items[0].outcome,
+            super::CleanupItemOutcome::Failed(super::CleanupDeletionError::ResourceBusy),
+        );
+        assert_eq!(report.items[1].candidate_id, removable.id);
+        assert_eq!(report.items[1].outcome, super::CleanupItemOutcome::Deleted);
+        assert!(root.join("locked.bin").exists());
+        assert!(!root.join("removable.bin").exists());
+        drop(_lock);
+        fs::remove_dir_all(fixture).expect("remove disposable execution fixture");
+    }
+
+    #[cfg(not(windows))]
+    #[test]
+    fn cleanup_executor_fails_closed_on_unsupported_deletion_platform() {
+        let fixture =
+            std::env::temp_dir().join(format!("moonships-executor-{}", uuid::Uuid::new_v4()));
+        let root = fixture.join("root");
+        fs::create_dir_all(&root).expect("create disposable execution root");
+        let candidate = make_old_candidate(&root, "candidate.bin");
+        let preview = make_execution_preview(std::slice::from_ref(&candidate));
+        let approval = super::CleanupApprovalRequestDto::from_selection(&preview, &[candidate.id])
+            .expect("approve disposable candidate");
+
+        let report = super::execute_approved_cleanup(
+            &approval,
+            &preview,
+            std::slice::from_ref(&candidate),
+            &temporary_rule(),
+            &root,
+            &[],
+            SystemTime::now(),
+        )
+        .expect("unsupported platform is a per-item failure");
+        assert_eq!(
+            report.items[0].outcome,
+            super::CleanupItemOutcome::Failed(super::CleanupDeletionError::UnsupportedPlatform),
+        );
+        assert!(root.join("candidate.bin").exists());
+        fs::remove_dir_all(fixture).expect("remove disposable execution fixture");
     }
 
     #[cfg(windows)]
