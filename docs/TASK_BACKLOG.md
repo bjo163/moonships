@@ -107,7 +107,7 @@
 - [ ] **M2-015 — Add project overview page** [S] [depends: M2-014] — Show goal, status, count and recent activity. **AC:** zero-task state is meaningful and accurate.
 - [x] **M2-016 — Add task creation dialog/form** [S] [depends: M2-009] — Title required, project optional. **AC:** validation errors are accessible and no accidental save happens on Escape.
 - [ ] **M2-017 — Add task detail panel/page** [S] [depends: M2-016] — Description, status, priority and dates. **AC:** changes persist and are reflected in the UI.
-- [ ] **M2-018 — Add task List view** [S] [depends: M2-016] — Sortable columns. **AC:** sort state is deterministic and does not mutate record data.
+- [x] **M2-018 — Add task List view** [S] [depends: M2-016] — Sortable columns. **AC:** sort state is deterministic and does not mutate record data.
 - [ ] **M2-019 — Add task Kanban view** [S] [depends: M2-012,M2-016] — Group by canonical status. **AC:** moving a task updates the same persisted state as List.
 - [ ] **M2-020 — Add search by title/description** [S] [depends: M2-018] — Case-insensitive local search. **AC:** results can be cleared and empty state is distinct from error.
 - [ ] **M2-021 — Add filters for project/status/priority** [S] [depends: M2-018] — Combine filters. **AC:** filter combinations return expected fixture data.
