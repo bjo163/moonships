@@ -429,3 +429,7 @@ Added a fixed-channel, 100-record-bounded provider contract with a 100–5,000 m
 ## M4-011 Allowlisted connection profile contract — 2026-10-26
 
 Added tagged Terminal/SSH/RDP profile types, strict host/port/name validation, and allowlisted terminal applications. Credential slots accept only UUID secret references; profile imports reject unknown fields, the export DTO omits references, and the safe log projection omits user content/target details. No secret values, persistence, OS credential store or connection launch are implemented here. Verification passed: Rust suite 154/154; Clippy with warnings denied; Rust formatting; backlog validation; and `git diff --check`.
+
+## M4-012 Activity Center — 2026-10-26
+
+Added schema v10 for bounded local job history, a native transition service, and an Activity Center route that reads the newest 200 records. The UI shows truthful status, reported progress, recorded duration and result, with loading, empty and retryable error states. Terminal states cannot reopen; timestamps are recorded on first run and terminal completion. No sample records are created. No job producers are wired yet, and restart recovery/cancellation remain follow-up work; interrupted jobs are not falsely completed. Verification passed: Rust suite 157/157; frontend suite 181/181; `npm run check` (format, lint, repo tests, frontend tests, typecheck and production build); Clippy with warnings denied; Rust formatting; backlog validation; and `git diff --check`. Existing Biome schema/CLI compatibility notices are informational.

@@ -21,3 +21,10 @@ describe("Services route", () => {
     expect(ROUTE_REGISTRY.services.hash).toBe("#/services");
   });
 });
+
+describe("Activity Center route", () => {
+  it("resolves its stable page ID and hash", () => {
+    expect(resolveRoute("#/activity")).toEqual({ kind: "page", id: "activity" });
+    expect(ROUTE_REGISTRY.activity.hash).toBe("#/activity");
+  });
+});

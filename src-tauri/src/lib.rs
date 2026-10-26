@@ -8,6 +8,7 @@ pub mod domain;
 pub mod event_log_adapter;
 pub mod hash_tools;
 pub mod home_dashboard;
+pub mod jobs;
 pub mod labels;
 pub mod local_logging;
 pub mod milestones;
@@ -68,7 +69,7 @@ fn open_database_in(app_data_dir: &Path) -> Result<Connection, String> {
     Ok(connection)
 }
 
-const CURRENT_SCHEMA_VERSION: i64 = 9;
+const CURRENT_SCHEMA_VERSION: i64 = 10;
 const PERSONAL_WORKSPACE_ID: &str = "00000000-0000-4000-8000-000000000001";
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
@@ -765,6 +766,24 @@ pub(crate) fn run_migrations(connection: &mut Connection) -> Result<(), String> 
             .map_err(|error| format!("Could not apply cleanup report migration: {error}"))?;
     }
 
+    if current_version < 10 {
+        transaction.execute_batch(
+            "CREATE TABLE IF NOT EXISTS jobs (
+                id TEXT PRIMARY KEY NOT NULL,
+                title TEXT NOT NULL CHECK (length(trim(title)) BETWEEN 1 AND 160),
+                status TEXT NOT NULL CHECK (status IN ('queued','running','waiting_approval','succeeded','partial','failed','cancelled','timed_out')),
+                created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+                started_at TEXT,
+                finished_at TEXT,
+                stage TEXT CHECK (stage IS NULL OR length(stage) <= 160),
+                progress_percent REAL CHECK (progress_percent IS NULL OR progress_percent BETWEEN 0 AND 100),
+                result_summary TEXT CHECK (result_summary IS NULL OR length(result_summary) <= 500)
+            );
+            CREATE INDEX IF NOT EXISTS idx_jobs_created ON jobs(created_at DESC,id DESC);
+            INSERT OR IGNORE INTO schema_migrations (version) VALUES (10);"
+        ).map_err(|error| format!("Could not apply job migration: {error}"))?;
+    }
+
     transaction
         .commit()
         .map_err(|error| format!("Could not commit schema migration: {error}"))
@@ -1019,6 +1038,12 @@ fn list_service_inventory() -> service_inventory::ServiceInventorySnapshot {
 }
 
 #[tauri::command]
+fn list_jobs(app: AppHandle) -> Result<Vec<jobs::JobRecord>, String> {
+    let connection = open_personal_workspace_database(&app)?;
+    jobs::list(&connection)
+}
+
+#[tauri::command]
 fn get_task(app: AppHandle, request: TaskRequestDto) -> Result<TaskDto, String> {
     let connection = open_personal_workspace_database(&app)?;
     tasks::get_task(&connection, PERSONAL_WORKSPACE_ID, &request.id).map(TaskDto::from)
@@ -1256,6 +1281,7 @@ pub fn run() {
             get_home_dashboard,
             list_process_inventory,
             list_service_inventory,
+            list_jobs,
             export_project_task_data,
             preview_project_task_import,
             create_task,
@@ -1691,12 +1717,13 @@ mod tests {
             .expect("insert task before upgrade fixture");
         connection
             .execute_batch(
-                "DROP TABLE cleanup_reports;
-                 DELETE FROM schema_migrations WHERE version = 9;",
+                "DROP TABLE jobs;
+                 DROP TABLE cleanup_reports;
+                 DELETE FROM schema_migrations WHERE version >= 9;",
             )
             .expect("restore version 8 schema fixture");
 
-        run_migrations(&mut connection).expect("apply version 9 cleanup report migration");
+        run_migrations(&mut connection).expect("apply cleanup report and job migrations");
 
         let version: i64 = connection
             .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| {
@@ -1717,9 +1744,17 @@ mod tests {
                 |row| row.get(0),
             )
             .expect("check cleanup report table");
-        assert_eq!(version, 9);
+        assert_eq!(version, CURRENT_SCHEMA_VERSION);
         assert_eq!(task_count, 1);
         assert_eq!(report_table_exists, 1);
+        let jobs_table_exists: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'jobs'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("check jobs table");
+        assert_eq!(jobs_table_exists, 1);
 
         drop(connection);
         let _ = fs::remove_dir_all(app_data_dir);

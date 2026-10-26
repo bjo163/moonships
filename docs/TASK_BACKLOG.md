@@ -169,7 +169,7 @@
 - [x] **M4-009 — Add Windows service inventory view** [S] — Read-only initially. **AC:** user permissions/errors are visible.
 - [x] **M4-010 — Add event log integration seam** [S] — Read-only and bounded. **AC:** unavailable/denied/log-empty states differ.
 - [x] **M4-011 — Add allowlisted terminal/SSH/RDP profiles** [S] — Store secret references only. **AC:** secrets never appear in exported profile/log.
-- [ ] **M4-012 — Add Activity Center for long-running jobs** [S] [depends: M1-026] — Display state, progress, duration and result. **AC:** status transitions are tested.
+- [x] **M4-012 — Add Activity Center for long-running jobs** [S] [depends: M1-026] — Display state, progress, duration and result. **AC:** status transitions are tested. Native job history is persisted and guarded; producers, cancellation and interrupted-job recovery remain follow-up work.
 - [ ] **M4-013 — Add cancel job action where supported** [S] — Truthful best-effort semantics. **AC:** unsupported cancellation is disabled and explained.
 - [ ] **M4-014 — Add task creation from diagnostic result** [S] [depends: M2-016] — Attach redacted summary. **AC:** target/result/time are linked without secret data.
 - [ ] **M4-015 — Add network timeout/rate-limit/error tests** [S] — Test fixtures/local loopback. **AC:** tests do not target arbitrary public hosts.

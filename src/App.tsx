@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { CleanerPreviewPage } from "./CleanerPreviewPage";
+import { ActivityCenterPage } from "./ActivityCenterPage";
 import { CommandPalette, type PaletteCommand } from "./CommandPalette";
 import { getPaletteCommands, getRegisteredCommand } from "./command-registry";
 import { DevToolsPage } from "./DevToolsPage";
@@ -127,6 +128,13 @@ export function AppShell({
             aria-current={activeRoute === "services" ? "page" : undefined}
           >
             <span>Services</span>
+          </a>
+          <a
+            className={`nav-item${activeRoute === "activity" ? " nav-item-active" : ""}`}
+            href="#/activity"
+            aria-current={activeRoute === "activity" ? "page" : undefined}
+          >
+            <span>Activity Center</span>
           </a>
           {plannedNavigationItems.map((label) => (
             <div
@@ -839,6 +847,8 @@ export default function App() {
         <ProcessesPage />
       ) : route.kind === "page" && route.id === "services" ? (
         <ServicesPage />
+      ) : route.kind === "page" && route.id === "activity" ? (
+        <ActivityCenterPage />
       ) : route.kind === "task-detail" ? (
         <TaskDetailPage taskId={route.taskId} />
       ) : (

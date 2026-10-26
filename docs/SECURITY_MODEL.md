@@ -133,6 +133,7 @@ Risk class is separate from task priority, vulnerability severity and business i
 
 - Profiles accept only an allowlisted local terminal enum or a strict single-host SSH/RDP target with a nonzero port. No shell command string, arbitrary executable path or free-form process arguments are part of the model.
 - Credential slots contain only UUID secret references. Deserialization rejects unknown fields, including plaintext password/key fields; the profile export DTO omits the reference, and safe log metadata omits profile name, host, username and reference.
+- M4-012 job history is local-only and the renderer has read-only access. Trusted native producers must use bounded, non-sensitive titles/stages/result summaries; credentials, raw provider output and arbitrary log text do not belong in these fields. Secret scrubbing is not inferred or promised by this storage contract.
 - Profile metadata is inert: this task adds no persistence, OS credential-store access, process launch or network connection.
 
 ## 5. Cleaner-specific safety
