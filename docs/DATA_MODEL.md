@@ -1,6 +1,6 @@
 # Data Model & Persistence Blueprint
 
-**Status:** Proposed logical model. Exact SQL migrations are created incrementally in the implementation phase.
+**Status:** Logical model with implementation notes updated as migrations are accepted.
 
 ## 1. Identity and time conventions
 
@@ -32,7 +32,7 @@ M2-008 adds transactional scoped update/soft-archive and trusted change events. 
 
 ### Milestone
 Fields: id, project_id, title, description?, due_date?, status, sort_order, created_at, updated_at.
-Milestone can group tasks by release/outcome. Do not make milestone date a hidden dependency for completing a task.
+Milestone can group tasks by release/outcome. Do not make milestone date a hidden dependency for completing a task. M2-024 implements migration v8 with a workspace- and Project-scoped `milestones` table and a `milestone_tasks` association table. Composite foreign keys prevent cross-Project links. Due dates are validated as real `YYYY-MM-DD` calendar dates; status is `planned`, `active` or `completed`; stable project ordering uses `sort_order`. The typed list/create/update/associate commands derive the Personal workspace natively. Associating or updating a Milestone never mutates Task status, and archived Tasks are excluded from the Project view.
 
 ### Task
 Fields: id, workspace_id, project_id?, parent_task_id?, title, description?, status, priority, due_at?, estimate_minutes?, completed_at?, created_at, updated_at, archived_at?.

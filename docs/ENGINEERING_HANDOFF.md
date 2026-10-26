@@ -1,5 +1,11 @@
 # Moonships — Engineering Continuity & Foundation Evidence
 
+## M2-024 Project Milestones — 2026-10-26
+
+Migration v8 adds Project-scoped milestones and task associations enforced by composite SQLite foreign keys. The native list/create/associate/update commands use typed DTOs, derive Personal workspace scope, validate milestone dates and statuses, and reject cross-Project or archived Task links. Project Overview can create dated milestones, display saved status and associated active tasks, associate Project tasks, and update milestone status with distinct read/error feedback. These actions do not mutate Task status. Legacy migration fixtures now explicitly remove v8 additions when reconstructing earlier schema versions.
+
+**Verification passed:** `npm run check` (repository tests 8/8, frontend tests 95/95, typecheck and production build); `cargo test --manifest-path src-tauri/Cargo.toml --all-targets` (87/87); `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`; `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`; Biome check of changed frontend files; and Windows `npm run tauri -- build` (MSI and NSIS produced). `git diff --check` and backlog validation passed. Biome reports repository configuration version/deprecation notices and existing non-null assertions in Task List tests. This verifies packaging, not manual desktop runtime/accessibility. M2-024 is accepted locally; issue sync and CI remain to verify after push. **Next task:** M2-025 — Activity history UI. M2 exit gates remain open.
+
 ## M2-023 one-level Task subtasks — 2026-10-26
 
 Task create and response records now carry the existing nullable `parent_task_id` through the typed native DTO and frontend API. The validated transactional service allows only active top-level parents in the same workspace and with the same Project/inbox association, preventing cycles and deeper nesting. Active children appear on the parent Task detail page; each child links back to its parent. Root details can create subtasks and show only the native returned saved record. Children cannot create nested tasks. Failed relationship reads are reported separately and can be retried while the detail form remains usable. Archiving a parent with active children, restoring a child before its parent, and Project changes that would break a relationship return conflicts.

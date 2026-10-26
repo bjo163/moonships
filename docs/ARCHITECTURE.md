@@ -94,6 +94,8 @@ M2-004 migration v6 adds `labels` with a workspace-scoped normalized-name unique
 
 M2-005 migration v7 adds a directed `task_dependencies` relation with composite workspace foreign keys to both Tasks, a database/service self-dependency guard, and one canonical `blocked_by` row per edge. The reverse `blocks` relation is derived. Dependency edges are not used for scheduling yet; cycle rejection is required before a future scheduler consumes them.
 
+M2-024 migration v8 adds `milestones` and `milestone_tasks`. Composite workspace/Project foreign keys scope each Milestone and association to the same Project; an active-task service check also prevents associating archived Tasks. Typed list/create/update/associate commands accept only a Project ID or named Milestone/task fields and derive the Personal workspace natively. Due dates must be valid calendar dates in `YYYY-MM-DD`; Milestone status is metadata (`planned`, `active`, `completed`). These operations do not change Task status.
+
 ## Tauri command DTO conventions
 
 Every frontend-to-native command must use an explicit, named request/response contract once it crosses the Tauri IPC boundary. Do not expose internal domain structs directly as a long-lived IPC schema.
