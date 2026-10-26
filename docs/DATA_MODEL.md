@@ -41,6 +41,8 @@ Canonical priorities: p0, p1, p2, p3. Priority is not security severity or execu
 M2-012 initial policy: any explicit transition between the seven canonical statuses is permitted, including reopening a completed/cancelled task; unchanged status is a no-op, unsupported values are rejected. All UI mutations must use the task service rather than a view-specific state machine. M2-010 adds a workspace-scoped transactional Task update service; UI and native IPC integration remain separate tasks.
 Task must be creatable with a title alone and defaults. Project is optional for a personal inbox task. The implemented M2-003 schema-v4 migration adds checked `backlog`/`p2` defaults, nonblank task titles, optional project/parent links, and workspace-scoped composite foreign keys. UTC timestamps use the existing SQLite convention. The M2-009 create service validates fields and generates UUID v4 IDs; the UI is not wired yet.
 
+M2-013 `due_at` contract: the JSON field is `dueAt` and carries either `null`/omission or an RFC 3339 timestamp with an explicit `Z` or numeric UTC offset. Date-only and timezone-free local strings are invalid. Create/update normalize accepted instants to canonical UTC RFC 3339 with `Z`, preserving fractional-second precision, and SQLite stores that same value. Blank optional input clears the due time. UI adapters render the persisted instant in the user's current local timezone; domain services never guess a timezone or store locale-formatted text.
+
 ### TaskDependency
 Fields: task_id, depends_on_task_id, dependency_type, created_at.
 MVP dependency type: blocks/blocked_by via one canonical directed relation. Enforce no self-dependency and prevent cycles if dependencies affect scheduling. Keep dependency semantics documented.

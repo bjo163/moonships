@@ -1,6 +1,7 @@
 //! Local Task creation service. All writes stay inside the caller-provided,
 //! foreign-key-enabled SQLite connection; no UI or global database path access.
 
+use chrono::{DateTime, SecondsFormat, Utc};
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -15,6 +16,27 @@ pub enum TaskArchiveFilter {
 const MAX_TITLE_CHARS: usize = 200;
 const MAX_DESCRIPTION_CHARS: usize = 10_000;
 
+/// Normalize explicit-offset RFC 3339 instants to canonical UTC without losing precision.
+fn normalize_due_at(value: Option<String>) -> Result<Option<String>, String> {
+    value
+        .map(|value| {
+            let value = value.trim();
+            if value.is_empty() {
+                return Ok(None);
+            }
+            let parsed = DateTime::parse_from_rfc3339(value).map_err(|_| {
+                "VALIDATION_FAILED: dueAt must be an RFC 3339 timestamp with an explicit timezone".to_string()
+            })?;
+            Ok(Some(
+                parsed
+                    .with_timezone(&Utc)
+                    .to_rfc3339_opts(SecondsFormat::AutoSi, true),
+            ))
+        })
+        .transpose()
+        .map(Option::flatten)
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CreateTask {
@@ -22,6 +44,7 @@ pub struct CreateTask {
     pub project_id: Option<String>,
     pub title: String,
     pub description: Option<String>,
+    pub due_at: Option<String>,
     pub status: Option<String>,
     pub priority: Option<String>,
 }
@@ -34,6 +57,7 @@ pub struct Task {
     pub project_id: Option<String>,
     pub title: String,
     pub description: Option<String>,
+    pub due_at: Option<String>,
     pub status: String,
     pub priority: String,
     pub created_at: String,
@@ -52,7 +76,8 @@ fn task_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Task> {
         priority: row.get(6)?,
         created_at: row.get(7)?,
         updated_at: row.get(8)?,
-        archived_at: row.get(9)?,
+        due_at: row.get(9)?,
+        archived_at: row.get(10)?,
     })
 }
 
@@ -70,7 +95,7 @@ pub fn list_tasks(
         TaskArchiveFilter::Archived => "AND archived_at IS NOT NULL",
         TaskArchiveFilter::All => "",
     };
-    let sql = format!("SELECT id, workspace_id, project_id, title, description, status, priority, created_at, updated_at, archived_at FROM tasks WHERE workspace_id = ?1 {archive_clause} ORDER BY created_at, id");
+    let sql = format!("SELECT id, workspace_id, project_id, title, description, status, priority, created_at, updated_at, due_at, archived_at FROM tasks WHERE workspace_id = ?1 {archive_clause} ORDER BY created_at, id");
     let mut statement = connection
         .prepare(&sql)
         .map_err(|_| "IO_ERROR: could not prepare task list".to_string())?;
@@ -132,7 +157,7 @@ fn mutate_archive(
             crate::activity::ActivityAction::Restored
         },
     )?;
-    let task = transaction.query_row("SELECT id, workspace_id, project_id, title, description, status, priority, created_at, updated_at, archived_at FROM tasks WHERE id = ?1 AND workspace_id = ?2", params![id, workspace_id], task_from_row).map_err(|_| "IO_ERROR: could not read changed task".to_string())?;
+    let task = transaction.query_row("SELECT id, workspace_id, project_id, title, description, status, priority, created_at, updated_at, due_at, archived_at FROM tasks WHERE id = ?1 AND workspace_id = ?2", params![id, workspace_id], task_from_row).map_err(|_| "IO_ERROR: could not read changed task".to_string())?;
     transaction
         .commit()
         .map_err(|_| "IO_ERROR: could not commit task archive state".to_string())?;
@@ -182,6 +207,7 @@ pub fn create_task(connection: &mut Connection, request: CreateTask) -> Result<T
         })
         .transpose()?
         .flatten();
+    let due_at = normalize_due_at(request.due_at)?;
 
     let transaction = connection
         .transaction()
@@ -216,8 +242,8 @@ pub fn create_task(connection: &mut Connection, request: CreateTask) -> Result<T
     transaction
         .execute(
             "INSERT INTO tasks
-                (id, workspace_id, project_id, title, description, status, priority)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                (id, workspace_id, project_id, title, description, status, priority, due_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
             params![
                 id,
                 workspace_id,
@@ -225,7 +251,8 @@ pub fn create_task(connection: &mut Connection, request: CreateTask) -> Result<T
                 title,
                 description,
                 status,
-                priority
+                priority,
+                due_at
             ],
         )
         .map_err(|_| "IO_ERROR: could not create task".to_string())?;
@@ -239,23 +266,10 @@ pub fn create_task(connection: &mut Connection, request: CreateTask) -> Result<T
     let created = transaction
         .query_row(
             "SELECT id, workspace_id, project_id, title, description,
-                    status, priority, created_at, updated_at, archived_at
+                    status, priority, created_at, updated_at, due_at, archived_at
              FROM tasks WHERE id = ?1 AND workspace_id = ?2",
             params![id, workspace_id],
-            |row| {
-                Ok(Task {
-                    id: row.get(0)?,
-                    workspace_id: row.get(1)?,
-                    project_id: row.get(2)?,
-                    title: row.get(3)?,
-                    description: row.get(4)?,
-                    status: row.get(5)?,
-                    priority: row.get(6)?,
-                    created_at: row.get(7)?,
-                    updated_at: row.get(8)?,
-                    archived_at: row.get(9)?,
-                })
-            },
+            task_from_row,
         )
         .map_err(|_| "IO_ERROR: could not read created task".to_string())?;
     transaction
@@ -272,6 +286,7 @@ pub struct UpdateTask {
     pub project_id: Option<String>,
     pub title: String,
     pub description: Option<String>,
+    pub due_at: Option<String>,
     pub status: String,
     pub priority: String,
 }
@@ -284,7 +299,7 @@ fn read_task(
     connection
         .query_row(
             "SELECT id, workspace_id, project_id, title, description,
-                    status, priority, created_at, updated_at, archived_at
+                    status, priority, created_at, updated_at, due_at, archived_at
              FROM tasks WHERE workspace_id = ?1 AND id = ?2",
             params![workspace_id, id],
             |row| {
@@ -299,9 +314,10 @@ fn read_task(
                         priority: row.get(6)?,
                         created_at: row.get(7)?,
                         updated_at: row.get(8)?,
-                        archived_at: row.get(9)?,
+                        due_at: row.get(9)?,
+                        archived_at: row.get(10)?,
                     },
-                    row.get(9)?,
+                    row.get(10)?,
                 ))
             },
         )
@@ -339,6 +355,7 @@ pub fn update_task(connection: &mut Connection, request: UpdateTask) -> Result<T
         })
         .transpose()?
         .flatten();
+    let due_at = normalize_due_at(request.due_at)?;
 
     let transaction = connection
         .transaction()
@@ -377,6 +394,7 @@ pub fn update_task(connection: &mut Connection, request: UpdateTask) -> Result<T
     if existing.project_id == project_id
         && existing.title == title
         && existing.description == description
+        && existing.due_at == due_at
         && existing.status == request.status
         && existing.priority == request.priority
     {
@@ -386,14 +404,15 @@ pub fn update_task(connection: &mut Connection, request: UpdateTask) -> Result<T
     let changed = transaction
         .execute(
             "UPDATE tasks
-             SET project_id = ?1, title = ?2, description = ?3,
-                 status = ?4, priority = ?5,
+             SET project_id = ?1, title = ?2, description = ?3, due_at = ?4,
+                 status = ?5, priority = ?6,
                  updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
-             WHERE id = ?6 AND workspace_id = ?7 AND archived_at IS NULL",
+             WHERE id = ?7 AND workspace_id = ?8 AND archived_at IS NULL",
             params![
                 project_id,
                 title,
                 description,
+                due_at,
                 request.status,
                 request.priority,
                 id,
@@ -439,6 +458,7 @@ mod tests {
             project_id: None,
             title: "  Write tests  ".to_string(),
             description: None,
+            due_at: None,
             status: None,
             priority: None,
         }
@@ -545,6 +565,7 @@ mod tests {
                 project_id: Some("project-a".to_string()),
                 title: "  Write real task tests  ".to_string(),
                 description: Some("sensitive task details".to_string()),
+                due_at: None,
                 status: "in_progress".to_string(),
                 priority: "p0".to_string(),
             },
@@ -583,6 +604,7 @@ mod tests {
                 project_id: None,
                 title: " Write tests ".to_string(),
                 description: None,
+                due_at: None,
                 status: "backlog".to_string(),
                 priority: "p2".to_string(),
             },
@@ -616,6 +638,7 @@ mod tests {
             project_id: None,
             title: "Edited".to_string(),
             description: None,
+            due_at: None,
             status: "todo".to_string(),
             priority: "p1".to_string(),
         };
@@ -668,6 +691,7 @@ mod tests {
                 project_id: None,
                 title: "Should not persist".to_string(),
                 description: None,
+                due_at: None,
                 status: "done".to_string(),
                 priority: "p0".to_string(),
             },
@@ -680,6 +704,111 @@ mod tests {
             .query_row("SELECT COUNT(*) FROM activity_events", [], |row| row.get(0))
             .expect("activity count");
         assert_eq!(events, 1);
+    }
+
+    #[test]
+    fn due_at_normalizes_rfc3339_offsets_to_utc_and_round_trips_json() {
+        let mut connection = fixture();
+        let mut create = request();
+        create.due_at = Some("2026-10-26T12:34:56.123456789+07:00".to_string());
+        let created = create_task(&mut connection, create).expect("create with due time");
+        let expected = "2026-10-26T05:34:56.123456789Z";
+        assert_eq!(created.due_at.as_deref(), Some(expected));
+
+        let stored: Option<String> = connection
+            .query_row(
+                "SELECT due_at FROM tasks WHERE id = ?1",
+                params![created.id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(stored.as_deref(), Some(expected));
+        let serialized = serde_json::to_value(&created).expect("serialize task DTO");
+        assert_eq!(serialized["dueAt"], expected);
+        assert!(serialized.get("due_at").is_none());
+        let round_tripped: Task = serde_json::from_value(serialized).expect("deserialize task DTO");
+        assert_eq!(round_tripped, created);
+        assert_eq!(
+            list_tasks(&connection, PERSONAL, TaskArchiveFilter::Active).unwrap(),
+            vec![created]
+        );
+    }
+
+    #[test]
+    fn due_at_update_normalizes_equivalent_instants_and_no_op_adds_no_activity() {
+        let mut connection = fixture();
+        let created = create_task(&mut connection, request()).unwrap();
+        let mut change = UpdateTask {
+            workspace_id: PERSONAL.to_string(),
+            id: created.id.clone(),
+            project_id: None,
+            title: created.title.clone(),
+            description: None,
+            due_at: Some("2026-10-26T12:00:00+07:00".to_string()),
+            status: created.status.clone(),
+            priority: created.priority.clone(),
+        };
+        let updated = update_task(&mut connection, change.clone()).expect("set due time");
+        assert_eq!(updated.due_at.as_deref(), Some("2026-10-26T05:00:00Z"));
+        change.due_at = Some("2026-10-26T05:00:00Z".to_string());
+        assert_eq!(update_task(&mut connection, change).unwrap(), updated);
+        let events: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM activity_events WHERE task_id = ?1",
+                params![created.id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(events, 2);
+    }
+
+    #[test]
+    fn invalid_due_at_values_are_rejected_without_writes() {
+        let mut connection = fixture();
+        for value in [
+            "2026-10-26",
+            "2026-10-26T12:30:00",
+            "2026-10-26T12:30:00+25:00",
+            "not-a-time",
+        ] {
+            let mut invalid = request();
+            invalid.due_at = Some(value.to_string());
+            assert!(create_task(&mut connection, invalid)
+                .unwrap_err()
+                .starts_with("VALIDATION_FAILED:"));
+        }
+        let count: i64 = connection
+            .query_row("SELECT COUNT(*) FROM tasks", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn empty_due_at_clears_due_time_and_invalid_update_preserves_saved_value() {
+        let mut connection = fixture();
+        let mut create = request();
+        create.due_at = Some("2026-10-26T05:00:00Z".to_string());
+        let created = create_task(&mut connection, create).unwrap();
+        let mut change = UpdateTask {
+            workspace_id: PERSONAL.to_string(),
+            id: created.id.clone(),
+            project_id: None,
+            title: created.title.clone(),
+            description: None,
+            due_at: Some("2026-10-26T12:00:00".to_string()),
+            status: created.status.clone(),
+            priority: created.priority.clone(),
+        };
+        assert!(update_task(&mut connection, change.clone())
+            .unwrap_err()
+            .starts_with("VALIDATION_FAILED:"));
+        assert_eq!(
+            read_task(&connection, PERSONAL, &created.id).unwrap().0,
+            created
+        );
+        change.due_at = Some("  ".to_string());
+        let cleared = update_task(&mut connection, change).expect("clear due time");
+        assert_eq!(cleared.due_at, None);
     }
 
     #[test]

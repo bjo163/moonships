@@ -1,5 +1,13 @@
 # Moonships — Engineering Continuity & Foundation Evidence
 
+## M2-013 due date/time serialization — 2026-10-26
+
+`dueAt` now accepts an RFC 3339 timestamp only when the input includes `Z` or a numeric timezone offset. The Task create/update service normalizes it to UTC with a `Z` suffix, preserves fractional-second precision, and persists the canonical value in the existing `due_at` column. Date-only and timezone-free values are rejected before writes; blank optional values clear the due time. The model contract documents local-time rendering at the UI boundary.
+
+**Local verification passed:** targeted Task tests 16/16; `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`; `cargo test --manifest-path src-tauri/Cargo.toml --all-targets` (58 passed, 0 failed); `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`; `npm run check` (8 repository tests, 67 frontend tests, typecheck and production build); and `npm run tauri -- build` (Windows executable, MSI and NSIS bundles). Biome emits its known config-schema mismatch warning documented in the M2-011 section. The test generated a temporary Cargo.lock because the repository does not carry one; it is excluded from the change.
+
+M2-013 source and model contract are locally verified and ready for the implementation commit. Backlog status and existing issue #47 remain pending the commit and push. Exact next task after M2-013 sync: M2-031 — isolated Project/Task repository integration tests.
+
 ## M2-011 Task archive/restore — 2026-10-26
 
 `src-tauri/src/tasks.rs` now provides soft archive and restore through `archived_at`, idempotent repeats, transactional safe activity summaries, and deterministic active/archived/all list filtering. Existing status, priority and creation metadata persist. Restore is rejected while a linked project is archived. Regression tests cover archive/restore, no-ops, missing and wrong-workspace records, metadata and history, activity failure rollback, archived-project consistency, filtering, and file-backed state after reopening.
