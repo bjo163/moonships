@@ -18,6 +18,7 @@ import {
   LoadingState,
 } from "./ui-primitives";
 import { ProjectTaskExportButton } from "./ProjectTaskExportButton";
+import { ProjectTaskImportPreviewButton } from "./ProjectTaskImportPreviewButton";
 
 type ProjectFormState = {
   name: string;
@@ -167,6 +168,7 @@ export function ProjectsPage({
           <p className="muted">Projects are stored on this device in your Personal workspace.</p>
         </div>
         <div className="projects-page__header-actions">
+          <ProjectTaskImportPreviewButton />
           <ProjectTaskExportButton />
           <Button onClick={startCreate}>New project</Button>
         </div>

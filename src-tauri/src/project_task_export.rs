@@ -7,6 +7,8 @@ use std::collections::BTreeSet;
 
 pub const EXPORT_FORMAT: &str = "moonships.project-task-export";
 pub const EXPORT_SCHEMA_VERSION: u32 = 1;
+pub const MAX_EXPORT_SIZE_BYTES: usize = 50 * 1024 * 1024;
+pub const MAX_EXPORT_RECORDS: usize = 100_000;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -93,6 +95,14 @@ impl ProjectTaskExport {
     }
 
     pub fn validate(&self) -> Result<(), String> {
+        let record_count = self
+            .projects
+            .len()
+            .saturating_add(self.tasks.len())
+            .saturating_add(self.activity_events.len());
+        if record_count > MAX_EXPORT_RECORDS {
+            return Err("VALIDATION_FAILED: export contains too many records".to_string());
+        }
         if self.format != EXPORT_FORMAT || self.schema_version != EXPORT_SCHEMA_VERSION {
             return Err(
                 "VALIDATION_FAILED: unsupported Project and Task export format".to_string(),
@@ -236,10 +246,27 @@ impl ProjectTaskExport {
         self.validate()?;
         let json = serde_json::to_string_pretty(self)
             .map_err(|_| "IO_ERROR: could not serialize Project and Task export".to_string())?;
-        let _: Self = serde_json::from_str(&json).map_err(|_| {
+        if json.len() > MAX_EXPORT_SIZE_BYTES {
+            return Err("VALIDATION_FAILED: export exceeds the supported size limit".to_string());
+        }
+        Self::from_json(&json).map_err(|_| {
             "VALIDATION_FAILED: generated export did not match its schema".to_string()
         })?;
         Ok(json)
+    }
+
+    pub fn from_json(json: &str) -> Result<Self, String> {
+        Self::from_json_with_limit(json, MAX_EXPORT_SIZE_BYTES)
+    }
+
+    fn from_json_with_limit(json: &str, max_bytes: usize) -> Result<Self, String> {
+        if json.len() > max_bytes {
+            return Err("VALIDATION_FAILED: import file exceeds the 50 MiB size limit".to_string());
+        }
+        let document: Self = serde_json::from_str(json)
+            .map_err(|_| "VALIDATION_FAILED: import file is not valid export JSON".to_string())?;
+        document.validate()?;
+        Ok(document)
     }
 }
 
@@ -395,5 +422,13 @@ mod tests {
         assert!(
             ProjectTaskExport::new("1", "not-a-time", Vec::new(), Vec::new(), Vec::new()).is_err()
         );
+    }
+
+    #[test]
+    fn import_preview_parser_rejects_malformed_and_oversized_content() {
+        assert!(ProjectTaskExport::from_json("{").is_err());
+        assert!(ProjectTaskExport::from_json_with_limit("{}", 1)
+            .unwrap_err()
+            .contains("50 MiB size limit"));
     }
 }

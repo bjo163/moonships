@@ -15,6 +15,7 @@ mod repository_integration_tests;
 
 use std::{
     fs,
+    io::Read,
     path::{Path, PathBuf},
     time::Duration,
 };
@@ -124,6 +125,21 @@ struct ExportProjectTaskResponseDto {
     project_count: usize,
     task_count: usize,
     activity_event_count: usize,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ProjectTaskImportPreviewDto {
+    cancelled: bool,
+    file_name: Option<String>,
+    schema_version: Option<u32>,
+    app_version: Option<String>,
+    exported_at: Option<String>,
+    project_count: usize,
+    task_count: usize,
+    activity_event_count: usize,
+    project_names: Vec<String>,
+    task_titles: Vec<String>,
 }
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
@@ -744,6 +760,89 @@ async fn export_project_task_data(app: AppHandle) -> Result<ExportProjectTaskRes
 }
 
 #[tauri::command]
+async fn preview_project_task_import(
+    app: AppHandle,
+) -> Result<ProjectTaskImportPreviewDto, String> {
+    #[cfg(not(windows))]
+    {
+        let _ = app;
+        Err(
+            "UNSUPPORTED: Project and Task import preview is currently available on Windows"
+                .to_string(),
+        )
+    }
+
+    #[cfg(windows)]
+    {
+        tauri::async_runtime::spawn_blocking(move || {
+            let window = app
+                .get_webview_window("main")
+                .ok_or_else(|| "IO_ERROR: main window is unavailable".to_string())?;
+            let Some(path) = rfd::FileDialog::new()
+                .set_parent(&window)
+                .set_title("Preview Moonships Project and Task import")
+                .add_filter("Moonships JSON export", &["json"])
+                .pick_file()
+            else {
+                return Ok(ProjectTaskImportPreviewDto {
+                    cancelled: true,
+                    file_name: None,
+                    schema_version: None,
+                    app_version: None,
+                    exported_at: None,
+                    project_count: 0,
+                    task_count: 0,
+                    activity_event_count: 0,
+                    project_names: Vec::new(),
+                    task_titles: Vec::new(),
+                });
+            };
+
+            let file = std::fs::File::open(&path)
+                .map_err(|_| "IO_ERROR: could not read the selected import file".to_string())?;
+            let mut bytes = Vec::new();
+            file.take((project_task_export::MAX_EXPORT_SIZE_BYTES + 1) as u64)
+                .read_to_end(&mut bytes)
+                .map_err(|_| "IO_ERROR: could not read the selected import file".to_string())?;
+            if bytes.len() > project_task_export::MAX_EXPORT_SIZE_BYTES {
+                return Err(
+                    "VALIDATION_FAILED: import file exceeds the 50 MiB size limit".to_string(),
+                );
+            }
+            let json = std::str::from_utf8(&bytes)
+                .map_err(|_| "VALIDATION_FAILED: import file must be UTF-8 JSON".to_string())?;
+            let document = project_task_export::ProjectTaskExport::from_json(json)?;
+            Ok(ProjectTaskImportPreviewDto {
+                cancelled: false,
+                file_name: path
+                    .file_name()
+                    .map(|name| name.to_string_lossy().into_owned()),
+                schema_version: Some(document.schema_version),
+                app_version: Some(document.app_version),
+                exported_at: Some(document.exported_at),
+                project_count: document.projects.len(),
+                task_count: document.tasks.len(),
+                activity_event_count: document.activity_events.len(),
+                project_names: document
+                    .projects
+                    .iter()
+                    .take(5)
+                    .map(|project| project.name.clone())
+                    .collect(),
+                task_titles: document
+                    .tasks
+                    .iter()
+                    .take(5)
+                    .map(|task| task.title.clone())
+                    .collect(),
+            })
+        })
+        .await
+        .map_err(|_| "IO_ERROR: import preview did not complete".to_string())?
+    }
+}
+
+#[tauri::command]
 fn create_task(app: AppHandle, request: CreateTaskRequestDto) -> Result<TaskDto, String> {
     let mut connection = open_personal_workspace_database(&app)?;
     tasks::create_task(
@@ -1005,6 +1104,7 @@ pub fn run() {
             create_project,
             update_project,
             export_project_task_data,
+            preview_project_task_import,
             create_task,
             list_tasks,
             get_task,
