@@ -44,6 +44,34 @@ pub fn list_sources(connection: &Connection) -> Result<Vec<ConnectorDefinition>,
     Ok(sources)
 }
 
+/// Persists only runtime health timestamps from a source already loaded from app-owned storage.
+pub fn save_runtime_state(
+    connection: &mut Connection,
+    source: &ConnectorDefinition,
+) -> Result<(), String> {
+    let validated = source.clone();
+    validated
+        .validate()
+        .map_err(|_| "VALIDATION_ERROR: connector state is invalid".to_owned())?;
+    let transaction = connection
+        .transaction()
+        .map_err(|error| format!("DB_ERROR: could not begin source state update: {error}"))?;
+    let stored = load_source(&transaction, &source.id)?
+        .ok_or_else(|| "NOT_FOUND: source does not exist".to_owned())?;
+    if stored.source_url != source.source_url
+        || stored.display_name != source.display_name
+        || !stored.is_enabled()
+    {
+        return Err("VALIDATION_ERROR: source identity changed during fetch".to_owned());
+    }
+    let json = serde_json::to_string(&validated)
+        .map_err(|_| "DATA_ERROR: could not encode source state".to_owned())?;
+    transaction.execute("UPDATE intelligence_connectors SET connector_json = ?2, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?1", params![source.id, json]).map_err(|error| format!("DB_ERROR: could not save source state: {error}"))?;
+    transaction
+        .commit()
+        .map_err(|error| format!("DB_ERROR: could not complete source state update: {error}"))
+}
+
 pub fn save_source(
     connection: &mut Connection,
     settings: SaveConnectorSettings,

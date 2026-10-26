@@ -8,6 +8,7 @@ import { getPaletteCommands, getRegisteredCommand } from "./command-registry";
 import { DevToolsPage } from "./DevToolsPage";
 import { type GlobalSearchResult, loadGlobalSearch } from "./global-search";
 import { HomeDashboardPage } from "./HomeDashboardPage";
+import { IntelligencePage } from "./IntelligencePage";
 import { IntelligenceSourcesPage } from "./IntelligenceSourcesPage";
 import { NetOpsPage } from "./NetOpsPage";
 import { ProcessesPage } from "./ProcessesPage";
@@ -88,6 +89,13 @@ export function AppShell({
             aria-current={activeRoute === "overview" ? "page" : undefined}
           >
             <span>Home</span>
+          </a>
+          <a
+            className={`nav-item${activeRoute === "intelligence" ? " nav-item-active" : ""}`}
+            href="#/intelligence"
+            aria-current={activeRoute === "intelligence" ? "page" : undefined}
+          >
+            <span>Intelligence</span>
           </a>
           <a
             className={`nav-item${activeRoute === "projects" ? " nav-item-active" : ""}`}
@@ -812,9 +820,11 @@ export default function App() {
           ? route.id
           : route.kind === "project-overview"
             ? "projects"
-            : route.kind === "task-detail"
-              ? "tasks"
-              : "overview"
+            : route.kind === "intelligence-item"
+              ? "intelligence"
+              : route.kind === "task-detail"
+                ? "tasks"
+                : "overview"
       }
       onToggleTheme={toggleTheme}
       onOpenCommandPalette={() => {
@@ -878,6 +888,10 @@ export default function App() {
         <IntelligenceSourcesPage />
       ) : route.kind === "page" && route.id === "watchlists" ? (
         <TopicWatchlistsPage />
+      ) : route.kind === "page" && route.id === "intelligence" ? (
+        <IntelligencePage />
+      ) : route.kind === "intelligence-item" ? (
+        <IntelligencePage itemId={route.itemId} />
       ) : route.kind === "task-detail" ? (
         <TaskDetailPage taskId={route.taskId} />
       ) : (

@@ -13,6 +13,7 @@ pub mod hash_tools;
 pub mod home_dashboard;
 pub mod intelligence_dedupe;
 pub mod intelligence_identity;
+pub mod intelligence_item_store;
 pub mod intelligence_items;
 pub mod intelligence_sources;
 pub mod intelligence_watchlists;
@@ -79,7 +80,7 @@ fn open_database_in(app_data_dir: &Path) -> Result<Connection, String> {
     Ok(connection)
 }
 
-const CURRENT_SCHEMA_VERSION: i64 = 12;
+const CURRENT_SCHEMA_VERSION: i64 = 13;
 const PERSONAL_WORKSPACE_ID: &str = "00000000-0000-4000-8000-000000000001";
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
@@ -486,6 +487,25 @@ struct ConnectorSourceDto {
     freshness: connector_freshness::ConnectorFreshnessView,
 }
 
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct FetchIntelligenceSourceDto {
+    id: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct GetIntelligenceItemDto {
+    id: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct FetchIntelligenceResultDto {
+    source_id: String,
+    fetched_count: usize,
+}
+
 fn connector_source_dto(connector: connectors::ConnectorDefinition) -> ConnectorSourceDto {
     let now = chrono::DateTime::<chrono::Utc>::from(std::time::SystemTime::now());
     let freshness = connector_freshness::ConnectorFreshnessView::evaluate(&connector, &now);
@@ -506,6 +526,45 @@ fn list_intelligence_sources(app: AppHandle) -> Result<Vec<ConnectorSourceDto>, 
             .then_with(|| left.id.cmp(&right.id))
     });
     Ok(sources.into_iter().map(connector_source_dto).collect())
+}
+
+#[tauri::command]
+fn fetch_intelligence_source(
+    app: AppHandle,
+    request: FetchIntelligenceSourceDto,
+) -> Result<FetchIntelligenceResultDto, String> {
+    let mut connection = open_personal_workspace_database(&app)?;
+    let mut source = intelligence_sources::list_sources(&connection)?
+        .into_iter()
+        .find(|source| source.id == request.id)
+        .ok_or_else(|| "NOT_FOUND: intelligence source does not exist".to_owned())?;
+    let result = intelligence_item_store::fetch_and_store(&mut connection, &mut source);
+    intelligence_sources::save_runtime_state(&mut connection, &source)?;
+    let fetched_count = result.map_err(|error| format!("FETCH_ERROR: {error:?}"))?;
+    Ok(FetchIntelligenceResultDto {
+        source_id: request.id,
+        fetched_count,
+    })
+}
+
+#[tauri::command]
+fn list_intelligence_items(
+    app: AppHandle,
+    request: intelligence_item_store::ListIntelligenceItems,
+) -> Result<Vec<intelligence_items::IntelligenceItem>, String> {
+    let connection = open_personal_workspace_database(&app)?;
+    intelligence_item_store::list(&connection, request)
+        .map_err(|_| "VALIDATION_ERROR: invalid intelligence item query or stored data".to_owned())
+}
+
+#[tauri::command]
+fn get_intelligence_item(
+    app: AppHandle,
+    request: GetIntelligenceItemDto,
+) -> Result<Option<intelligence_items::IntelligenceItem>, String> {
+    let connection = open_personal_workspace_database(&app)?;
+    intelligence_item_store::get(&connection, &request.id)
+        .map_err(|_| "VALIDATION_ERROR: invalid item ID or stored data".to_owned())
 }
 
 #[tauri::command]
@@ -972,6 +1031,25 @@ pub(crate) fn run_migrations(connection: &mut Connection) -> Result<(), String> 
                 INSERT OR IGNORE INTO schema_migrations (version) VALUES (12);",
             )
             .map_err(|error| format!("Could not apply intelligence watchlist migration: {error}"))?;
+    }
+
+    if current_version < 13 {
+        transaction
+            .execute_batch(
+                "CREATE TABLE IF NOT EXISTS intelligence_items (
+                id TEXT PRIMARY KEY NOT NULL CHECK (length(id) = 36),
+                source_id TEXT NOT NULL CHECK (length(source_id) BETWEEN 1 AND 64),
+                category TEXT NOT NULL CHECK (length(category) BETWEEN 1 AND 64),
+                observed_at TEXT NOT NULL,
+                item_json TEXT NOT NULL CHECK (length(item_json) BETWEEN 2 AND 16384)
+            );
+            CREATE INDEX IF NOT EXISTS idx_intelligence_items_observed
+                ON intelligence_items (observed_at DESC, id DESC);
+            CREATE INDEX IF NOT EXISTS idx_intelligence_items_source_category
+                ON intelligence_items (source_id, category, observed_at DESC);
+            INSERT OR IGNORE INTO schema_migrations (version) VALUES (13);",
+            )
+            .map_err(|error| format!("Could not apply intelligence item migration: {error}"))?;
     }
 
     transaction
@@ -1509,6 +1587,9 @@ pub fn run() {
             update_milestone,
             list_cleanup_reports,
             list_intelligence_sources,
+            fetch_intelligence_source,
+            list_intelligence_items,
+            get_intelligence_item,
             save_intelligence_source,
             set_intelligence_source_enabled,
             list_intelligence_watchlists,
@@ -1602,14 +1683,16 @@ mod tests {
         connector_source_dto, database_path, hide_to_tray_enabled, open_database_in,
         run_migrations, AssociateMilestoneTaskRequestDto, ConnectorSourceDto,
         CreateMilestoneRequestDto, CreateProjectRequestDto, CreateTaskRequestDto,
-        ListMilestonesRequestDto, ListProjectsRequestDto, ListTasksRequestDto, MilestoneDto,
-        MilestoneListResponseDto, ProjectActivityDto, ProjectDto, ProjectListResponseDto,
-        ProjectOverviewRequestDto, ProjectOverviewResponseDto, SaveConnectorSettingsDto,
-        SaveTopicWatchlistDto, SetConnectorEnabledDto, SetTopicWatchlistPausedDto, TaskActivityDto,
+        FetchIntelligenceSourceDto, GetIntelligenceItemDto, ListMilestonesRequestDto,
+        ListProjectsRequestDto, ListTasksRequestDto, MilestoneDto, MilestoneListResponseDto,
+        ProjectActivityDto, ProjectDto, ProjectListResponseDto, ProjectOverviewRequestDto,
+        ProjectOverviewResponseDto, SaveConnectorSettingsDto, SaveTopicWatchlistDto,
+        SetConnectorEnabledDto, SetTopicWatchlistPausedDto, TaskActivityDto,
         TaskActivityListResponseDto, TaskDto, TaskListResponseDto, TaskRequestDto,
         TopicWatchlistIdDto, UpdateTaskRequestDto, CURRENT_SCHEMA_VERSION,
         DATABASE_BUSY_TIMEOUT_MS, DATABASE_FILE_NAME, PERSONAL_WORKSPACE_ID,
     };
+    use crate::intelligence_item_store;
     use std::{
         fs,
         path::Path,
@@ -1777,6 +1860,29 @@ mod tests {
         assert_eq!(json["connector"]["minimumPollIntervalSeconds"], 900);
         assert_eq!(json["freshness"]["status"], "disabled");
         assert_eq!(json["freshness"]["isLive"], false);
+    }
+
+    #[test]
+    fn intelligence_item_ipc_dtos_reject_scope_and_unbounded_fields() {
+        let request: intelligence_item_store::ListIntelligenceItems = serde_json::from_str(
+            r#"{"sourceId":"rss-test","category":"general","search":"launch","limit":50}"#,
+        )
+        .unwrap();
+        assert_eq!(request.limit, 50);
+        assert!(
+            serde_json::from_str::<intelligence_item_store::ListIntelligenceItems>(
+                r#"{"sourceId":null,"category":null,"search":null,"limit":50,"path":"C:/"}"#
+            )
+            .is_err()
+        );
+        assert!(serde_json::from_str::<FetchIntelligenceSourceDto>(
+            r#"{"id":"rss-test","url":"https://example.test"}"#
+        )
+        .is_err());
+        assert!(serde_json::from_str::<GetIntelligenceItemDto>(
+            r#"{"id":"item","workspaceId":"other"}"#
+        )
+        .is_err());
     }
 
     #[test]
@@ -1960,6 +2066,8 @@ mod tests {
             })
             .expect("schema version should be recorded");
         assert_eq!(version, CURRENT_SCHEMA_VERSION);
+        let item_table: i64 = connection.query_row("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='intelligence_items'", [], |row| row.get(0)).unwrap();
+        assert_eq!(item_table, 1);
 
         run_migrations(&mut connection).expect("migration should be safe to rerun");
         let version_after_rerun: i64 = connection

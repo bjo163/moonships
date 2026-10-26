@@ -139,8 +139,8 @@ export function TopicWatchlistsPage() {
         monitoring or notifications.
       </div>
       <p className="inline-status" role="status">
-        Watchlist matching is ready for the Intelligence item view. No item records are stored by
-        this milestone.
+        Saved items can be reviewed in <a href="#/intelligence">Intelligence</a>. Filters are not
+        applied to retained items automatically; no background monitoring or notifications run.
       </p>
       {error ? (
         <div className="inline-alert" role="alert">

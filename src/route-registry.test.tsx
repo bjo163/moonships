@@ -35,3 +35,14 @@ describe("NetOps route", () => {
     expect(ROUTE_REGISTRY.netops.hash).toBe("#/netops");
   });
 });
+
+describe("Intelligence routes", () => {
+  it("resolves the list and encoded item detail routes", () => {
+    expect(resolveRoute("#/intelligence")).toEqual({ kind: "page", id: "intelligence" });
+    expect(resolveRoute("#/intelligence/items/item-42")).toEqual({
+      kind: "intelligence-item",
+      itemId: "item-42",
+    });
+    expect(ROUTE_REGISTRY.intelligence.hash).toBe("#/intelligence");
+  });
+});

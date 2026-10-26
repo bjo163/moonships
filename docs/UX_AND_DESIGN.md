@@ -451,7 +451,13 @@ The interval is not a background schedule. The page does not fetch when opened, 
 
 ### Topic Watchlists (M5-009)
 
-The **Topic Watchlists** page saves named keyword/category filters with distinct active, paused, empty and unavailable states. Keywords match literal text in an item's title or summary without case sensitivity. Category IDs match exactly; alternatives within a filter group are OR, while populated keyword and category groups combine with AND. Either group can be omitted, but a watchlist must contain at least one filter. Pause stops matching while preserving the saved filter. Delete requires confirmation and removes only the watchlist record. The page states that items, fetches and notifications are not connected yet.
+The **Topic Watchlists** page saves named keyword/category filters with distinct active, paused, empty and unavailable states. Keywords match literal text in an item's title or summary without case sensitivity. Category IDs match exactly; alternatives within a filter group are OR, while populated keyword and category groups combine with AND. Either group can be omitted, but a watchlist must contain at least one filter. Pause stops matching while preserving the saved filter. Delete requires confirmation and removes only the watchlist record.
+
+### Intelligence list and item detail (M5-012)
+
+The **Intelligence** route (`#/intelligence`) lists only locally persisted source-attributed items. Search, source and category filters operate on this bounded saved list. Rows expose source, category, publication time, observation time and freshness status; missing publication or event times remain “Not provided”. Selecting an item opens an ID-scoped detail route with summary, verification state, all distinct timestamps, validated source-feed link and original item link. Initial empty storage, filtered no-results, loading, unavailable/retry, fetch failure, stale source and disabled-source states remain distinct.
+
+Fetching is a separate explicit **Fetch now** action shown beside configured sources. It is available only for enabled, terms-reviewed sources, uses the bounded native RSS policy, persists a complete successful result locally and displays last attempt/success and health. Opening the list or detail never fetches or polls. The list shows at most 200 recent records from a bounded local retention set; data remains on this device.
 
 ### Settings
 

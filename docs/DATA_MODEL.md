@@ -143,6 +143,8 @@ A trend requires declared observation and comparison windows. Avoid calling an i
 
 The pure `WindowTrend` result compares adjacent equal-length half-open windows (maximum 90 days each) per watchlist/category, using validated `observed_at` timestamps. It counts deduplicated attributed items, preserves current-window source count, and records both window boundaries and the method version. Each window requires explicit selected/successful/failed source evidence. Coverage is labeled `no_sources`, `no_successful_fetch`, `partial`, or `complete`, with unattempted sources counted separately. A count is `null` when no source fetch succeeded and may be `0` only when at least one source succeeded but no matching item was observed. Relative change is present only for complete windows with identical selected source scopes and a nonzero baseline. Categories with no item in either supplied window produce no row, while result-level coverage still distinguishes a complete empty observation from unavailable data. These rules prevent missing data from appearing as zero without a caveat.
 
+M5-012 stores validated `IntelligenceItem` JSON with source ID, category and normalized observation timestamp indexes. Retention is bounded to the most recent 10,000 items. Native list queries return at most 200 rows and support bounded source/category/search filters; detail is read by item ID. Records are written transactionally only after an explicit RSS fetch returns a complete valid result. No partial feed results are persisted.
+
 ### WorkflowDefinition
 Fields: id, workspace_id, name, version, definition_json, enabled, permissions_json, created_at, updated_at.
 Definitions must be schema-validated and versioned.

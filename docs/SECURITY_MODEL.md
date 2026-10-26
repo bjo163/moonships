@@ -164,6 +164,12 @@ Risk class is separate from task priority, vulnerability severity and business i
 - Window membership uses normalized observation time, not provider publication/event dates. Each window must include bounded source-scope and fetch-outcome evidence, validated for unique IDs and subset relationships. No successful source yields a null count; successful empty results may yield zero. Partial coverage and differing selected scopes suppress relative-change output, which also remains undefined for a zero baseline. No matching categories produce no observation rows, while result-level coverage still distinguishes a successful empty window from unavailable data.
 - Trend calculation is pure in-memory processing. It makes no network requests, starts no scheduler, stores no item content and interprets no source text as instructions.
 
+### Stored intelligence items and display (M5-012)
+
+- Only a manual IPC fetch for an enabled and valid saved connector can access the network. The existing RSS boundary enforces public DNS/IP pinning, HTTPS, no proxy/redirect, request/size/item bounds, terms review, cadence and backoff.
+- Results are validated and persisted atomically only after the complete RSS document parses successfully. Storage retention is bounded to 10,000 records; native reads cap pages at 200, and source/category/search and item ID inputs are validated. Runtime source health is persisted after attempts so errors cannot leave an old success presented as live.
+- Feed title/summary are rendered only as text. URLs are validated HTTPS item/source links opened externally with a safe `rel`; page routes use item IDs and never accept arbitrary paths or SQL. Opening list/detail routes performs no network activity.
+
 ### Read-only system inventory (M4-007)
 
 - Inventory reads only OS family/process architecture, available logical processors, physical memory counters and capacity/free bytes on the volume containing the Windows directory.

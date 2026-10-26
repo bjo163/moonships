@@ -321,6 +321,8 @@ M5-009 adds a v12 SQLite table for bounded topic watchlists, with native list/sa
 
 Trend calculation is pure and in memory over a bounded batch of validated items and a saved watchlist. The caller declares adjacent equal-length comparison and observation windows and supplies selected/successful/failed source evidence for each. Per-category counts use existing source-preserving deduplication; unavailable counts serialize as `null`, while a successful empty result is a known zero. Coverage labels distinguish no sources, no successful fetch, partial and complete windows. Ratios are emitted only for complete windows with the same selected source scope and a nonzero baseline. Empty category sets produce no synthetic rows, but result-level coverage remains available. Trend observations are not persisted.
 
+M5-012 persists only complete successful results of explicit user-triggered fetches in a bounded app-owned table. Item queries accept only bounded source/category/search filters and a capped page size; item detail reads by validated ID. The Intelligence list exposes source/category/time/freshness metadata and links to validated HTTPS source and original item URLs. No fetch or polling occurs on route load; saved source runtime health is updated after each manual attempt.
+
 ## 11. AI adapter boundary
 
 AI consumes a limited context assembled by Moonships and can request only registered tools. Keep provider request/response types behind an internal interface. Persist prompt/output only when configured and necessary; redact secrets and minimize sensitive data.

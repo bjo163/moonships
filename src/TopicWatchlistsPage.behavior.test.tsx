@@ -72,6 +72,10 @@ describe("M5-009 Topic Watchlists", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Save watchlist" }));
 
+    expect(screen.getByRole("link", { name: "Intelligence" }).getAttribute("href")).toBe(
+      "#/intelligence",
+    );
+
     const card = await screen.findByRole("article");
     expect(within(card).getByText("Artemis, NASA")).toBeTruthy();
     expect(within(card).getByText("general, advisory")).toBeTruthy();
