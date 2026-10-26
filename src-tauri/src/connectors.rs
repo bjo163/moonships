@@ -243,7 +243,7 @@ impl ConnectorDefinition {
     }
 }
 
-fn valid_id(id: &str) -> bool {
+pub(crate) fn valid_id(id: &str) -> bool {
     let bytes = id.as_bytes();
     !bytes.is_empty()
         && bytes.len() <= MAX_CONNECTOR_ID_BYTES
@@ -254,7 +254,7 @@ fn valid_id(id: &str) -> bool {
         })
 }
 
-fn valid_https_url(value: &str) -> bool {
+pub(crate) fn valid_https_url(value: &str) -> bool {
     if value.len() > 2_048 || value.bytes().any(|byte| byte.is_ascii_whitespace()) {
         return false;
     }

@@ -177,7 +177,7 @@
 ## M5 — World Monitor, trends and media intelligence
 
 - [x] **M5-001 — Define connector/source contract** [S] — Access method, terms, cadence, freshness and health. **AC:** a connector cannot be enabled without declared ID and limits. Typed declarations validate ID, kind/access pairing, reviewed terms, HTTPS references, bounded polling/timeout/size/item limits, freshness and health before activation; no connector is fetched or persisted by this task.
-- [ ] **M5-002 — Add normalized intelligence item schema** [S] — Source URL and timestamps. **AC:** published/observed/event time are separate fields.
+- [x] **M5-002 — Add normalized intelligence item schema** [S] — Source URL and timestamps. **AC:** published/observed/event time are separate fields. A strict typed DTO preserves source attribution and separate timestamps, validates explicit-zone RFC 3339 values and bounds, and never infers missing publication/event times.
 - [ ] **M5-003 — Implement one user-configured RSS connector** [S] — Start with a test fixture and a permitted source. **AC:** rate/timeout and parsing errors are handled.
 - [ ] **M5-004 — Add HTTP fetch timeout, size cap and backoff** [S] — No unbounded content load. **AC:** oversized/slow source produces controlled failure.
 - [ ] **M5-005 — Add canonical URL and content fingerprint helpers** [S] — Preserve original URL. **AC:** test fixtures show stable identity without losing source reference.

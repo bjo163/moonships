@@ -301,6 +301,8 @@ Never assume every website allows automated fetching. Prefer public documented A
 
 M5-001 implements this as a typed declaration contract only. A source definition records stable ID, content kind, access method, HTTPS source/terms references, reviewed terms and rate notes, minimum poll interval, request timeout, response/item caps, freshness threshold, health and last attempt/success timestamps. `enable()` and enabled-state deserialization validate the entire declaration and fail closed; the contract performs no fetch, polling, persistence or scheduling.
 
+M5-002 adds a strict normalized `IntelligenceItem` DTO with source identity/URL, item canonical URL, external ID, bounded title/summary/category, optional content hash, freshness and verification labels. `published_at`, required `observed_at`, and optional `event_time` are distinct RFC 3339 instants normalized to UTC; missing publication/event times stay absent. The DTO validates bounds and safe HTTPS references but does not persist items or canonicalize links beyond validation.
+
 ## 11. AI adapter boundary
 
 AI consumes a limited context assembled by Moonships and can request only registered tools. Keep provider request/response types behind an internal interface. Persist prompt/output only when configured and necessary; redact secrets and minimize sensitive data.

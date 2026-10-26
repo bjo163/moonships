@@ -111,6 +111,11 @@ Risk class is separate from task priority, vulnerability severity and business i
 - Enabling requires reviewed, non-restricted terms and bounded cadence, timeout, body size, item count and freshness values. Enabled-state deserialization reruns validation; no raw connector can bypass the enable check.
 - This task adds no network access, polling, scheduling or persistence. A future connector implementation must apply DNS/IP policy, redirect handling, timeout/size/rate enforcement and provider terms at the actual fetch boundary.
 
+### Intelligence items (M5-002)
+
+- Connector output remains untrusted text. Item IDs, source IDs, HTTPS URLs, timestamps, bounded title/summary/category and optional SHA-256 format are validated; UI consumers must render text as text and never interpret summary markup or instructions.
+- `published_at`, `observed_at` and `event_time` are separate values. Missing source dates remain missing; observation time is not substituted as publication or event time.
+
 ### Read-only system inventory (M4-007)
 
 - Inventory reads only OS family/process architecture, available logical processors, physical memory counters and capacity/free bytes on the volume containing the Windows directory.

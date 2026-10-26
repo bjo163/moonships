@@ -449,3 +449,7 @@ Added a malformed-DNS request test that stops before resolver work and an alread
 ## M5-001 Connector/source contract — 2026-10-26
 
 Added typed connector kind, access method, terms review, health and bounded policy fields. RSS/API/authorized-export kinds must match the access method. Enabled connectors require a valid stable ID, reviewed terms, HTTPS-only references without embedded credentials, poll cadence, request timeout, response/item caps and freshness threshold; both `enable()` and enabled-state deserialization fail closed, and blocked sources cannot be re-enabled by resetting health. No source is fetched, scheduled or persisted. Verification passed: Rust suite 168/168; Clippy with warnings denied; Rust formatting; backlog validation; and `git diff --check`.
+
+## M5-002 Normalized intelligence item schema — 2026-10-26
+
+Added a strict typed intelligence item DTO with stable item/source IDs, separate source and item URLs, bounded external ID/title/summary/category, content hash, freshness and verification state. Publication, observation and event timestamps are distinct explicit-zone RFC 3339 values normalized to UTC; missing publication/event times remain absent. URL canonicalization, deduplication, persistence and connector fetching are not included. Verification passed: Rust suite 171/171; Clippy with warnings denied; Rust formatting; targeted item-schema tests; backlog validation; and `git diff --check`.
