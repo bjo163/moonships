@@ -115,6 +115,9 @@
 
 ## 4. Project & task UX
 
+### Projects list — M2-014 initial slice
+The Projects navigation opens records from the local Personal workspace. The list shows active projects only, sorted case-insensitively by name with stable ID tie-breaking, and includes status, goal, description and local update time. Create and edit forms support name, goal, description and status on edit; successful saves are confirmed by re-reading SQLite. Loading, empty, error and retry states are distinct. Archived-project browsing and archive controls are not part of this slice.
+
 ### Project detail
 Tabs: Overview, Tasks, Roadmap, Notes/Docs, Activity, Settings.
 Overview includes objective, status, owner/local profile, dates, health derived from transparent rules, milestones and recent activity.
