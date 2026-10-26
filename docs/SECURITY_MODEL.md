@@ -116,6 +116,15 @@ Risk class is separate from task priority, vulnerability severity and business i
 - Connector output remains untrusted text. Item IDs, source IDs, HTTPS URLs, timestamps, bounded title/summary/category and optional SHA-256 format are validated; UI consumers must render text as text and never interpret summary markup or instructions.
 - `published_at`, `observed_at` and `event_time` are separate values. Missing source dates remain missing; observation time is not substituted as publication or event time.
 
+### RSS fetch boundary (M5-003)
+
+- Fetch occurs only through an explicit native call for a connector whose user-provided declaration is enabled, validated, RSS/Public RSS, and terms-reviewed. There is no startup fetch or scheduler.
+- Apply a process-local minimum interval by connector ID before each attempt; a failed attempt also consumes the interval. The limiter tracks at most 256 source IDs and resets on app restart until durable settings/history are added.
+- Resolve each hostname once on one bounded worker. A timed-out resolver remains the sole active resolver worker until it returns. Reject the whole result if any address is private, local, reserved or otherwise non-public, cap DNS results at 32, and pin the HTTP client's resolution to the accepted set to prevent a second lookup/rebinding.
+- Use HTTPS only, disable proxies and redirects, cap total request time and response bytes, and reject non-success HTTP status. Parse only RSS 2.0 with a pull parser, reject DTDs and malformed/oversized item data, and cap item count. Treat title/summary as untrusted text; do not execute instructions or render markup from a feed.
+- The fixture uses JPL's officially documented public CNEOS RSS feed as an attributed source example. The URL is not built-in configuration and tests do not contact it. External pages may change terms or availability; users must review the source terms before enabling it.
+- The adapter uses a blocking HTTP client; any future IPC integration must put it on a bounded blocking worker so it cannot block or panic inside the UI async runtime.
+
 ### Read-only system inventory (M4-007)
 
 - Inventory reads only OS family/process architecture, available logical processors, physical memory counters and capacity/free bytes on the volume containing the Windows directory.

@@ -303,6 +303,8 @@ M5-001 implements this as a typed declaration contract only. A source definition
 
 M5-002 adds a strict normalized `IntelligenceItem` DTO with source identity/URL, item canonical URL, external ID, bounded title/summary/category, optional content hash, freshness and verification labels. `published_at`, required `observed_at`, and optional `event_time` are distinct RFC 3339 instants normalized to UTC; missing publication/event times stay absent. The DTO validates bounds and safe HTTPS references but does not persist items or canonicalize links beyond validation.
 
+M5-003 adds a native RSS 2.0 adapter callable for one explicitly enabled user source. It enforces the declared per-source minimum interval in-process, timeout, response and item caps; rejects redirects, proxy use, private/reserved DNS results and unsafe item URLs; parses RSS with a bounded XML parser; and returns stable errors for timeout, transport, HTTP, size and parse failures. Because the HTTP client is blocking, future IPC callers must dispatch it to a bounded blocking worker. The reviewed example source is JPL's documented public CNEOS RSS feed (`https://cneos.jpl.nasa.gov/feed/news.xml`); it is test metadata only and is never enabled or fetched automatically. The adapter has no scheduler, IPC/UI wiring or persistence; those remain follow-up tasks.
+
 ## 11. AI adapter boundary
 
 AI consumes a limited context assembled by Moonships and can request only registered tools. Keep provider request/response types behind an internal interface. Persist prompt/output only when configured and necessary; redact secrets and minimize sensitive data.

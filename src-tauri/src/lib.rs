@@ -20,6 +20,7 @@ pub mod ping_adapter;
 pub mod process_inventory;
 pub mod project_task_export;
 pub mod projects;
+pub mod rss_connector;
 pub mod service_inventory;
 pub mod subnet_calculator;
 pub mod system_inventory;
