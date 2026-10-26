@@ -1,5 +1,11 @@
 # Moonships — Engineering Continuity & Foundation Evidence
 
+## M2-021 combined Task filters — 2026-10-26
+
+The Tasks toolbar now combines Project, canonical status and canonical priority filters with M2-020's local search. Project options include Personal inbox and IDs found on Tasks when a Project name cannot be loaded, keeping those records filterable. One local filtered set drives List and Board; clearing filters restores the active task set without modifying persistence. No-match remains distinct from an empty collection or failed read.
+
+**Verification passed:** targeted Task List/Board behaviors (8/8); `npm run check` (repository tests 8/8, frontend tests 91/91, typecheck and production build passed); `git diff --check`. Repository regression checks CI [40277420116](https://github.com/bjo163/moonships/actions/runs/40277420116) passed 5/5 jobs including Windows package smoke build. Existing Biome schema/deprecation notices and test non-null assertion warnings remain. Issue #55 is pending backlog sync from this documentation update. **Next task:** M2-022 — due-date and priority indicators. Manual Windows runtime/accessibility and M2 milestone gates remain open.
+
 ## M2-020 local Task search — 2026-10-26
 
 The Tasks toolbar now searches active Task titles and descriptions locally without case sensitivity. A 150 ms debounce keeps keystrokes responsive; Clear and no-match states work in List and Board. The match count is shown against the active-task total, and an empty result is distinct from no active tasks or a failed read. Search only filters in-memory persisted records and does not mutate them.
