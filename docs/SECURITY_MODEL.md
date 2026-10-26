@@ -111,6 +111,12 @@ A capability describes authority; it does not by itself authorize every target o
 - Target values reject URLs, ports, wildcards, malformed names and invalid IP literals. The current declaration model does not imply ownership or prove authorization; the note records the user's stated basis and must be reviewed before execution.
 - No network call or assessment is performed by the model. Any future executor must revalidate immediately before each request, enforce exclusions and redirect/out-of-scope rules, apply rate/deadline limits and require approval appropriate to risk.
 
+### Assessment destination gate (M6-008)
+
+- Before each request, recheck that scope has not expired, then compare the canonical destination hostname or IP literal to the validated authorized entries; exact host match only, no implicit subdomain or IP-range expansion. Explicit exclusions always deny.
+- Permit only HTTP(S) URLs without embedded credentials or fragments. Resolve relative redirects against the current URL, then apply the same scope check to the resolved destination before following; reject external, excluded or unsupported destinations before network activity.
+- The gate performs no DNS lookup or request and is not a complete SSRF control by itself. Future network execution must additionally pin/validate resolved addresses, restrict ports, enforce deadlines/rate limits and disable unchecked redirects.
+
 ### OpenAPI document viewer (M6-003)
 
 - A user action opens the native Windows file picker; renderer code cannot supply a path. Native code reads at most 1 MiB, rejects non-UTF-8 and oversized files, and returns only the filename plus bounded text. No database persistence or network access is performed.

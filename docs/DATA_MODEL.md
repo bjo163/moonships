@@ -29,6 +29,8 @@ M6-006 local metrics are an in-memory snapshot only: fixed source label, RFC 333
 
 M6-007 assessment scope is a strict declaration containing up to 100 exact hostname/IP targets, up to 100 exclusions, a non-empty authorization note capped at 2,000 characters, and an RFC 3339 expiry no more than 365 days ahead. Hostnames normalize to lowercase ASCII DNS labels; IP literals normalize through the standard IP parser. Starting validation fails for empty scope, invalid/duplicate entries, missing authorization or invalid/expired/overlong expiry. This DTO is not yet persisted and has no executor.
 
+M6-008 uses the validated scope to check an HTTP(S) URL host before a request and to resolve/recheck each redirect URL before following. Matching is exact host/IP identity; exclusions take precedence. This is an in-memory policy gate, not a request client, and does not resolve DNS or persist targets.
+
 ### Workspace
 Purpose: local grouping of projects, settings and views.
 Fields: id, name, description?, profile_type?, created_at, updated_at, archived_at?.

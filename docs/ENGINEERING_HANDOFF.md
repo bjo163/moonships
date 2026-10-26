@@ -545,3 +545,7 @@ Added a Local Metrics route that presents a one-shot snapshot of logical process
 ## M6-007 Security assessment scope model — 2026-10-26
 
 Added a strict declaration and pre-start validator for exact hostname/IP targets, exclusions, required authorization note and future expiry. It normalizes hostnames/IP literals, rejects URL/port/wildcard and malformed entries, duplicate targets, empty scope/note, expired scope, and expiry beyond 365 days; target lists and note size are bounded. Verification passed: scope tests 5/5; full Rust suite 250/250; Clippy with warnings denied; Rust formatting; backlog validation (141/238 checked); and `git diff --check`. The model records a user assertion but does not prove authorization or run a security assessment.
+
+## M6-008 Out-of-scope destination checks — 2026-10-26
+
+Added exact normalized host/IP request validation against a validated assessment scope. Exclusions take precedence; unsupported schemes, credentials and fragments are denied; scope expiry is checked again before each request. Redirect locations resolve relative to the current URL and pass the same gate before a future caller could follow them. Verification passed: assessment-scope suite 9/9; full Rust suite 254/254; Clippy with warnings denied; Rust formatting; backlog validation (142/238 checked); and `git diff --check`. The gate performs no DNS lookup or network request and still requires a future executor to validate resolved addresses and enforce port/deadline limits.

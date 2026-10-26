@@ -345,6 +345,8 @@ M6-006 exposes a manually refreshed local metrics snapshot from the existing rea
 
 M6-007 defines a strict security-assessment scope declaration with exact hostname/IP targets, explicit exclusions, a non-empty authorization note and an RFC 3339 expiry. Start validation rejects empty/duplicate/invalid targets, missing authorization, expired scopes and expiry beyond one year, normalizing hostnames and IP literals. This model performs no assessment or request; future executors must revalidate scope and apply tool-specific host/IP matching and approval gates.
 
+M6-008 adds a pre-request URL scope gate. It matches canonical hostnames/IP literals exactly, gives explicit exclusions precedence, rejects unsupported schemes/credentials/fragments, checks expiry at request time, and resolves then revalidates each redirect destination before a caller may follow it. The gate makes no request itself; any future executor must call it before every request and redirect.
+
 M6-003 adds a local OpenAPI document viewer. A native file chooser reads at most 1 MiB of UTF-8 text and returns no path; parsing/validation runs locally with YAML 1.2 duplicate-key rejection and aliases disabled. The validator checks OpenAPI 3.0/3.1 version, `info.title`, `info.version` and a bounded `paths` object. The original file text is shown as escaped text only. It neither resolves `$ref`, loads remote schemas, nor contacts API servers; this is a bounded structural validator, not full OpenAPI conformance.
 
 ## 11. AI adapter boundary

@@ -1,6 +1,7 @@
 //! Explicit, expiring authorization scope for future security assessments.
 //! This module validates declarations only; it performs no discovery or network requests.
 use chrono::{DateTime, Utc};
+use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use std::net::IpAddr;
 
@@ -53,6 +54,64 @@ pub enum ScopeValidationError {
     InvalidHostname,
     InvalidIpAddress,
     DuplicateTarget,
+    InvalidUrl,
+    UnsupportedScheme,
+    OutOfScope,
+    Excluded,
+}
+
+/// Validate a request destination against the normalized, authorized host/IP list.
+/// Call this before every request and again for every redirect destination.
+pub fn validate_url_in_scope(
+    scope: &ValidatedAssessmentScope,
+    value: &str,
+    now: &DateTime<Utc>,
+) -> Result<Url, ScopeValidationError> {
+    let expiry = DateTime::parse_from_rfc3339(&scope.expires_at)
+        .map_err(|_| ScopeValidationError::InvalidExpiry)?
+        .with_timezone(&Utc);
+    if expiry <= *now {
+        return Err(ScopeValidationError::Expired);
+    }
+    let url = Url::parse(value).map_err(|_| ScopeValidationError::InvalidUrl)?;
+    if !matches!(url.scheme(), "http" | "https")
+        || !url.username().is_empty()
+        || url.password().is_some()
+        || url.fragment().is_some()
+    {
+        return Err(ScopeValidationError::UnsupportedScheme);
+    }
+    let host = url.host_str().ok_or(ScopeValidationError::InvalidUrl)?;
+    let target = match host.parse::<IpAddr>() {
+        Ok(address) => ScopeTarget {
+            kind: ScopeTargetKind::IpAddress,
+            value: address.to_string(),
+        },
+        Err(_) => ScopeTarget {
+            kind: ScopeTargetKind::Hostname,
+            value: host.to_ascii_lowercase(),
+        },
+    };
+    if scope.excluded_targets.contains(&target) {
+        return Err(ScopeValidationError::Excluded);
+    }
+    if !scope.authorized_targets.contains(&target) {
+        return Err(ScopeValidationError::OutOfScope);
+    }
+    Ok(url)
+}
+
+/// Resolve and validate a redirect before the caller is allowed to make the next request.
+pub fn validate_redirect_in_scope(
+    scope: &ValidatedAssessmentScope,
+    current_url: &Url,
+    location: &str,
+    now: &DateTime<Utc>,
+) -> Result<Url, ScopeValidationError> {
+    let redirected = current_url
+        .join(location)
+        .map_err(|_| ScopeValidationError::InvalidUrl)?;
+    validate_url_in_scope(scope, redirected.as_str(), now)
 }
 
 fn normalize_target(target: &ScopeTarget) -> Result<ScopeTarget, ScopeValidationError> {
@@ -150,7 +209,8 @@ impl AssessmentScope {
 #[cfg(test)]
 mod tests {
     use super::{
-        AssessmentScope, ScopeTarget, ScopeTargetKind, ScopeValidationError, MAX_SCOPE_TARGETS,
+        validate_redirect_in_scope, validate_url_in_scope, AssessmentScope, ScopeTarget,
+        ScopeTargetKind, ScopeValidationError, MAX_SCOPE_TARGETS,
     };
     use chrono::{DateTime, Utc};
 
@@ -292,5 +352,95 @@ mod tests {
             r#"{"authorizedTargets":[],"authorizationNote":"ok","excludedTargets":[],"expiresAt":"2026-10-27T05:00:00Z","endpoint":"https://example.test"}"#,
         );
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn request_host_and_ip_must_exactly_match_authorized_targets() {
+        let allowed = scope(vec![
+            ScopeTarget {
+                kind: ScopeTargetKind::Hostname,
+                value: "api.example.test".to_owned(),
+            },
+            ScopeTarget {
+                kind: ScopeTargetKind::IpAddress,
+                value: "192.0.2.8".to_owned(),
+            },
+        ])
+        .validate_for_start(&now())
+        .unwrap();
+        assert!(validate_url_in_scope(&allowed, "https://api.example.test/check", &now()).is_ok());
+        assert!(validate_url_in_scope(&allowed, "https://192.0.2.8/status", &now()).is_ok());
+        assert_eq!(
+            validate_url_in_scope(&allowed, "https://sub.api.example.test/check", &now()),
+            Err(ScopeValidationError::OutOfScope)
+        );
+        assert_eq!(
+            validate_url_in_scope(&allowed, "https://192.0.2.9/status", &now()),
+            Err(ScopeValidationError::OutOfScope)
+        );
+        assert_eq!(
+            validate_url_in_scope(&allowed, "file:///C:/private.txt", &now()),
+            Err(ScopeValidationError::UnsupportedScheme)
+        );
+    }
+
+    #[test]
+    fn every_redirect_is_resolved_and_rechecked_before_following() {
+        let allowed = scope(vec![ScopeTarget {
+            kind: ScopeTargetKind::Hostname,
+            value: "api.example.test".to_owned(),
+        }])
+        .validate_for_start(&now())
+        .unwrap();
+        let start =
+            validate_url_in_scope(&allowed, "https://api.example.test/start", &now()).unwrap();
+        assert_eq!(
+            validate_redirect_in_scope(&allowed, &start, "/next", &now())
+                .unwrap()
+                .as_str(),
+            "https://api.example.test/next"
+        );
+        assert_eq!(
+            validate_redirect_in_scope(
+                &allowed,
+                &start,
+                "https://outside.example.test/next",
+                &now()
+            ),
+            Err(ScopeValidationError::OutOfScope)
+        );
+        assert_eq!(
+            validate_redirect_in_scope(&allowed, &start, "//outside.example.test/next", &now()),
+            Err(ScopeValidationError::OutOfScope)
+        );
+    }
+
+    #[test]
+    fn explicit_exclusions_take_precedence_over_authorized_entries() {
+        let mut declaration = scope(vec![ScopeTarget {
+            kind: ScopeTargetKind::Hostname,
+            value: "api.example.test".to_owned(),
+        }]);
+        declaration.excluded_targets[0].value = "api.example.test".to_owned();
+        let allowed = declaration.validate_for_start(&now()).unwrap();
+        assert_eq!(
+            validate_url_in_scope(&allowed, "https://api.example.test/", &now()),
+            Err(ScopeValidationError::Excluded)
+        );
+    }
+
+    #[test]
+    fn expired_validated_scope_is_rejected_before_request() {
+        let allowed = scope(vec![ScopeTarget {
+            kind: ScopeTargetKind::Hostname,
+            value: "api.example.test".to_owned(),
+        }])
+        .validate_for_start(&now())
+        .unwrap();
+        let after_expiry = now() + chrono::Duration::days(2);
+        assert_eq!(
+            validate_url_in_scope(&allowed, "https://api.example.test/", &after_expiry),
+            Err(ScopeValidationError::Expired)
+        );
     }
 }
