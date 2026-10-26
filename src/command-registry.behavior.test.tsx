@@ -71,10 +71,7 @@ describe("M1-032 registered commands in the running shell", () => {
     expect(getRegisteredCommand("project.create")?.kind).toBe("create-project");
   });
 
-  it.each([
-    ["New Task", "task"],
-    ["New Note", "note"],
-  ])("keeps %s as a no-execution preview", async (title, entity) => {
+  it.each([["New Note", "note"]])("keeps %s as a no-execution preview", async (title, entity) => {
     const user = userEvent.setup();
     render(<App />);
     const palette = await openPalette(user);
@@ -90,5 +87,16 @@ describe("M1-032 registered commands in the running shell", () => {
 
     await user.click(within(preview).getByRole("button", { name: "Back to workspace" }));
     expect(screen.queryByRole("dialog", { name: `Preview: ${title}` })).toBeNull();
+  });
+
+  it("opens the task form from the registered create command", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const palette = await openPalette(user);
+    await user.click(within(palette).getByRole("option", { name: /New Task/ }));
+
+    expect(await screen.findByRole("dialog", { name: "Create task" })).toBeTruthy();
+    expect(screen.queryByRole("dialog", { name: "Preview: New Task" })).toBeNull();
+    expect(getRegisteredCommand("task.create")?.kind).toBe("create-task");
   });
 });

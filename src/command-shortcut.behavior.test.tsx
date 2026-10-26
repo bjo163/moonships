@@ -67,15 +67,15 @@ describe("M1-033 shortcut and focus lifecycle", () => {
     expect(screen.queryByRole("dialog", { name: "Command Palette" })).toBeNull();
   });
 
-  it("focuses a new create-preview dialog after leaving the palette", async () => {
+  it("focuses the Task creation dialog after leaving the palette", async () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole("button", { name: "Open Command Palette" }));
     const palette = screen.getByRole("dialog", { name: "Command Palette" });
     await user.click(within(palette).getByRole("option", { name: /New Task/ }));
-    const preview = screen.getByRole("dialog", { name: "Preview: New Task" });
+    const preview = await screen.findByRole("dialog", { name: "Create task" });
     expect(document.activeElement).toBe(
-      within(preview).getByRole("button", { name: "Close command preview" }),
+      within(preview).getByRole("button", { name: "Close dialog" }),
     );
   });
 });

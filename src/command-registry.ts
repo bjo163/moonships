@@ -41,9 +41,18 @@ export type RegisteredCommand =
       keywords: string[];
     }
   | {
-      id: "task.create" | "note.create";
+      id: "task.create";
+      kind: "create-task";
+      title: string;
+      description: string;
+      category: string;
+      risk: "state-change";
+      keywords: string[];
+    }
+  | {
+      id: "note.create";
       kind: "preview";
-      entity: "task" | "note";
+      entity: "note";
       title: string;
       description: string;
       category: string;
@@ -92,10 +101,9 @@ export const COMMAND_REGISTRY: readonly RegisteredCommand[] = [
   },
   {
     id: "task.create",
-    kind: "preview",
-    entity: "task",
+    kind: "create-task",
     title: "New Task",
-    description: "Preview creating a task (storage is not connected yet)",
+    description: "Create a task in the local workspace or Personal inbox",
     category: "Create",
     risk: "state-change",
     keywords: ["task", "todo", "new"],

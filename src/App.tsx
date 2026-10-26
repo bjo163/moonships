@@ -3,6 +3,8 @@ import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { resolveRoute, type RouteResolution } from "./route-registry";
 import { ProjectsPage } from "./ProjectsPage";
+import { TaskCreateDialog } from "./TaskCreateDialog";
+import { Button } from "./ui-primitives";
 import { CommandPalette } from "./CommandPalette";
 import { getPaletteCommands, getRegisteredCommand } from "./command-registry";
 import {
@@ -53,6 +55,7 @@ type AppShellProps = {
   activeRoute?: "overview" | "projects";
   onToggleTheme: () => void;
   onOpenCommandPalette?: () => void;
+  onCreateTask?: () => void;
   profileLabel?: string;
   pinnedItems?: readonly string[];
   onOpenProfile?: () => void;
@@ -64,6 +67,7 @@ export function AppShell({
   activeRoute = "overview",
   onToggleTheme,
   onOpenCommandPalette,
+  onCreateTask,
   profileLabel = "Developer",
   pinnedItems = [],
   onOpenProfile,
@@ -125,6 +129,11 @@ export function AppShell({
             <h1>Moonships Workbench</h1>
           </div>
           <div className="topbar-actions">
+            {onCreateTask ? (
+              <Button variant="secondary" size="sm" onClick={onCreateTask}>
+                New task
+              </Button>
+            ) : null}
             <button
               className="theme-toggle profile-trigger"
               type="button"
@@ -565,6 +574,7 @@ export default function App() {
   const [hideToTray, setHideToTray] = useState(false);
   const [hideToTrayStatus, setHideToTrayStatus] = useState("Loading preference…");
   const [createProjectOnOpen, setCreateProjectOnOpen] = useState(false);
+  const [createTaskOpen, setCreateTaskOpen] = useState(false);
 
   useEffect(() => {
     applyThemePreference(theme, document.documentElement);
@@ -572,10 +582,16 @@ export default function App() {
 
   useEffect(() => {
     // Return to the opener only after the last overlay closes.
-    if (!commandPaletteOpen && !settingsOpen && !commandPreview && !profileDialogOpen) {
+    if (
+      !commandPaletteOpen &&
+      !settingsOpen &&
+      !commandPreview &&
+      !profileDialogOpen &&
+      !createTaskOpen
+    ) {
       paletteTriggerRef.current?.focus();
     }
-  }, [commandPaletteOpen, settingsOpen, commandPreview, profileDialogOpen]);
+  }, [commandPaletteOpen, settingsOpen, commandPreview, profileDialogOpen, createTaskOpen]);
 
   useEffect(() => {
     const isEditableTarget = (target: EventTarget | null) => {
@@ -629,6 +645,10 @@ export default function App() {
     if (command.kind === "create-project") {
       setCreateProjectOnOpen(true);
       window.location.hash = "#/projects";
+      return;
+    }
+    if (command.kind === "create-task") {
+      setCreateTaskOpen(true);
       return;
     }
     if (command.kind === "navigate") {
@@ -725,6 +745,7 @@ export default function App() {
           document.activeElement instanceof HTMLElement ? document.activeElement : null;
         setCommandPaletteOpen(true);
       }}
+      onCreateTask={() => setCreateTaskOpen(true)}
       profileLabel={getWorkspaceProfile(profileId).label}
       pinnedItems={getWorkspaceProfile(profileId).pinned}
       onOpenProfile={() => setProfileDialogOpen(true)}
@@ -745,6 +766,7 @@ export default function App() {
         onClose={() => setCommandPaletteOpen(false)}
         onSelect={(command) => selectPaletteCommand(command.id)}
       />
+      <TaskCreateDialog open={createTaskOpen} onClose={() => setCreateTaskOpen(false)} />
       {profileDialogOpen ? (
         <WorkspaceProfileDialog
           currentProfile={profileId}

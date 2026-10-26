@@ -437,17 +437,18 @@ describe("M1-032 registered command safety", () => {
     expect(getRegisteredCommand("navigation.overview")?.kind).toBe("navigate");
     expect(getRegisteredCommand("settings.open")?.kind).toBe("settings");
     expect(getRegisteredCommand("project.create")?.kind).toBe("create-project");
+    expect(getRegisteredCommand("task.create")?.kind).toBe("create-task");
     expect(getRegisteredCommand("navigation.projects")?.kind).toBe("navigate");
     expect(getRegisteredCommand("system.shell")).toBeUndefined();
     expect(commands.some((command) => command.id === "system.shell")).toBe(false);
   });
 
-  it("routes implemented project creation and keeps other create actions preview-only", () => {
+  it("routes implemented project and task creation while keeping notes preview-only", () => {
     expect(getRegisteredCommand("project.create")?.kind).toBe("create-project");
-    for (const id of ["task.create", "note.create"]) {
-      expect(getRegisteredCommand(id)?.kind).toBe("preview");
-      expect(getRegisteredCommand(id)?.risk).toBe("state-change");
-    }
+    expect(getRegisteredCommand("task.create")?.kind).toBe("create-task");
+    expect(getRegisteredCommand("task.create")?.risk).toBe("state-change");
+    expect(getRegisteredCommand("note.create")?.kind).toBe("preview");
+    expect(getRegisteredCommand("note.create")?.risk).toBe("state-change");
     expect(COMMAND_REGISTRY.every((command) => !("execute" in command))).toBe(true);
   });
 });

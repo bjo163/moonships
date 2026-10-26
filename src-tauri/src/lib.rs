@@ -112,6 +112,49 @@ struct ProjectListResponseDto {
     projects: Vec<ProjectDto>,
 }
 
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct CreateTaskRequestDto {
+    title: String,
+    project_id: Option<String>,
+    status: String,
+    priority: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct TaskDto {
+    id: String,
+    workspace_id: String,
+    project_id: Option<String>,
+    title: String,
+    description: Option<String>,
+    due_at: Option<String>,
+    status: String,
+    priority: String,
+    created_at: String,
+    updated_at: String,
+    archived_at: Option<String>,
+}
+
+impl From<tasks::Task> for TaskDto {
+    fn from(task: tasks::Task) -> Self {
+        Self {
+            id: task.id,
+            workspace_id: task.workspace_id,
+            project_id: task.project_id,
+            title: task.title,
+            description: task.description,
+            due_at: task.due_at,
+            status: task.status,
+            priority: task.priority,
+            created_at: task.created_at,
+            updated_at: task.updated_at,
+            archived_at: task.archived_at,
+        }
+    }
+}
+
 pub(crate) fn run_migrations(connection: &mut Connection) -> Result<(), String> {
     let transaction = connection
         .transaction()
@@ -347,6 +390,24 @@ fn update_project(app: AppHandle, request: UpdateProjectRequestDto) -> Result<Pr
     .map(ProjectDto::from)
 }
 
+#[tauri::command]
+fn create_task(app: AppHandle, request: CreateTaskRequestDto) -> Result<TaskDto, String> {
+    let mut connection = open_personal_workspace_database(&app)?;
+    tasks::create_task(
+        &mut connection,
+        tasks::CreateTask {
+            workspace_id: PERSONAL_WORKSPACE_ID.to_string(),
+            project_id: request.project_id,
+            title: request.title,
+            description: None,
+            due_at: None,
+            status: Some(request.status),
+            priority: Some(request.priority),
+        },
+    )
+    .map(TaskDto::from)
+}
+
 fn hide_to_tray_path(app: &AppHandle) -> Result<PathBuf, String> {
     app.path()
         .app_config_dir()
@@ -444,7 +505,8 @@ pub fn run() {
             set_app_config,
             list_projects,
             create_project,
-            update_project
+            update_project,
+            create_task
         ])
         .setup(|app| {
             let app_data_dir = app.path().app_data_dir()?;
@@ -528,9 +590,9 @@ pub fn run() {
 mod tests {
     use super::{
         database_path, hide_to_tray_enabled, open_database_in, run_migrations,
-        CreateProjectRequestDto, ListProjectsRequestDto, ProjectDto, ProjectListResponseDto,
-        CURRENT_SCHEMA_VERSION, DATABASE_BUSY_TIMEOUT_MS, DATABASE_FILE_NAME,
-        PERSONAL_WORKSPACE_ID,
+        CreateProjectRequestDto, CreateTaskRequestDto, ListProjectsRequestDto, ProjectDto,
+        ProjectListResponseDto, TaskDto, CURRENT_SCHEMA_VERSION, DATABASE_BUSY_TIMEOUT_MS,
+        DATABASE_FILE_NAME, PERSONAL_WORKSPACE_ID,
     };
     use std::{
         fs,
@@ -578,6 +640,39 @@ mod tests {
         assert_eq!(json["projects"][0]["workspaceId"], PERSONAL_WORKSPACE_ID);
         assert_eq!(json["projects"][0]["createdAt"], "2026-10-26T00:00:00Z");
         assert!(json["projects"][0].get("workspace_id").is_none());
+    }
+
+    #[test]
+    fn task_create_ipc_is_scoped_and_serializes_canonical_fields() {
+        let request: CreateTaskRequestDto = serde_json::from_str(
+            r#"{"title":"Write acceptance criteria","projectId":null,"status":"todo","priority":"p2"}"#,
+        )
+        .expect("valid task create DTO");
+        assert_eq!(request.project_id, None);
+        assert_eq!(request.status, "todo");
+        assert!(serde_json::from_str::<CreateTaskRequestDto>(
+            r#"{"title":"Task","projectId":null,"status":"todo","priority":"p2","workspaceId":"other"}"#
+        )
+        .is_err());
+
+        let task = TaskDto {
+            id: "task-id".to_string(),
+            workspace_id: PERSONAL_WORKSPACE_ID.to_string(),
+            project_id: None,
+            title: request.title,
+            description: None,
+            due_at: None,
+            status: request.status,
+            priority: request.priority,
+            created_at: "2026-10-26T00:00:00Z".to_string(),
+            updated_at: "2026-10-26T00:00:00Z".to_string(),
+            archived_at: None,
+        };
+        let json = serde_json::to_value(task).expect("serialize task response");
+        assert_eq!(json["workspaceId"], PERSONAL_WORKSPACE_ID);
+        assert_eq!(json["projectId"], serde_json::Value::Null);
+        assert_eq!(json["createdAt"], "2026-10-26T00:00:00Z");
+        assert!(json.get("workspace_id").is_none());
     }
 
     #[test]
