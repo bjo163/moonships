@@ -176,6 +176,9 @@ M7-003 adds an in-memory sequential run result with workflow identity/version an
 ### WorkflowRun
 Persisted fields: run_id, workflow_id, workflow_version, status, started_at, finished_at, duration_ms, correlation_id. Each persisted step records ordinal, step_id, tool_id/version, status, duration_ms, a fixed redacted output summary for success, or a closed error code. Inputs and output values are omitted.
 
+### WorkflowSchedule
+Fields: schedule_id, workflow_id, workflow_version, interval_minutes, enabled, next_run_at?, last_claimed_at?. Schedules are disabled by default and require an explicit enable action. Cadence is bounded from 5 minutes through 30 days. Due-claim queries return only enabled schedules and atomically advance their next time; pausing clears the due time. This prototype has no timer, production runner connection or automatic execution.
+
 ### ResearchCollection / Note
 Collection fields: id, workspace_id, name, description?, created_at, updated_at.
 Note fields: id, workspace_id, collection_id?, title, body, created_at, updated_at.

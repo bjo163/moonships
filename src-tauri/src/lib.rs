@@ -48,6 +48,7 @@ pub mod traceroute_adapter;
 pub mod trend_calculation;
 pub mod workflow_run_history;
 pub mod workflow_runner;
+pub mod workflow_schedule;
 pub mod workflow_schema;
 
 #[cfg(test)]
@@ -139,7 +140,7 @@ fn open_database_in(app_data_dir: &Path) -> Result<Connection, String> {
     Ok(connection)
 }
 
-const CURRENT_SCHEMA_VERSION: i64 = 17;
+const CURRENT_SCHEMA_VERSION: i64 = 18;
 const PERSONAL_WORKSPACE_ID: &str = "00000000-0000-4000-8000-000000000001";
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
@@ -1642,6 +1643,26 @@ pub(crate) fn run_migrations(connection: &mut Connection) -> Result<(), String> 
             .map_err(|error| format!("Could not apply workflow history migration: {error}"))?;
     }
 
+    if current_version < 18 {
+        transaction
+            .execute_batch(
+                "CREATE TABLE workflow_schedules (
+                    schedule_id TEXT PRIMARY KEY NOT NULL CHECK (length(schedule_id) = 36),
+                    workflow_id TEXT NOT NULL CHECK (length(workflow_id) BETWEEN 1 AND 128),
+                    workflow_version INTEGER NOT NULL CHECK (workflow_version > 0),
+                    interval_minutes INTEGER NOT NULL CHECK (interval_minutes BETWEEN 5 AND 43200),
+                    enabled INTEGER NOT NULL DEFAULT 0 CHECK (enabled IN (0, 1)),
+                    next_run_at TEXT,
+                    last_claimed_at TEXT,
+                    CHECK ((enabled = 0 AND next_run_at IS NULL) OR (enabled = 1 AND next_run_at IS NOT NULL))
+                );
+                CREATE INDEX idx_workflow_schedules_due
+                    ON workflow_schedules(enabled, next_run_at);
+                INSERT INTO schema_migrations (version) VALUES (18);",
+            )
+            .map_err(|error| format!("Could not apply workflow schedule migration: {error}"))?;
+    }
+
     transaction
         .commit()
         .map_err(|error| format!("Could not commit schema migration: {error}"))
@@ -1930,6 +1951,49 @@ fn get_workflow_run_history(
 }
 
 #[tauri::command]
+fn create_workflow_schedule(
+    app: AppHandle,
+    request: workflow_schedule::CreateWorkflowScheduleRequest,
+) -> Result<workflow_schedule::WorkflowSchedule, String> {
+    let mut connection = open_personal_workspace_database(&app)?;
+    workflow_schedule::create(&mut connection, &request)
+}
+
+#[tauri::command]
+fn list_workflow_schedules(
+    app: AppHandle,
+) -> Result<Vec<workflow_schedule::WorkflowSchedule>, String> {
+    let connection = open_personal_workspace_database(&app)?;
+    workflow_schedule::list(&connection)
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct SetWorkflowScheduleEnabledRequest {
+    schedule_id: String,
+    enabled: bool,
+}
+
+#[tauri::command]
+fn set_workflow_schedule_enabled(
+    app: AppHandle,
+    request: SetWorkflowScheduleEnabledRequest,
+) -> Result<workflow_schedule::WorkflowSchedule, String> {
+    let mut connection = open_personal_workspace_database(&app)?;
+    let now = chrono::DateTime::<chrono::Utc>::from(std::time::SystemTime::now());
+    workflow_schedule::set_enabled(&mut connection, &request.schedule_id, request.enabled, now)
+}
+
+#[tauri::command]
+fn claim_due_workflow_schedules(
+    app: AppHandle,
+) -> Result<Vec<workflow_schedule::WorkflowSchedule>, String> {
+    let mut connection = open_personal_workspace_database(&app)?;
+    let now = chrono::DateTime::<chrono::Utc>::from(std::time::SystemTime::now());
+    workflow_schedule::claim_due(&mut connection, now)
+}
+
+#[tauri::command]
 fn run_network_diagnostic(
     request: diagnostic_task::DiagnosticRequest,
 ) -> Result<diagnostic_task::DiagnosticResultRecord, String> {
@@ -2212,6 +2276,10 @@ pub fn run() {
             list_jobs,
             list_workflow_run_history,
             get_workflow_run_history,
+            create_workflow_schedule,
+            list_workflow_schedules,
+            set_workflow_schedule_enabled,
+            claim_due_workflow_schedules,
             run_network_diagnostic,
             create_task_from_diagnostic,
             export_project_task_data,
@@ -2793,7 +2861,7 @@ mod tests {
             .execute_batch(
                 "DROP TABLE jobs;
                  DROP TABLE cleanup_reports;
-                 DROP TABLE IF EXISTS workflow_run_steps; DROP TABLE IF EXISTS workflow_runs; DELETE FROM schema_migrations WHERE version >= 9;",
+                 DROP TABLE IF EXISTS workflow_run_steps; DROP TABLE IF EXISTS workflow_runs; DROP TABLE IF EXISTS workflow_schedules; DELETE FROM schema_migrations WHERE version >= 9;",
             )
             .expect("restore version 8 schema fixture");
 
@@ -3030,7 +3098,7 @@ mod tests {
                  DROP TABLE IF EXISTS activity_events;
                  DROP TABLE tasks;
                  DROP TABLE projects;
-                 DROP TABLE IF EXISTS cleanup_reports; DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DROP TABLE IF EXISTS workflow_run_steps; DROP TABLE IF EXISTS workflow_runs; DELETE FROM schema_migrations WHERE version >= 3;
+                 DROP TABLE IF EXISTS cleanup_reports; DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DROP TABLE IF EXISTS workflow_run_steps; DROP TABLE IF EXISTS workflow_runs; DROP TABLE IF EXISTS workflow_schedules; DELETE FROM schema_migrations WHERE version >= 3;
                  INSERT INTO app_metadata (key, value)
                      VALUES ('rollback-marker', 'preserved');
                  CREATE TABLE unrelated_fixture (id TEXT PRIMARY KEY);
@@ -3242,7 +3310,7 @@ mod tests {
                  DROP TABLE IF EXISTS activity_events;
                  DROP TABLE tasks;
                  DROP INDEX idx_projects_workspace_id;
-                 DROP TABLE IF EXISTS cleanup_reports; DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DROP TABLE IF EXISTS workflow_run_steps; DROP TABLE IF EXISTS workflow_runs; DELETE FROM schema_migrations WHERE version >= 4;
+                 DROP TABLE IF EXISTS cleanup_reports; DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DROP TABLE IF EXISTS workflow_run_steps; DROP TABLE IF EXISTS workflow_runs; DROP TABLE IF EXISTS workflow_schedules; DELETE FROM schema_migrations WHERE version >= 4;
                  INSERT INTO app_metadata (key, value) VALUES ('saved', 'keep-me');
                  INSERT INTO projects (id, workspace_id, name)
                  VALUES ('existing-project', '00000000-0000-4000-8000-000000000001', 'Keep Project');",
@@ -3290,7 +3358,7 @@ mod tests {
                  DROP TABLE IF EXISTS activity_events;
                  DROP TABLE tasks;
                  DROP INDEX idx_projects_workspace_id;
-                 DROP TABLE IF EXISTS cleanup_reports; DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DROP TABLE IF EXISTS workflow_run_steps; DROP TABLE IF EXISTS workflow_runs; DELETE FROM schema_migrations WHERE version >= 4;
+                 DROP TABLE IF EXISTS cleanup_reports; DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DROP TABLE IF EXISTS workflow_run_steps; DROP TABLE IF EXISTS workflow_runs; DROP TABLE IF EXISTS workflow_schedules; DELETE FROM schema_migrations WHERE version >= 4;
                  INSERT INTO app_metadata (key, value) VALUES ('saved', 'preserve-me');
                  CREATE TABLE unrelated_fixture (id TEXT);
                  CREATE INDEX idx_tasks_workspace_status ON unrelated_fixture (id);",
@@ -3346,7 +3414,7 @@ mod tests {
                  DROP TABLE task_labels;
                  DROP TABLE labels;
                  DROP TABLE IF EXISTS activity_events;
-                 DROP TABLE IF EXISTS cleanup_reports; DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DROP TABLE IF EXISTS workflow_run_steps; DROP TABLE IF EXISTS workflow_runs; DELETE FROM schema_migrations WHERE version >= 5;
+                 DROP TABLE IF EXISTS cleanup_reports; DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DROP TABLE IF EXISTS workflow_run_steps; DROP TABLE IF EXISTS workflow_runs; DROP TABLE IF EXISTS workflow_schedules; DELETE FROM schema_migrations WHERE version >= 5;
                  INSERT INTO projects (id, workspace_id, name)
                  VALUES ('saved-project', '00000000-0000-4000-8000-000000000001', 'Preserve');
                  INSERT INTO tasks (id, workspace_id, project_id, title)
@@ -3395,7 +3463,7 @@ mod tests {
                  DROP TABLE task_labels;
                  DROP TABLE labels;
                  DROP TABLE IF EXISTS activity_events;
-                 DROP TABLE IF EXISTS cleanup_reports; DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DROP TABLE IF EXISTS workflow_run_steps; DROP TABLE IF EXISTS workflow_runs; DELETE FROM schema_migrations WHERE version >= 5;
+                 DROP TABLE IF EXISTS cleanup_reports; DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DROP TABLE IF EXISTS workflow_run_steps; DROP TABLE IF EXISTS workflow_runs; DROP TABLE IF EXISTS workflow_schedules; DELETE FROM schema_migrations WHERE version >= 5;
                  INSERT INTO app_metadata (key, value) VALUES ('keep', 'original');
                  CREATE TABLE unrelated_fixture (id TEXT);
                  CREATE INDEX idx_activity_events_entity ON unrelated_fixture(id);",
@@ -3440,7 +3508,7 @@ mod tests {
                 "DROP TABLE task_dependencies;
                  DROP TABLE task_labels;
                  DROP TABLE labels;
-                 DROP TABLE IF EXISTS cleanup_reports; DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DROP TABLE IF EXISTS workflow_run_steps; DROP TABLE IF EXISTS workflow_runs; DELETE FROM schema_migrations WHERE version >= 6;
+                 DROP TABLE IF EXISTS cleanup_reports; DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DROP TABLE IF EXISTS workflow_run_steps; DROP TABLE IF EXISTS workflow_runs; DROP TABLE IF EXISTS workflow_schedules; DELETE FROM schema_migrations WHERE version >= 6;
                  INSERT INTO projects (id, workspace_id, name)
                  VALUES ('label-project', '00000000-0000-4000-8000-000000000001', 'Preserve');
                  INSERT INTO tasks (id, workspace_id, project_id, title)
@@ -3490,7 +3558,7 @@ mod tests {
                 "DROP TABLE task_dependencies;
                  DROP TABLE task_labels;
                  DROP TABLE labels;
-                 DROP TABLE IF EXISTS cleanup_reports; DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DROP TABLE IF EXISTS workflow_run_steps; DROP TABLE IF EXISTS workflow_runs; DELETE FROM schema_migrations WHERE version >= 6;
+                 DROP TABLE IF EXISTS cleanup_reports; DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DROP TABLE IF EXISTS workflow_run_steps; DROP TABLE IF EXISTS workflow_runs; DROP TABLE IF EXISTS workflow_schedules; DELETE FROM schema_migrations WHERE version >= 6;
                  INSERT INTO app_metadata (key, value) VALUES ('keep-label-data', 'original');
                  CREATE TABLE unrelated_label_fixture (id TEXT);
                  CREATE INDEX idx_labels_workspace_name
@@ -3534,7 +3602,7 @@ mod tests {
         connection
             .execute_batch(
                 "DROP TABLE task_dependencies;
-                 DROP TABLE IF EXISTS cleanup_reports; DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DROP TABLE IF EXISTS workflow_run_steps; DROP TABLE IF EXISTS workflow_runs; DELETE FROM schema_migrations WHERE version >= 7;
+                 DROP TABLE IF EXISTS cleanup_reports; DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DROP TABLE IF EXISTS workflow_run_steps; DROP TABLE IF EXISTS workflow_runs; DROP TABLE IF EXISTS workflow_schedules; DELETE FROM schema_migrations WHERE version >= 7;
                  INSERT INTO tasks (id, workspace_id, title)
                  VALUES ('blocked-task', '00000000-0000-4000-8000-000000000001', 'Blocked');
                  INSERT INTO tasks (id, workspace_id, title)
@@ -3573,7 +3641,7 @@ mod tests {
         connection
             .execute_batch(
                 "DROP TABLE task_dependencies;
-                 DROP TABLE IF EXISTS cleanup_reports; DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DROP TABLE IF EXISTS workflow_run_steps; DROP TABLE IF EXISTS workflow_runs; DELETE FROM schema_migrations WHERE version >= 7;
+                 DROP TABLE IF EXISTS cleanup_reports; DROP TABLE IF EXISTS milestone_tasks; DROP TABLE IF EXISTS milestones; DROP INDEX IF EXISTS idx_tasks_workspace_project_identity; DROP TABLE IF EXISTS workflow_run_steps; DROP TABLE IF EXISTS workflow_runs; DROP TABLE IF EXISTS workflow_schedules; DELETE FROM schema_migrations WHERE version >= 7;
                  INSERT INTO app_metadata (key, value) VALUES ('keep-dependency-data', 'original');
                  CREATE TABLE unrelated_dependency_fixture (id TEXT);
                  CREATE INDEX idx_task_dependencies_workspace_prerequisite
@@ -3655,7 +3723,7 @@ mod tests {
         connection.execute_batch(
             "DROP TABLE cleanup_reports; DROP TABLE milestone_tasks; DROP TABLE milestones;
              DROP INDEX idx_tasks_workspace_project_identity;
-             DROP TABLE IF EXISTS workflow_run_steps; DROP TABLE IF EXISTS workflow_runs; DELETE FROM schema_migrations WHERE version >= 8;
+             DROP TABLE IF EXISTS workflow_run_steps; DROP TABLE IF EXISTS workflow_runs; DROP TABLE IF EXISTS workflow_schedules; DELETE FROM schema_migrations WHERE version >= 8;
              INSERT INTO projects (id, workspace_id, name) VALUES ('old-project', '00000000-0000-4000-8000-000000000001', 'Old project');
              INSERT INTO tasks (id, workspace_id, project_id, title) VALUES ('old-task', '00000000-0000-4000-8000-000000000001', 'old-project', 'Keep task');",
         ).unwrap();
@@ -3693,7 +3761,7 @@ mod tests {
         run_migrations(&mut connection).unwrap();
         connection.execute_batch(
             "DROP TABLE cleanup_reports; DROP TABLE milestone_tasks; DROP TABLE milestones;
-             DROP INDEX idx_tasks_workspace_project_identity; DROP TABLE IF EXISTS workflow_run_steps; DROP TABLE IF EXISTS workflow_runs; DELETE FROM schema_migrations WHERE version>=8;
+             DROP INDEX idx_tasks_workspace_project_identity; DROP TABLE IF EXISTS workflow_run_steps; DROP TABLE IF EXISTS workflow_runs; DROP TABLE IF EXISTS workflow_schedules; DELETE FROM schema_migrations WHERE version>=8;
              CREATE TABLE unrelated_milestone_fixture (id TEXT);
              CREATE INDEX idx_milestones_project_order ON unrelated_milestone_fixture(id);",
         ).unwrap();
