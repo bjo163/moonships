@@ -129,6 +129,8 @@ M6-005 defines the provider status/freshness vocabulary for future logs, metrics
 
 M6-006 adds **Local Metrics** under Operations. It shows a one-time snapshot of local logical processors, memory and Windows volume capacity with source, sample time and per-value availability. Unsupported or unavailable readings are labeled. Refresh is explicit; the page says no remote telemetry or background collection occurs.
 
+M6-007 defines the security assessment setup contract: authorized host/IP targets, excluded targets, an authorization note and an expiry. A future Start action must remain unavailable until the scope validates; this contract task adds no assessment screen or execution.
+
 M6-003 adds **OpenAPI Viewer** under Toolbox. A user selects a local JSON/YAML file through the native picker. Loading, cancellation, parse/validation failure and a valid summary are distinct. The screen displays spec version, title, API version and path count, then offers the source text in a collapsed, escaped-text viewer. It states the 1 MiB limit and that validation is structural/local, does not resolve references and never contacts API servers.
 
 ## 4. Project & task UX

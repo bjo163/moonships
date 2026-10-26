@@ -343,6 +343,8 @@ M6-005 defines a data-only observability provider manifest and health view for l
 
 M6-006 exposes a manually refreshed local metrics snapshot from the existing read-only system inventory: logical processor count, physical memory totals/availability and Windows volume capacity. The typed response identifies its fixed local OS API source, sample timestamp and per-field available/unsupported/unavailable state. It does not persist samples, poll in the background, collect process details, or send telemetry remotely.
 
+M6-007 defines a strict security-assessment scope declaration with exact hostname/IP targets, explicit exclusions, a non-empty authorization note and an RFC 3339 expiry. Start validation rejects empty/duplicate/invalid targets, missing authorization, expired scopes and expiry beyond one year, normalizing hostnames and IP literals. This model performs no assessment or request; future executors must revalidate scope and apply tool-specific host/IP matching and approval gates.
+
 M6-003 adds a local OpenAPI document viewer. A native file chooser reads at most 1 MiB of UTF-8 text and returns no path; parsing/validation runs locally with YAML 1.2 duplicate-key rejection and aliases disabled. The validator checks OpenAPI 3.0/3.1 version, `info.title`, `info.version` and a bounded `paths` object. The original file text is shown as escaped text only. It neither resolves `$ref`, loads remote schemas, nor contacts API servers; this is a bounded structural validator, not full OpenAPI conformance.
 
 ## 11. AI adapter boundary

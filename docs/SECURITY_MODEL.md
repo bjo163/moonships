@@ -105,6 +105,12 @@ A capability describes authority; it does not by itself authorize every target o
 - Refresh occurs only on page entry or explicit user action. No timer, startup collection, remote exporter, persistence or telemetry is added.
 - Values carry explicit availability status; unsupported/unavailable values are null and are not represented as zero. The source and sample time are included in the response.
 
+### Assessment scope model (M6-007)
+
+- A future assessment start must validate a non-empty list of exact host or IP targets, explicit exclusions, a non-empty authorization note and a future expiry. Scope and exclusions are capped at 100 entries each; authorization text is capped at 2,000 characters and expiry at 365 days.
+- Target values reject URLs, ports, wildcards, malformed names and invalid IP literals. The current declaration model does not imply ownership or prove authorization; the note records the user's stated basis and must be reviewed before execution.
+- No network call or assessment is performed by the model. Any future executor must revalidate immediately before each request, enforce exclusions and redirect/out-of-scope rules, apply rate/deadline limits and require approval appropriate to risk.
+
 ### OpenAPI document viewer (M6-003)
 
 - A user action opens the native Windows file picker; renderer code cannot supply a path. Native code reads at most 1 MiB, rejects non-UTF-8 and oversized files, and returns only the filename plus bounded text. No database persistence or network access is performed.

@@ -27,6 +27,8 @@ M6-005 observability provider metadata is a strict in-memory DTO: stable bounded
 
 M6-006 local metrics are an in-memory snapshot only: fixed source label, RFC 3339 sample time, and fixed numeric fields for logical processor count, physical memory total/available and Windows volume total/free. Each field carries an available/unsupported/unavailable state; unavailable values are null rather than fabricated zeroes. No snapshot table, remote telemetry payload or background series is stored.
 
+M6-007 assessment scope is a strict declaration containing up to 100 exact hostname/IP targets, up to 100 exclusions, a non-empty authorization note capped at 2,000 characters, and an RFC 3339 expiry no more than 365 days ahead. Hostnames normalize to lowercase ASCII DNS labels; IP literals normalize through the standard IP parser. Starting validation fails for empty scope, invalid/duplicate entries, missing authorization or invalid/expired/overlong expiry. This DTO is not yet persisted and has no executor.
+
 ### Workspace
 Purpose: local grouping of projects, settings and views.
 Fields: id, name, description?, profile_type?, created_at, updated_at, archived_at?.
