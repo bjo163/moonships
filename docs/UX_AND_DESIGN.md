@@ -119,6 +119,8 @@ M2-033 replaces the Home foundation placeholder with saved Personal workspace da
 
 M4-012/013 Activity Center shows persisted job state, reported progress, recorded duration and result. Cancel remains disabled with an explanation while no connected runner advertises safe cancellation; the UI does not claim a request stopped work.
 
+M4-014 adds a NetOps page for one bounded DNS or TCP diagnostic. It displays the exact target, fixed two-second timeout, operation, result and observation time. A user can create a Personal inbox Task from the result; the saved summary retains target/result/time while omitting resolved addresses and raw system messages. Validation, rate-limit and unavailable states remain visible.
+
 ## 4. Project & task UX
 
 ### Projects list — M2-014 initial slice

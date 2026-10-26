@@ -8,6 +8,7 @@ import { getPaletteCommands, getRegisteredCommand } from "./command-registry";
 import { DevToolsPage } from "./DevToolsPage";
 import { type GlobalSearchResult, loadGlobalSearch } from "./global-search";
 import { HomeDashboardPage } from "./HomeDashboardPage";
+import { NetOpsPage } from "./NetOpsPage";
 import { ProcessesPage } from "./ProcessesPage";
 import { ProjectOverviewPage } from "./ProjectOverviewPage";
 import { ProjectsPage } from "./ProjectsPage";
@@ -135,6 +136,13 @@ export function AppShell({
             aria-current={activeRoute === "activity" ? "page" : undefined}
           >
             <span>Activity Center</span>
+          </a>
+          <a
+            className={`nav-item${activeRoute === "netops" ? " nav-item-active" : ""}`}
+            href="#/netops"
+            aria-current={activeRoute === "netops" ? "page" : undefined}
+          >
+            <span>NetOps</span>
           </a>
           {plannedNavigationItems.map((label) => (
             <div
@@ -849,6 +857,8 @@ export default function App() {
         <ServicesPage />
       ) : route.kind === "page" && route.id === "activity" ? (
         <ActivityCenterPage />
+      ) : route.kind === "page" && route.id === "netops" ? (
+        <NetOpsPage />
       ) : route.kind === "task-detail" ? (
         <TaskDetailPage taskId={route.taskId} />
       ) : (

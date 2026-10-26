@@ -28,3 +28,10 @@ describe("Activity Center route", () => {
     expect(ROUTE_REGISTRY.activity.hash).toBe("#/activity");
   });
 });
+
+describe("NetOps route", () => {
+  it("resolves its stable page ID and hash", () => {
+    expect(resolveRoute("#/netops")).toEqual({ kind: "page", id: "netops" });
+    expect(ROUTE_REGISTRY.netops.hash).toBe("#/netops");
+  });
+});

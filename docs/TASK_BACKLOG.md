@@ -171,7 +171,7 @@
 - [x] **M4-011 — Add allowlisted terminal/SSH/RDP profiles** [S] — Store secret references only. **AC:** secrets never appear in exported profile/log.
 - [x] **M4-012 — Add Activity Center for long-running jobs** [S] [depends: M1-026] — Display state, progress, duration and result. **AC:** status transitions are tested. Native job history is persisted and guarded; producers, cancellation and interrupted-job recovery remain follow-up work.
 - [x] **M4-013 — Add cancel job action where supported** [S] — Truthful best-effort semantics. **AC:** unsupported cancellation is disabled and explained. No connected runner currently provides a cancellation handle, so the action remains disabled with its reason visible.
-- [ ] **M4-014 — Add task creation from diagnostic result** [S] [depends: M2-016] — Attach redacted summary. **AC:** target/result/time are linked without secret data.
+- [x] **M4-014 — Add task creation from diagnostic result** [S] [depends: M2-016] — Attach redacted summary. **AC:** target/result/time are linked without secret data. NetOps runs bounded one-target checks; native result handles create a Personal inbox Task with target, result and timestamp only, omitting resolved addresses and raw system messages.
 - [ ] **M4-015 — Add network timeout/rate-limit/error tests** [S] — Test fixtures/local loopback. **AC:** tests do not target arbitrary public hosts.
 
 ## M5 — World Monitor, trends and media intelligence

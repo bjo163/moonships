@@ -103,7 +103,7 @@ Risk class is separate from task priority, vulnerability severity and business i
 - Ping capability detection opens and closes the Windows IP Helper ICMP handle without sending an echo request or launching an external program. Unsupported platform/API conditions return a typed unsupported reason.
 - Traceroute is explicitly deferred until a reviewed adapter can enforce hop and wall-clock limits. There is no executable fallback or silent success-shaped result.
 - The IPv4 subnet calculator is pure local arithmetic over one strict address/prefix input. It does not resolve names, query network state or expand to scanned targets.
-- Result provenance identifies the exact target/port, operation, UTC observation time as epoch milliseconds, elapsed time, IP-literal source, OS resolver or TCP socket, outcome, stable error code and bounded resolved addresses. Invalid input is a validation error; resolver failures are distinct typed results. No executable IPC command is registered by M4-002.
+- Result provenance identifies the exact target/port, operation, UTC observation time as epoch milliseconds, elapsed time, IP-literal source, OS resolver or TCP socket, outcome, stable error code and bounded resolved addresses. Invalid input is a validation error; resolver failures are distinct typed results. M4-002 added no IPC command; M4-014 later registered the bounded one-target command.
 
 ### Read-only system inventory (M4-007)
 
@@ -134,6 +134,7 @@ Risk class is separate from task priority, vulnerability severity and business i
 - Profiles accept only an allowlisted local terminal enum or a strict single-host SSH/RDP target with a nonzero port. No shell command string, arbitrary executable path or free-form process arguments are part of the model.
 - Credential slots contain only UUID secret references. Deserialization rejects unknown fields, including plaintext password/key fields; the profile export DTO omits the reference, and safe log metadata omits profile name, host, username and reference.
 - M4-012 job history is local-only and the renderer has read-only access. Trusted native producers must use bounded, non-sensitive titles/stages/result summaries; credentials, raw provider output and arbitrary log text do not belong in these fields. Secret scrubbing is not inferred or promised by this storage contract.
+- M4-014 diagnostics accept one manually entered hostname/IP, or one host and port, with the adapter's shared one-worker, timeout and rate limits. Task creation uses a short-lived native result handle rather than trusting renderer-supplied result fields; the summary omits resolved addresses and raw system messages. The target is shown before the user starts the check.
 - Profile metadata is inert: this task adds no persistence, OS credential-store access, process launch or network connection.
 
 ## 5. Cleaner-specific safety

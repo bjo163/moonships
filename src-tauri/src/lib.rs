@@ -3,6 +3,7 @@ pub mod cleaner;
 pub mod cleanup_reports;
 pub mod config;
 pub mod connection_profiles;
+pub mod diagnostic_task;
 pub mod dns_adapter;
 pub mod domain;
 pub mod event_log_adapter;
@@ -243,6 +244,12 @@ struct CreateTaskRequestDto {
     parent_task_id: Option<String>,
     status: String,
     priority: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct CreateTaskFromDiagnosticRequestDto {
+    diagnostic_result_id: String,
 }
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
@@ -1044,6 +1051,27 @@ fn list_jobs(app: AppHandle) -> Result<Vec<jobs::JobRecord>, String> {
 }
 
 #[tauri::command]
+fn run_network_diagnostic(
+    request: diagnostic_task::DiagnosticRequest,
+) -> Result<diagnostic_task::DiagnosticResultRecord, String> {
+    diagnostic_task::run(request)
+}
+
+#[tauri::command]
+fn create_task_from_diagnostic(
+    app: AppHandle,
+    request: CreateTaskFromDiagnosticRequestDto,
+) -> Result<TaskDto, String> {
+    let mut connection = open_personal_workspace_database(&app)?;
+    diagnostic_task::create_task_from_result(
+        &mut connection,
+        PERSONAL_WORKSPACE_ID,
+        &request.diagnostic_result_id,
+    )
+    .map(TaskDto::from)
+}
+
+#[tauri::command]
 fn get_task(app: AppHandle, request: TaskRequestDto) -> Result<TaskDto, String> {
     let connection = open_personal_workspace_database(&app)?;
     tasks::get_task(&connection, PERSONAL_WORKSPACE_ID, &request.id).map(TaskDto::from)
@@ -1282,6 +1310,8 @@ pub fn run() {
             list_process_inventory,
             list_service_inventory,
             list_jobs,
+            run_network_diagnostic,
+            create_task_from_diagnostic,
             export_project_task_data,
             preview_project_task_import,
             create_task,
