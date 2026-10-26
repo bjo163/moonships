@@ -135,6 +135,8 @@ M6-008 adds a native policy check for request and redirect destinations against 
 
 M6-009 adds the finding data contract and a reusable presentation fragment. Severity (impact) and Likelihood (chance) appear as separate labelled rows; Task priority is not used as a substitute. There is no persisted findings list or fabricated sample data in this task.
 
+M6-010 defines the future finding-to-Task action: a valid, unexpired scope and in-scope finding are required; the resulting Task carries remediation, observation time, scope snapshot and a sanitized evidence link. No evidence is opened or fetched. A full findings screen remains a later milestone.
+
 M6-003 adds **OpenAPI Viewer** under Toolbox. A user selects a local JSON/YAML file through the native picker. Loading, cancellation, parse/validation failure and a valid summary are distinct. The screen displays spec version, title, API version and path count, then offers the source text in a collapsed, escaped-text viewer. It states the 1 MiB limit and that validation is structural/local, does not resolve references and never contacts API servers.
 
 ## 4. Project & task UX

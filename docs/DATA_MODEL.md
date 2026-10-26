@@ -33,6 +33,8 @@ M6-008 uses the validated scope to check an HTTP(S) URL host before a request an
 
 M6-009 `SecurityFinding` carries a UUID, bounded title/summary, `severity`, `likelihood`, lifecycle state, validated exact target and RFC 3339 observation time. Severity and likelihood are separate closed enums; neither is collapsed into task priority or a computed risk value. Evidence references, persistence and assessment run linkage are deferred.
 
+M6-010 converts a validated `SecurityFinding` plus active `AssessmentScope`, remediation and validated HTTP(S) evidence URL into an ordinary Personal inbox Task. The Task description contains a bounded snapshot of finding dimensions, target, summary, timestamp, remediation, redacted evidence URL, authorized/excluded targets, authorization note and scope expiry. It creates no separate finding/evidence table; future persistence and app-managed artifact references remain separate work.
+
 ### Workspace
 Purpose: local grouping of projects, settings and views.
 Fields: id, name, description?, profile_type?, created_at, updated_at, archived_at?.

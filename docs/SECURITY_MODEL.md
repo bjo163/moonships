@@ -123,6 +123,12 @@ A capability describes authority; it does not by itself authorize every target o
 - Finding title/summary lengths, canonical UUID, exact target and RFC 3339 observation time are validated. Free-form provider payloads, credentials and evidence blobs are not fields in this model.
 - The reusable UI presents Severity and Likelihood as separate named rows. This model does not establish exploitability or automatically compute a risk score.
 
+### Finding-to-Task handoff (M6-010)
+
+- Native code validates the finding and assessment scope at handoff time, rejects an expired scope or target not explicitly authorized (or explicitly excluded), rejects future observation timestamps and enforces remediation/Task payload size bounds.
+- Evidence is an explicit HTTP(S) URL only; embedded credentials, fragments and unsafe schemes are rejected, common sensitive query values are redacted before storage, and the URL is never fetched or opened.
+- The Task snapshots scope authorization note, targets, exclusions and expiry with the finding timestamp, severity, likelihood, remediation and evidence link. Task priority remains its ordinary independent default and is not derived from severity or likelihood.
+
 ### OpenAPI document viewer (M6-003)
 
 - A user action opens the native Windows file picker; renderer code cannot supply a path. Native code reads at most 1 MiB, rejects non-UTF-8 and oversized files, and returns only the filename plus bounded text. No database persistence or network access is performed.

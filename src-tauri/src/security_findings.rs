@@ -1,6 +1,10 @@
 //! Bounded security finding shape with independent severity and likelihood dimensions.
-use crate::assessment_scope::{ScopeTarget, ScopeTargetKind};
-use chrono::DateTime;
+use crate::{
+    assessment_scope::{AssessmentScope, ScopeTarget, ScopeTargetKind},
+    tasks::{self, CreateTask, Task},
+};
+use chrono::{DateTime, Utc};
+use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -107,13 +111,109 @@ impl SecurityFinding {
     }
 }
 
+fn compact_text(value: &str) -> String {
+    value.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+/// Convert a validated finding into a Personal inbox Task with a bounded provenance snapshot.
+/// No network request is made; evidence URLs are validated and redacted before being copied.
+pub fn create_task_from_finding(
+    connection: &mut Connection,
+    finding: &SecurityFinding,
+    scope: &AssessmentScope,
+    remediation: &str,
+    evidence_url: &str,
+    now: &DateTime<Utc>,
+) -> Result<Task, String> {
+    finding
+        .validate()
+        .map_err(|_| "VALIDATION_FAILED: finding fields are invalid".to_owned())?;
+    let scope = scope
+        .validate_for_start(now)
+        .map_err(|_| "VALIDATION_FAILED: assessment scope is invalid or expired".to_owned())?;
+    if !scope.authorized_targets.contains(&finding.target)
+        || scope.excluded_targets.contains(&finding.target)
+    {
+        return Err("OUT_OF_SCOPE: finding target is not authorized".to_owned());
+    }
+    let remediation = compact_text(remediation);
+    if remediation.is_empty() || remediation.chars().count() > MAX_FINDING_SUMMARY_CHARS {
+        return Err("VALIDATION_FAILED: remediation is empty or exceeds its limit".to_owned());
+    }
+    let observed_at = DateTime::parse_from_rfc3339(&finding.observed_at)
+        .map_err(|_| "VALIDATION_FAILED: finding observation time is invalid".to_owned())?
+        .with_timezone(&Utc);
+    if observed_at > *now {
+        return Err("VALIDATION_FAILED: finding observation time is in the future".to_owned());
+    }
+    if observed_at
+        > DateTime::parse_from_rfc3339(&scope.expires_at)
+            .map_err(|_| "VALIDATION_FAILED: assessment scope expiry is invalid".to_owned())?
+            .with_timezone(&Utc)
+    {
+        return Err("VALIDATION_FAILED: finding time is outside the assessment scope".to_owned());
+    }
+    let evidence_url = crate::http_inspection::sanitize_evidence_url(evidence_url)?;
+    let authorized_targets = scope
+        .authorized_targets
+        .iter()
+        .map(|target| format!("{:?}: {}", target.kind, target.value))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let excluded_targets = scope
+        .excluded_targets
+        .iter()
+        .map(|target| format!("{:?}: {}", target.kind, target.value))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let description = format!(
+        "Security finding ID: {}\nSeverity: {:?}\nLikelihood: {:?}\nState: {:?}\nTarget: {:?} {}\nObserved: {}\nSummary: {}\nRemediation: {}\nEvidence: {}\nAuthorized scope: {}\nExcluded scope: {}\nAuthorization note: {}\nScope expires: {}",
+        finding.id,
+        finding.severity,
+        finding.likelihood,
+        finding.state,
+        finding.target.kind,
+        finding.target.value,
+        finding.observed_at,
+        compact_text(&finding.summary),
+        remediation,
+        evidence_url,
+        authorized_targets,
+        excluded_targets,
+        compact_text(&scope.authorization_note),
+        scope.expires_at,
+    );
+    if description.chars().count() > 10_000 {
+        return Err(
+            "LIMIT_REACHED: finding evidence exceeds the Task description limit".to_owned(),
+        );
+    }
+    tasks::create_task(
+        connection,
+        CreateTask {
+            workspace_id: crate::PERSONAL_WORKSPACE_ID.to_owned(),
+            project_id: None,
+            parent_task_id: None,
+            title: compact_text(&finding.title),
+            description: Some(description),
+            due_at: None,
+            status: Some("todo".to_owned()),
+            priority: Some("p2".to_owned()),
+        },
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        FindingLikelihood, FindingSeverity, FindingState, FindingValidationError, SecurityFinding,
-        MAX_FINDING_SUMMARY_CHARS, MAX_FINDING_TITLE_CHARS,
+        create_task_from_finding, FindingLikelihood, FindingSeverity, FindingState,
+        FindingValidationError, SecurityFinding, MAX_FINDING_SUMMARY_CHARS,
+        MAX_FINDING_TITLE_CHARS,
     };
-    use crate::assessment_scope::{ScopeTarget, ScopeTargetKind};
+    use crate::assessment_scope::{AssessmentScope, ScopeTarget, ScopeTargetKind};
+    use crate::tasks::get_task;
+    use chrono::{DateTime, Utc};
+    use rusqlite::Connection;
     use uuid::Uuid;
 
     fn finding() -> SecurityFinding {
@@ -131,6 +231,27 @@ mod tests {
             },
             observed_at: "2026-10-26T12:00:00Z".to_owned(),
         }
+    }
+
+    fn scope() -> AssessmentScope {
+        AssessmentScope {
+            authorized_targets: vec![ScopeTarget {
+                kind: ScopeTargetKind::Hostname,
+                value: "api.example.test".to_owned(),
+            }],
+            authorization_note: "Approved assessment ticket SEC-42".to_owned(),
+            excluded_targets: vec![ScopeTarget {
+                kind: ScopeTargetKind::Hostname,
+                value: "admin.example.test".to_owned(),
+            }],
+            expires_at: "2026-10-27T12:00:00Z".to_owned(),
+        }
+    }
+
+    fn now() -> DateTime<Utc> {
+        DateTime::parse_from_rfc3339("2026-10-26T13:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc)
     }
 
     #[test]
@@ -185,5 +306,71 @@ mod tests {
         assert!(serde_json::from_value::<SecurityFinding>(value).is_err());
         assert!(serde_json::from_str::<FindingSeverity>("\"urgent\"").is_err());
         assert!(serde_json::from_str::<FindingLikelihood>("\"guaranteed\"").is_err());
+    }
+
+    #[test]
+    fn task_conversion_preserves_scope_time_remediation_and_redacted_evidence_link() {
+        let mut connection = Connection::open_in_memory().unwrap();
+        crate::run_migrations(&mut connection).unwrap();
+        let source = finding();
+        let created = create_task_from_finding(
+            &mut connection,
+            &source,
+            &scope(),
+            "Rotate the certificate and add a renewal alert.",
+            "https://evidence.example.test/report?api_key=private&view=1",
+            &now(),
+        )
+        .unwrap();
+        let saved = get_task(&connection, crate::PERSONAL_WORKSPACE_ID, &created.id).unwrap();
+        let description = saved.description.unwrap();
+        for expected in [
+            "Severity: Medium",
+            "Likelihood: Likely",
+            "Target: Hostname api.example.test",
+            "Observed: 2026-10-26T12:00:00Z",
+            "Rotate the certificate",
+            "https://evidence.example.test/report?api_key=%5BREDACTED%5D&view=1",
+            "Approved assessment ticket SEC-42",
+            "Scope expires: 2026-10-27T12:00:00.000Z",
+        ] {
+            assert!(description.contains(expected), "missing {expected}");
+        }
+        assert!(!description.contains("private"));
+        assert_eq!(saved.priority, "p2");
+    }
+
+    #[test]
+    fn task_conversion_rejects_out_of_scope_expired_or_unsafe_evidence_without_writes() {
+        let mut connection = Connection::open_in_memory().unwrap();
+        crate::run_migrations(&mut connection).unwrap();
+        let mut source = finding();
+        source.target.value = "outside.example.test".to_owned();
+        assert!(create_task_from_finding(
+            &mut connection,
+            &source,
+            &scope(),
+            "Fix it",
+            "https://evidence.example.test/report",
+            &now(),
+        )
+        .is_err());
+        source = finding();
+        assert!(create_task_from_finding(
+            &mut connection,
+            &source,
+            &scope(),
+            "Fix it",
+            "https://user:password@evidence.example.test/report",
+            &now(),
+        )
+        .is_err());
+        let tasks = crate::tasks::list_tasks(
+            &connection,
+            crate::PERSONAL_WORKSPACE_ID,
+            crate::tasks::TaskArchiveFilter::Active,
+        )
+        .unwrap();
+        assert!(tasks.is_empty());
     }
 }

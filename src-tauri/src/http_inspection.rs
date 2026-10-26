@@ -387,6 +387,24 @@ fn redact_url(url: &mut Url) -> String {
     url.to_string()
 }
 
+/// Validate an evidence reference and redact common sensitive query values before saving it.
+pub fn sanitize_evidence_url(value: &str) -> Result<String, String> {
+    if value.chars().count() > MAX_URL_CHARS {
+        return Err("VALIDATION_FAILED: evidence URL is too long".to_owned());
+    }
+    let mut url =
+        Url::parse(value).map_err(|_| "VALIDATION_FAILED: evidence URL is invalid".to_owned())?;
+    if !matches!(url.scheme(), "http" | "https")
+        || url.host_str().is_none()
+        || !url.username().is_empty()
+        || url.password().is_some()
+        || url.fragment().is_some()
+    {
+        return Err("VALIDATION_FAILED: evidence URL is unsafe".to_owned());
+    }
+    Ok(redact_url(&mut url))
+}
+
 fn map_fetch_error(error: RssFetchError) -> InspectionError {
     match error {
         RssFetchError::RateLimited | RssFetchError::BackoffActive => InspectionError::RateLimited,

@@ -278,6 +278,15 @@ struct CreateTaskFromHttpInspectionRequestDto {
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct CreateTaskFromFindingRequestDto {
+    finding: security_findings::SecurityFinding,
+    scope: assessment_scope::AssessmentScope,
+    remediation: String,
+    evidence_url: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct ListTasksRequestDto {}
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
@@ -802,6 +811,24 @@ fn create_task_from_http_inspection(
 ) -> Result<TaskDto, String> {
     let mut connection = open_personal_workspace_database(&app)?;
     http_inspection::create_task_from_history(&mut connection, &request.history_id).map(Into::into)
+}
+
+#[tauri::command]
+fn create_task_from_security_finding(
+    app: AppHandle,
+    request: CreateTaskFromFindingRequestDto,
+) -> Result<TaskDto, String> {
+    let mut connection = open_personal_workspace_database(&app)?;
+    let now = chrono::DateTime::<chrono::Utc>::from(std::time::SystemTime::now());
+    security_findings::create_task_from_finding(
+        &mut connection,
+        &request.finding,
+        &request.scope,
+        &request.remediation,
+        &request.evidence_url,
+        &now,
+    )
+    .map(Into::into)
 }
 
 #[tauri::command]
@@ -1949,6 +1976,7 @@ pub fn run() {
             inspect_http_response,
             list_http_inspection_history,
             create_task_from_http_inspection,
+            create_task_from_security_finding,
             select_openapi_document,
             set_intelligence_source_enabled,
             list_intelligence_watchlists,
