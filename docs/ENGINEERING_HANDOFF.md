@@ -401,3 +401,7 @@ Added one-host/one-port TCP checks to the same bounded worker used for DNS, shar
 ## M4-004 Ping capability detection — 2026-10-26
 
 Added typed ping capability detection. On Windows it probes whether the native IP Helper ICMP handle can be opened, closes it immediately, sends no echo packet, and does not assume a `ping.exe` installation. Unsupported platforms and unavailable APIs carry explicit reasons. Verification passed: Rust suite 135/135; Clippy with warnings denied; Rust formatting; backlog validation; and `git diff --check`.
+
+## M4-005 Traceroute deferred status — 2026-10-26
+
+Recorded traceroute as explicitly deferred because no reviewed adapter yet enforces both hop and wall-clock limits. The native contract returns a typed deferred reason; it does not start `tracert`/`traceroute`, substitute another process, or report a successful result. Verification passed: Rust suite 136/136; Clippy with warnings denied; Rust formatting; backlog validation (106/238 checked); and `git diff --check`.

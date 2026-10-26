@@ -93,7 +93,7 @@ Risk class is separate from task priority, vulnerability severity and business i
 - App startup and background tasks cannot silently approve a consequential action.
 - Approval binds to exact arguments, tool version, target, scope and preview hash. Any material change invalidates it.
 
-### Bounded network diagnostics (M4-001 through M4-004)
+### Bounded network diagnostics (M4-001 through M4-005)
 
 - A request names one DNS hostname/IP or one TCP hostname/IP plus one explicit port. A URL, embedded port, wildcard, CIDR or target range is rejected; the UI must show the exact target and requested operation before starting a future adapter.
 - Hostnames are ASCII DNS labels (IDNs must be punycode); literal IPv4 and IPv6 are supported. User whitespace is not silently trimmed. A target is never accepted from page content, model output or a redirect.
@@ -101,6 +101,7 @@ Risk class is separate from task priority, vulnerability severity and business i
 - The DNS adapter performs read-only resolution through the OS resolver on one bounded worker and reports timeout to the caller. The OS resolver call cannot be forcibly cancelled; a stuck call occupies the single worker, and the adapter never creates replacement workers. IP literals are returned directly without a resolver request.
 - The TCP adapter accepts one host and one nonzero port. DNS resolution and socket connect share the same single worker, queue, deadline and rate bound; each resolved address is tried only within the original request deadline. It does not scan adjacent ports, targets or ranges.
 - Ping capability detection opens and closes the Windows IP Helper ICMP handle without sending an echo request or launching an external program. Unsupported platform/API conditions return a typed unsupported reason.
+- Traceroute is explicitly deferred until a reviewed adapter can enforce hop and wall-clock limits. There is no executable fallback or silent success-shaped result.
 - Result provenance identifies the exact target/port, operation, UTC observation time as epoch milliseconds, elapsed time, IP-literal source, OS resolver or TCP socket, outcome, stable error code and bounded resolved addresses. Invalid input is a validation error; resolver failures are distinct typed results. No executable IPC command is registered by M4-002.
 
 ## 5. Cleaner-specific safety
