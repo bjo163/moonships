@@ -216,6 +216,29 @@ pub fn update_project(
     let transaction = connection
         .transaction()
         .map_err(|_| "IO_ERROR: could not begin project update".to_string())?;
+    let existing = read_project(&transaction, workspace_id, id)?;
+    if existing.archived_at.is_some() {
+        return Err("NOT_FOUND: project is archived".to_string());
+    }
+    let workspace_active: Option<i64> = transaction
+        .query_row(
+            "SELECT 1 FROM workspaces WHERE id = ?1 AND archived_at IS NULL",
+            params![workspace_id],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|_| "IO_ERROR: could not read project workspace".to_string())?;
+    if workspace_active.is_none() {
+        return Err("NOT_FOUND: project workspace is archived".to_string());
+    }
+    if existing.name == name
+        && existing.description == description
+        && existing.goal == goal
+        && existing.status == request.status
+    {
+        return Ok(existing);
+    }
+
     let updated = transaction
         .execute(
             "UPDATE projects
@@ -422,6 +445,53 @@ mod tests {
         assert_eq!(latest_action, "updated");
         assert_eq!(latest_summary, "Project updated");
         assert!(!latest_summary.contains("secret"));
+    }
+
+    #[test]
+    fn unchanged_project_update_keeps_timestamp_and_does_not_create_activity() {
+        let mut connection = fixture();
+        let original = create_project(&mut connection, request()).expect("project");
+        let unchanged = update_project(
+            &mut connection,
+            UpdateProject {
+                workspace_id: PERSONAL.to_string(),
+                id: original.id.clone(),
+                name: "  Moonships MVP  ".to_string(),
+                description: Some(" Local project ".to_string()),
+                goal: None,
+                status: "planned".to_string(),
+            },
+        )
+        .expect("no-op update");
+        assert_eq!(unchanged, original);
+        let events: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM activity_events WHERE entity_id = ?1",
+                params![original.id],
+                |row| row.get(0),
+            )
+            .expect("event count");
+        assert_eq!(events, 1, "unchanged project must not create updated activity");
+
+        connection
+            .execute(
+                "UPDATE workspaces SET archived_at = '2026-01-01' WHERE id = ?1",
+                params![PERSONAL],
+            )
+            .expect("archive workspace");
+        let error = update_project(
+            &mut connection,
+            UpdateProject {
+                workspace_id: PERSONAL.to_string(),
+                id: original.id.clone(),
+                name: original.name,
+                description: original.description,
+                goal: original.goal,
+                status: original.status,
+            },
+        )
+        .unwrap_err();
+        assert!(error.starts_with("NOT_FOUND:"));
     }
 
     #[test]
