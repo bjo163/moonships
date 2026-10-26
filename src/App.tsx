@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
-import { resolveRoute, type RouteResolution } from "./route-registry";
+import { resolveRoute, type RouteId, type RouteResolution } from "./route-registry";
 import { ProjectsPage } from "./ProjectsPage";
+import { TaskListPage } from "./TaskListPage";
 import { TaskCreateDialog } from "./TaskCreateDialog";
 import { Button } from "./ui-primitives";
 import { CommandPalette } from "./CommandPalette";
@@ -24,7 +25,6 @@ import {
 
 const plannedNavigationItems = [
   "My Work",
-  "Tasks",
   "Toolbox",
   "Security",
   "Intelligence",
@@ -52,7 +52,7 @@ const foundationChecks: Array<{
 type AppShellProps = {
   children: ReactNode;
   theme: ThemePreference;
-  activeRoute?: "overview" | "projects";
+  activeRoute?: RouteId;
   onToggleTheme: () => void;
   onOpenCommandPalette?: () => void;
   onCreateTask?: () => void;
@@ -101,6 +101,13 @@ export function AppShell({
             aria-current={activeRoute === "projects" ? "page" : undefined}
           >
             <span>Projects</span>
+          </a>
+          <a
+            className={`nav-item${activeRoute === "tasks" ? " nav-item-active" : ""}`}
+            href="#/tasks"
+            aria-current={activeRoute === "tasks" ? "page" : undefined}
+          >
+            <span>Tasks</span>
           </a>
           {plannedNavigationItems.map((label) => (
             <div
@@ -757,6 +764,8 @@ export default function App() {
           createOnOpen={createProjectOnOpen}
           onCreateHandled={() => setCreateProjectOnOpen(false)}
         />
+      ) : route.kind === "page" && route.id === "tasks" ? (
+        <TaskListPage onCreateTask={() => setCreateTaskOpen(true)} />
       ) : (
         <NotFoundPage requested={route.kind === "not-found" ? route.requested : ""} />
       )}

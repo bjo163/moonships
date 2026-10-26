@@ -6,25 +6,9 @@ import {
   type TaskRecord,
   type TaskStatus,
 } from "./tasks-api";
+import { TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from "./task-presentation";
 import { listProjects, type ProjectRecord } from "./projects-api";
 import { Badge, Button, Dialog, Input } from "./ui-primitives";
-
-const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
-  backlog: "Backlog",
-  todo: "Todo",
-  in_progress: "In progress",
-  blocked: "Blocked",
-  in_review: "In review",
-  done: "Done",
-  cancelled: "Cancelled",
-};
-
-const TASK_PRIORITY_LABELS: Record<TaskPriority, string> = {
-  p0: "P0 · Critical",
-  p1: "P1 · High",
-  p2: "P2 · Normal",
-  p3: "P3 · Low",
-};
 
 export function TaskCreateDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [title, setTitle] = useState("");

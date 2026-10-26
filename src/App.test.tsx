@@ -76,7 +76,7 @@ describe("Moonships application shell", () => {
     expect(markup).toContain("Replaceable content");
   });
 
-  it("exposes only the implemented Home route as a link and labels other menu items Planned", () => {
+  it("exposes implemented Home, Projects and Tasks routes and labels remaining items Planned", () => {
     const markup = renderToStaticMarkup(
       <AppShell theme="dark" onToggleTheme={() => {}}>
         <div>Page</div>
@@ -88,7 +88,6 @@ describe("Moonships application shell", () => {
     expect(markup).toContain('aria-current="page"');
     for (const label of [
       "My Work",
-      "Tasks",
       "Toolbox",
       "Security",
       "Intelligence",
@@ -103,13 +102,15 @@ describe("Moonships application shell", () => {
     expect(navigation).toBeDefined();
     expect(navigation).not.toContain('href="#"');
     expect(navigation).toContain('href="#/projects"');
-    expect(navigation?.match(/class="nav-state">Planned<\/span>/g)).toHaveLength(8);
+    expect(navigation).toContain('href="#/tasks"');
+    expect(navigation?.match(/class="nav-state">Planned<\/span>/g)).toHaveLength(7);
   });
 
   it("resolves registered route IDs and keeps the legacy home hash compatible", () => {
     expect(resolveRoute("#/overview")).toEqual({ kind: "page", id: "overview" });
     expect(resolveRoute("#home")).toEqual({ kind: "page", id: "overview" });
     expect(resolveRoute("#/projects")).toEqual({ kind: "page", id: "projects" });
+    expect(resolveRoute("#/tasks")).toEqual({ kind: "page", id: "tasks" });
     expect(resolveRoute("")).toEqual({ kind: "page", id: "overview" });
   });
 
@@ -439,6 +440,7 @@ describe("M1-032 registered command safety", () => {
     expect(getRegisteredCommand("project.create")?.kind).toBe("create-project");
     expect(getRegisteredCommand("task.create")?.kind).toBe("create-task");
     expect(getRegisteredCommand("navigation.projects")?.kind).toBe("navigate");
+    expect(getRegisteredCommand("navigation.tasks")?.kind).toBe("navigate");
     expect(getRegisteredCommand("system.shell")).toBeUndefined();
     expect(commands.some((command) => command.id === "system.shell")).toBe(false);
   });

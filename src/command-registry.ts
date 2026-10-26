@@ -23,6 +23,16 @@ export type RegisteredCommand =
       keywords: string[];
     }
   | {
+      id: "navigation.tasks";
+      kind: "navigate";
+      route: RouteId;
+      title: string;
+      description: string;
+      category: string;
+      risk: "read-only";
+      keywords: string[];
+    }
+  | {
       id: "settings.open";
       kind: "settings";
       title: string;
@@ -80,6 +90,16 @@ export const COMMAND_REGISTRY: readonly RegisteredCommand[] = [
     category: "Navigation",
     risk: "read-only",
     keywords: ["projects", "work", "portfolio"],
+  },
+  {
+    id: "navigation.tasks",
+    kind: "navigate",
+    route: "tasks",
+    title: "Open Tasks",
+    description: "Browse active tasks saved in the local workspace",
+    category: "Navigation",
+    risk: "read-only",
+    keywords: ["tasks", "todo", "work"],
   },
   {
     id: "settings.open",

@@ -47,6 +47,17 @@ describe("M1-032 registered commands in the running shell", () => {
     expect(await screen.findByRole("heading", { name: /A clear starting point/ })).toBeTruthy();
   });
 
+  it("opens the persisted Task List from the registered Tasks navigation command", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const palette = await openPalette(user);
+    await user.click(within(palette).getByRole("option", { name: /Open Tasks/ }));
+
+    expect(window.location.hash).toBe("#/tasks");
+    expect(await screen.findByRole("heading", { name: "Tasks" })).toBeTruthy();
+    expect(getRegisteredCommand("navigation.tasks")?.kind).toBe("navigate");
+  });
+
   it("opens Settings without invoking a registered tool", async () => {
     const user = userEvent.setup();
     render(<App />);

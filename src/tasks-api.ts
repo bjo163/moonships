@@ -32,15 +32,20 @@ export type CreateTaskInput = {
   priority: TaskPriority;
 };
 
+export function listTasks(): Promise<TaskRecord[]> {
+  return invoke<{ tasks: TaskRecord[] }>("list_tasks", { request: {} }).then(({ tasks }) => tasks);
+}
+
 export function createTask(request: CreateTaskInput): Promise<TaskRecord> {
   return invoke<TaskRecord>("create_task", { request });
 }
 
-export function toTaskErrorMessage(error: unknown): string {
+export function toTaskErrorMessage(error: unknown, action: "load" | "save" = "save"): string {
   const code = typeof error === "string" ? error.split(":", 1)[0] : "";
   if (code === "VALIDATION_FAILED")
     return "Check the task title, status and priority, then try again.";
   if (code === "NOT_FOUND")
     return "That project is no longer available. Choose another project or the Personal inbox.";
+  if (action === "load") return "Tasks could not be read from this device. Try again.";
   return "The task could not be saved. Your entered details are still here; try again.";
 }
